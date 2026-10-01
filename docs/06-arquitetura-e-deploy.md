@@ -80,6 +80,19 @@ O app usa os tiles próprios de Ariquemes já servidos pelo app dos ônibus (zoo
 | Apagar dados de demonstração | `psql $DATABASE_URL -f db/remove-demo.sql` (o livro-razão não tem cascata; o script apaga na ordem certa) |
 | Liberar carências manualmente | `select fn_vest_due();` (a API já faz a cada 10 min) |
 
+## Modo demonstração (GitHub Pages)
+
+Para testar pelo celular sem servidor nem banco, o PWA tem um modo em que a API inteira roda no navegador (`web/src/lib/demo/`): `server.ts` reproduz as rotas, formatos e códigos de `api/src/routes/*`, `state.ts` guarda um "banco" com o mesmo seed (6 pessoas, 10 lugares, 8 perguntas) e o mesmo motor de pontos (carência, estorno, limites diários, confiança, sequência), e `web/src/lib/economy.ts` é a cópia das constantes da API.
+
+```bash
+pnpm --filter garimpa-web dev:demo     # desenvolvimento com a API falsa (VITE_DEMO=1)
+pnpm --filter garimpa-web build:demo   # web/dist-demo com caminhos relativos, sem service worker
+```
+
+O workflow `.github/workflows/pages.yml` publica `web/dist-demo` no GitHub Pages a cada push em `main`. No demo as rotas vivem no hash (`/#/garimpos`), os dados ficam em `localStorage` (chave `garimpa.demo.v1`, sem imagens) e o selo **Demonstração** no canto superior abre uma folha com **Reiniciar demonstração** e **Simular 7 dias** (libera carências e avança a sequência). Entre como `marina`, `joao`, `tais`, `rafael`, `lucas` ou `dona neide`.
+
+Diferenças assumidas em relação à API real: o navegador não lê EXIF (a prova pontua só pela localização do aparelho: no máximo 40, sempre "prova fraca"), fotos enviadas ficam só na memória (ao recarregar viram imagem de exemplo), a deduplicação usa Jaccard de palavras em vez de trigramas e o conluio por dispositivo fica desligado (todas as personas usam o mesmo navegador).
+
 ## Evoluções previstas
 
 - Notificações push (Web Push, VAPID) quando a sua pergunta recebe pista.

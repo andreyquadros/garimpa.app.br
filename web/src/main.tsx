@@ -6,8 +6,10 @@ import { registerSW } from 'virtual:pwa-register';
 import './styles.css';
 import { router } from './App';
 import { ToastProvider } from './lib/hooks';
+import { DEMO } from './lib/api';
 
-registerSW({ immediate: true });
+// Na demonstração não há service worker: nada para colocar em cache além da própria página.
+if (!DEMO) registerSW({ immediate: true });
 
 const qc = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } } });
 

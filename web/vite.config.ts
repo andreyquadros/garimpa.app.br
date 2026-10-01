@@ -4,11 +4,18 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 
+// VITE_DEMO=1: build estático com a API falsa no navegador (GitHub Pages). VITE_BASE=./ deixa os caminhos relativos.
+const demo = process.env.VITE_DEMO === '1';
+
 export default defineConfig({
+  base: process.env.VITE_BASE ?? '/',
+  // Literal em tempo de build: no modo normal o código da demonstração some do bundle.
+  define: { 'import.meta.env.VITE_DEMO': JSON.stringify(demo ? '1' : '') },
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
+      disable: demo,
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'icons/*.svg', 'favicon.svg'],
       manifest: {

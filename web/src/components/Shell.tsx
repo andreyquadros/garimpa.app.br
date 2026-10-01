@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
-import { Compass, List, Plus, Trophy, UserRound } from 'lucide-react';
+import { Compass, FlaskConical, List, Plus, Trophy, UserRound } from 'lucide-react';
 import { useMe, useToast } from '@/lib/hooks';
 import { PepitaIcon, Sheet, Button, LevelRing } from './ui';
 import { celebrate } from '@/lib/reward';
@@ -39,6 +40,7 @@ export function Shell() {
         </nav>
       )}
       <Toasts />
+      {import.meta.env.VITE_DEMO === '1' && <DemoBadge />}
       {me && <LevelUpWatcher xp={me.user.xp} level={me.level.level} name={me.level.name} perk={me.level.perk} userId={me.user.id} />}
     </div>
   );
@@ -105,5 +107,55 @@ function LevelUpWatcher({ xp, level, name, perk, userId }: { xp: number; level: 
         <Button variant="gold" className="mt-6 w-full" onClick={() => setShow(false)}>Bora garimpar</Button>
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * Selo do modo demonstração: aba no canto superior direito; o toque explica o que é e oferece reiniciar ou avançar o relógio.
+ * A condição usa import.meta.env direto (literal em tempo de build) para o bundle normal nem incluir este componente.
+ */
+function DemoBadge() {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
+  const toast = useToast();
+  async function simulate() {
+    setBusy(true);
+    try {
+      const demo = await import('@/lib/demo/state');
+      const r = demo.simulateDays(7);
+      await qc.invalidateQueries();
+      toast.push({ text: r.vested > 0 ? `Sete dias depois: ${r.vested === 1 ? '1 lançamento saiu' : `${r.vested} lançamentos saíram`} da carência.` : 'Sete dias depois. Nada estava em carência.', tone: 'info' });
+      setOpen(false);
+    } catch (e) { toast.push({ text: (e as Error).message, tone: 'erro' }); }
+    finally { setBusy(false); }
+  }
+  async function reset() {
+    setBusy(true);
+    const demo = await import('@/lib/demo/state');
+    demo.resetDemo();
+    qc.clear();
+    location.reload();
+  }
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} aria-label="Modo demonstração: saiba mais"
+        className="fixed right-0 z-[510] h-[18px] pl-2 pr-2.5 rounded-bl-xl bg-pepita-400 text-rio-900 text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 shadow-pepita"
+        style={{ top: 'env(safe-area-inset-top, 0px)' }}>
+        <FlaskConical size={11} strokeWidth={2.75} />Demonstração
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title="Modo demonstração">
+        <div className="text-sm space-y-3">
+          <p>Tudo aqui roda dentro do navegador: a API, o banco e as regras de pontos são uma cópia fiel do Garimpa, mas <b>os dados ficam só neste aparelho</b> e somem se você limpar os dados do site.</p>
+          <p>Entre como <b>marina</b>, <b>joao</b>, <b>tais</b>, <b>rafael</b>, <b>lucas</b> ou <b>dona neide</b> para usar as contas de exemplo; qualquer outro nome cria uma conta nova. Como todas dividem este aparelho, a checagem de conluio fica desligada.</p>
+          <p className="text-ink-2">Fotos enviadas não saem do navegador e não são guardadas: ao recarregar, viram uma imagem de exemplo. Sem EXIF, a prova pontua só pela sua localização.</p>
+        </div>
+        <div className="mt-5 grid gap-2">
+          <Button variant="gold" loading={busy} onClick={simulate}>Simular 7 dias</Button>
+          <Button variant="ghost" disabled={busy} onClick={reset}>Reiniciar demonstração</Button>
+          <p className="text-xs text-ink-2 text-center">Simular 7 dias libera as pepitas em carência e mantém a sua sequência de dias.</p>
+        </div>
+      </Sheet>
+    </>
   );
 }

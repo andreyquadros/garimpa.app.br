@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { ArrowLeft, Share2, Users, Hand } from 'lucide-react';
@@ -15,6 +15,7 @@ import { celebrate } from '@/lib/reward';
 export function QuestionPage() {
   const { id = '' } = useParams();
   const nav = useNavigate();
+  const { pathname } = useLocation();
   const { data: cfg } = useConfig();
   const { data: me } = useMe();
   const toast = useToast();
@@ -32,7 +33,7 @@ export function QuestionPage() {
   const cat = categoryOf(question.category);
   const mine = me?.user.id === question.authorId;
   const pins: Find[] = answers.filter((a) => a.status !== 'rejeitada').map((a) => ({ placeId: a.placeId, name: a.placeName, kind: a.placeKind, lat: a.placeLat, lng: a.placeLng, address: a.placeAddress, partnerTier: a.partnerTier, finds: a.confirms + (a.status === 'aceita' ? 1 : 0) || 1, titles: [question.title], lastFindAt: a.createdAt }));
-  const needLogin = () => { toast.push({ text: 'Entre para participar.', tone: 'info' }); nav(`/entrar?next=${encodeURIComponent(location.pathname)}`); };
+  const needLogin = () => { toast.push({ text: 'Entre para participar.', tone: 'info' }); nav(`/entrar?next=${encodeURIComponent(pathname)}`); };
 
   async function follow() {
     if (!me) return needLogin();
@@ -96,7 +97,7 @@ export function QuestionPage() {
           <span className={`shrink-0 rounded-full px-2.5 h-7 grid place-items-center text-xs font-bold ${question.status === 'resolvida' ? 'bg-mata-100 text-mata-700' : question.status === 'aberta' ? 'bg-barro-100 text-barro-700' : 'bg-pepita-200 text-pepita-700'}`}>{STATUS_LABEL[question.status]}</span>
         </div>
         {question.details && <p className="mt-3 text-[15px] leading-snug">{question.details}</p>}
-        {question.photoPath && <img src={`/u/${question.photoPath}`} alt="Referência enviada por quem perguntou" className="mt-3 rounded-2xl max-h-56 object-cover" />}
+        {question.photoPath && <img src={/^(data|blob|https?):/.test(question.photoPath) ? question.photoPath : `/u/${question.photoPath}`} alt="Referência enviada por quem perguntou" className="mt-3 rounded-2xl max-h-56 object-cover" />}
         <div className="mt-3 flex items-center gap-2 text-sm text-ink-2">
           <Avatar name={question.authorName} url={question.authorAvatar} size={26} />
           <span className="font-semibold text-ink">{question.authorName}</span>

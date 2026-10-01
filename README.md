@@ -14,6 +14,16 @@ PWA colaborativa e gamificada, piloto em Ariquemes-RO, da Incubadora de Software
 |---|---|---|---|
 | ![Garimpos](docs/screenshots/02-garimpos.png) | ![Perguntar](docs/screenshots/04-perguntar.png) | ![Ranking](docs/screenshots/07-ranking.png) | ![Entrar](docs/screenshots/08-entrar.png) |
 
+| Demo: mapa | Demo: pista aceita e gorjeta | Demo: carência no perfil |
+|---|---|---|
+| ![Demo mapa](docs/screenshots/demo-01-mapa.png) | ![Demo aceite](docs/screenshots/demo-02-pergunta-aceita.png) | ![Demo perfil](docs/screenshots/demo-03-perfil-carencia.png) |
+
+## Testar agora
+
+- **Demonstração no celular, sem instalar nada**: <https://andreyquadros.github.io/garimpa.app.br/>. Roda inteira no navegador com uma API simulada e dados de exemplo; entre como `marina`, `joao`, `tais`, `lucas` ou `dona neide` (ou qualquer nome novo) e percorra o fluxo completo: buscar, perguntar, responder com foto, confirmar, aceitar, gorjeta, ranking e perfil. O selo "Demonstração" tem "Simular 7 dias" (libera as pepitas em carência) e "Reiniciar". Os dados ficam só no seu aparelho.
+- **Versão real, local**: seção "Rodar" abaixo (Postgres + API + PWA em dois comandos).
+- **Versão real no KVM 8**: [docs/06-arquitetura-e-deploy.md](docs/06-arquitetura-e-deploy.md), seção Dokploy.
+
 ## Como funciona
 
 1. **Buscar** no mapa (campo no centro). Se já tem achado, aparecem os pinos dourados e "como chegar". Se já perguntaram, dá para marcar "também quero". Se ninguém garimpou, perguntar leva três passos.

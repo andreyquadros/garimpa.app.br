@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, Camera, MapPin, Plus, Search } from 'lucide-react';
@@ -16,6 +16,7 @@ type Step = 'lugar' | 'prova' | 'detalhes' | 'pronto';
 export function AnswerPage() {
   const { id = '' } = useParams();
   const nav = useNavigate();
+  const { pathname } = useLocation();
   const { data: cfg } = useConfig();
   const { data: me, isPending } = useMe();
   const toast = useToast();
@@ -36,7 +37,7 @@ export function AnswerPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ xp: number; strong: boolean; isFirst: boolean; evidenceScore: number } | null>(null);
 
-  useEffect(() => { if (!isPending && !me) nav(`/entrar?next=${encodeURIComponent(location.pathname)}`, { replace: true }); }, [me, isPending, nav]);
+  useEffect(() => { if (!isPending && !me) nav(`/entrar?next=${encodeURIComponent(pathname)}`, { replace: true }); }, [me, isPending, nav, pathname]);
   useEffect(() => { if (geo.state === 'idle') geo.ask(); }, [geo]);
 
   const city: [number, number] = cfg?.city ? [cfg.city.lat, cfg.city.lng] : [-9.9075, -63.0415];

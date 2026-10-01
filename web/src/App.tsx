@@ -1,4 +1,5 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, createHashRouter } from 'react-router';
+import { DEMO } from './lib/api';
 import { Shell } from './components/Shell';
 import { Home } from './pages/Home';
 import { Feed } from './pages/Feed';
@@ -10,7 +11,8 @@ import { Profile } from './pages/Profile';
 import { Login } from './pages/Login';
 import { PlacePage } from './pages/Place';
 
-export const router = createBrowserRouter([
+// Na demonstração (hospedagem estática, GitHub Pages) as rotas vivem no hash: /#/garimpos.
+export const router = (DEMO ? createHashRouter : createBrowserRouter)([
   {
     path: '/',
     element: <Shell />,

@@ -13,12 +13,21 @@ export function deviceId(): string {
   } catch { return 'sem-storage'; }
 }
 
+/** Modo demonstração (VITE_DEMO=1): a API falsa roda no navegador; o import dinâmico mantém o build normal sem esse código. */
+export const DEMO = import.meta.env.VITE_DEMO === '1';
+let demoServer: Promise<typeof import('./demo/server')> | null = null;
+function transport(input: string, init: RequestInit): Promise<Response> {
+  if (!DEMO) return fetch(input, init);
+  demoServer ??= import('./demo/server');
+  return demoServer.then((m) => m.demoFetch(input, init));
+}
+
 async function req<T>(method: string, path: string, body?: unknown, form?: FormData): Promise<T> {
   const headers: Record<string, string> = { 'x-garimpa-device': deviceId() };
   let payload: BodyInit | undefined;
   if (form) payload = form;
   else if (body !== undefined) { headers['content-type'] = 'application/json'; payload = JSON.stringify(body); }
-  const res = await fetch(path, { method, headers, body: payload, credentials: 'same-origin' });
+  const res = await transport(path, { method, headers, body: payload, credentials: 'same-origin' });
   const text = await res.text();
   let data: any = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
