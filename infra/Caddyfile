@@ -1,0 +1,15 @@
+# Alternativa ao proxy do Dokploy: Caddy direto no host (mesmo padrão do app dos ônibus).
+garimpa.incubadora.cloud, garimpa.app.br {
+    encode zstd gzip
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "geolocation=(self), camera=(self)"
+    }
+    @immutable path /assets/* /u/*
+    header @immutable Cache-Control "public, max-age=31536000, immutable"
+    reverse_proxy 127.0.0.1:8787
+}
+garimpa.com.br {
+    redir https://garimpa.app.br{uri} permanent
+}

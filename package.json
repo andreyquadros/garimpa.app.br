@@ -1,0 +1,14 @@
+{
+  "name": "garimpa",
+  "private": true,
+  "description": "Garimpa — achados colaborativos de produtos em Ariquemes (piloto)",
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "db:migrate": "pnpm --filter garimpa-api db:migrate",
+    "db:seed": "pnpm --filter garimpa-api db:seed"
+  }
+}

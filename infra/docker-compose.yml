@@ -1,0 +1,70 @@
+# Garimpa no KVM 8 via Dokploy (Compose). Caddy/Traefik do Dokploy termina o TLS e aponta o domínio para garimpa:8787.
+# Variáveis: defina no painel do Dokploy (ou .env ao lado deste arquivo) as mesmas de ../.env.example.
+services:
+  garimpa-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: garimpa
+      POSTGRES_USER: garimpa
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      TZ: America/Porto_Velho
+    volumes:
+      - garimpa-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U garimpa -d garimpa"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  garimpa:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      garimpa-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8787
+      DATABASE_URL: postgres://garimpa:${POSTGRES_PASSWORD}@garimpa-db:5432/garimpa
+      SESSION_SECRET: ${SESSION_SECRET:?defina SESSION_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      ALLOW_DEV_LOGIN: "false"
+      PUBLIC_URL: ${PUBLIC_URL:-https://garimpa.incubadora.cloud}
+      UPLOAD_DIR: /data/uploads
+      SERVE_WEB_DIR: /app/web/dist
+      TRUST_PROXY: "true"
+      TILES_URL: ${TILES_URL:-https://onibus.incubadora.cloud/tiles/{z}/{x}/{y}.png}
+      TILES_FALLBACK_URL: ${TILES_FALLBACK_URL:-https://tile.openstreetmap.org/{z}/{x}/{y}.png}
+    volumes:
+      - garimpa-uploads:/data/uploads
+    expose:
+      - "8787"
+    # Dokploy: Domains → garimpa.incubadora.cloud → container port 8787 (HTTPS automático)
+
+  # Backup diário do banco para fora do VPS (mesma rotina do Traccar). Ajuste o destino rclone.
+  garimpa-backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      garimpa-db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - garimpa-backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          pg_dump -h garimpa-db -U garimpa -d garimpa -Fc -f /backups/garimpa-$(date +%F).dump && \
+          find /backups -name 'garimpa-*.dump' -mtime +14 -delete
+          sleep 86400
+        done
+
+volumes:
+  garimpa-pgdata:
+  garimpa-uploads:
+  garimpa-backups:

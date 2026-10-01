@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-demo/
+.env
+.env.local
+uploads/
+*.log
+.pglocal/
+coverage/
+web/dev-dist/
+dist-demo/

@@ -1,0 +1,177 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/fredoka';
+@import '@fontsource-variable/nunito';
+@import 'leaflet/dist/leaflet.css';
+
+/* Tokens do Garimpa. Rio (verde-água profundo) é a base; a pepita (ouro) é o único acento forte;
+   barro é a terra de Rondônia e marca o que ainda está em aberto. */
+@theme {
+  --font-display: 'Fredoka Variable', 'Nunito Variable', ui-rounded, system-ui, sans-serif;
+  --font-sans: 'Nunito Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-rio-50: #EEF6F3;
+  --color-rio-100: #D5E9E2;
+  --color-rio-200: #A9D1C6;
+  --color-rio-400: #3D8C80;
+  --color-rio-600: #1E6160;
+  --color-rio-700: #0F4C4C;
+  --color-rio-800: #0C3A3A;
+  --color-rio-900: #0B2424;
+
+  --color-pepita-200: #FBE7A1;
+  --color-pepita-400: #F2B705;
+  --color-pepita-500: #D99E00;
+  --color-pepita-700: #8A6200;
+
+  --color-barro-100: #F6DCD3;
+  --color-barro-500: #B3401F;
+  --color-barro-700: #7F2B13;
+
+  --color-mata-100: #D7F0E3;
+  --color-mata-500: #1E7A52;
+  --color-mata-700: #145A3B;
+
+  --color-papel: #F5F8F3;
+  --color-tinta: #0B2E2E;
+
+  --radius-sheet: 1.5rem;
+  --radius-ticket: 0.9rem;
+
+  --shadow-float: 0 10px 30px -12px rgb(11 46 46 / 0.35);
+  --shadow-pepita: 0 6px 20px -6px rgb(217 158 0 / 0.55);
+
+  --animate-pop: pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  --animate-shine: shine 2.4s ease-in-out infinite;
+  --animate-float: floaty 3s ease-in-out infinite;
+
+  @keyframes pop { 0% { transform: scale(0.6); opacity: 0 } 100% { transform: scale(1); opacity: 1 } }
+  @keyframes shine { 0%, 100% { filter: brightness(1) } 50% { filter: brightness(1.18) } }
+  @keyframes floaty { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+}
+
+:root {
+  --bg: var(--color-papel);
+  --surface: #FFFFFF;
+  --surface-2: var(--color-rio-50);
+  --text: var(--color-tinta);
+  --text-2: #3F6260;
+  --line: #D9E6E1;
+  --accent: #0F4C4C;
+  --gold-ink: #8A6200;
+  --green-ink: #145A3B;
+  --barro-ink: #7F2B13;
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  --bg: var(--color-rio-900);
+  --surface: #113030;
+  --surface-2: #0E2A2A;
+  --text: #E8F1EC;
+  --text-2: #9FBDB5;
+  --line: #1F4544;
+  --accent: #A9D1C6;
+  --gold-ink: #F2B705;
+  --green-ink: #7FD1AE;
+  --barro-ink: #F0A58C;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: var(--color-rio-900);
+    --surface: #113030;
+    --surface-2: #0E2A2A;
+    --text: #E8F1EC;
+    --text-2: #9FBDB5;
+    --line: #1F4544;
+    --accent: #A9D1C6;
+    --gold-ink: #F2B705;
+    --green-ink: #7FD1AE;
+    --barro-ink: #F0A58C;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--text);
+  --color-ink-2: var(--text-2);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-gold-ink: var(--gold-ink);
+  --color-green-ink: var(--green-ink);
+  --color-barro-ink: var(--barro-ink);
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.font-display { font-family: var(--font-display); }
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+.safe-top { padding-top: max(env(safe-area-inset-top), 0.5rem); }
+
+/* Ticket: a resposta com prova parece um comprovante. Borda picotada no topo e no pé. */
+.ticket {
+  background: var(--surface);
+  border-radius: var(--radius-ticket);
+  position: relative;
+  --notch: 10px;
+  mask:
+    radial-gradient(circle at 0 50%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)) 0 50% / 100% 100% no-repeat;
+}
+.ticket::before, .ticket::after {
+  content: '';
+  position: absolute; left: 0; right: 0; height: 0;
+  border-top: 2px dashed var(--line);
+}
+.ticket-cut { border-top: 2px dashed var(--line); margin: 0 1rem; }
+
+.stamp {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 3px solid currentColor;
+  border-radius: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  transform: rotate(-8deg);
+  mix-blend-mode: multiply;
+}
+:root[data-theme='dark'] .stamp { mix-blend-mode: screen; }
+
+.leaflet-container {
+  font-family: inherit;
+  background-color: var(--surface-2);
+  background-image: radial-gradient(var(--line) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.pin { position: relative; width: 36px; height: 44px; filter: drop-shadow(0 4px 6px rgb(11 46 46 / 0.35)); transform-origin: 50% 100%; }
+.pin::before {
+  content: ''; position: absolute; inset: 0 0 8px 0; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--color-pepita-400); border: 3px solid var(--color-rio-700);
+}
+.pin span {
+  position: absolute; left: 0; right: 0; top: 7px; text-align: center; font-family: var(--font-display); font-weight: 700;
+  font-size: 14px; color: var(--color-rio-800);
+}
+.pin-open::before { background: var(--color-barro-500); border-color: #fff; }
+.pin-open span { color: #fff; font-size: 16px; top: 5px; }
+.pin-hi { transform: scale(1.18); animation: floaty 1.6s ease-in-out infinite; }
+.pin-partner::before { border-color: var(--color-pepita-700); box-shadow: 0 0 0 3px rgb(242 183 5 / 0.35); }
+.me-dot { width: 16px; height: 16px; border-radius: 50%; background: #2563EB; border: 3px solid #fff; box-shadow: 0 0 0 6px rgb(37 99 235 / 0.25); }
+.leaflet-control-attribution { font-size: 10px; background: rgb(255 255 255 / 0.7) !important; }
+.leaflet-div-icon { background: transparent; border: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+:focus-visible { outline: 3px solid var(--color-pepita-400); outline-offset: 2px; border-radius: 0.5rem; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
