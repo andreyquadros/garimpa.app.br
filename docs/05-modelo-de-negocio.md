@@ -6,7 +6,7 @@ Objetivo único: Ariquemes passar a perguntar "onde tem?" no Garimpa antes de pe
 
 - **Distribuição**: link compartilhável + PWA. Mutirão de fundadores da Incubadora e do IFRO; cartaz com QR nos pontos de ônibus (o app No Ponto já está lá) e nos balcões que aceitarem.
 - **Semente de conteúdo**: 200 perguntas reais coletadas com alunos e servidores na primeira semana; 10 "garimpeiros fundadores" com meta de 5 pistas/dia nas duas primeiras semanas.
-- **Custo**: VPS já pago; domínio R$ 80/ano; nenhum serviço em dólar. Horas da Incubadora.
+- **Custo**: VPS já pago; domínios no Registro.br (R$ 40/ano cada; `garimpa.app.br` mais duas reservas do plano B = R$ 120 no primeiro ano); nenhum serviço em dólar. Horas da Incubadora.
 - **Pepitas**: acumulam, carteira mostra valor projetado, resgate fechado ("abre com as lojas parceiras").
 - **Métrica de saída da fase**: 300 usuários ativos/mês e 40 % das perguntas resolvidas.
 
