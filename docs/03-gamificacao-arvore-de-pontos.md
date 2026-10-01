@@ -20,28 +20,28 @@ Valores vivem em `settings.economia` no banco (editáveis sem deploy) e são esp
 | Evento | XP | Pepitas | Quem valida | Observação |
 |---|---|---|---|---|
 | Perguntar | 5 | – | ninguém | máx. 10/dia |
-| "Também quero" em pergunta existente | 2 | – | ninguém | soma +5 de bônus à pergunta (teto 100) |
+| "Também quero" em pergunta existente | 2 | – | ninguém | +5 de bônus à pergunta por pessoa que acompanha (teto 100); sair devolve os 5; XP uma vez por pergunta, máx. 10/dia |
 | Pista com prova **forte** (score ≥ 60) | 15 | – | algoritmo da prova | prova fraca: 5 XP |
-| Pista **aceita** por quem perguntou | 50 | **50** + bônus | quem perguntou | 25 % se não for o primeiro achado no lugar |
+| Pista **aceita** por quem perguntou | 50 | **50** + bônus | quem perguntou | 25 % se não for o primeiro achado no lugar; sem pepitas se todas as fotos forem reaproveitadas (`foto_reutilizada`) |
 | Primeiro achado no lugar (ao ser aceito) | 10 | 10 | quem perguntou | |
 | Pista **confirmada** por 2 pessoas no local | 20 | **20** | comunidade | 25 % se não for o primeiro achado |
 | Confirmar pista de alguém | 3 | – | ninguém | máx. 30/dia |
 | Sua confirmação validada (pista virou confirmada) | 5 | 5 | comunidade | |
 | Aceitar uma resposta (fechar o garimpo) | 10 | – | – | |
-| Gorjeta recebida | ⌈valor/5⌉ | valor | quem deu | orçamento de 20 por pergunta; máx. 30/dia cunhadas |
+| Gorjeta recebida | ⌊valor/5⌋ | valor | quem deu | orçamento de 20 por pergunta; máx. 30/dia cunhadas. Do próprio saldo: a partir do nível 2, mínimo 5 |
 | Cadastrar lugar novo no mapa | 4 | – | – | máx. 15/dia |
 | Dia seguido garimpando (streak) | 2 × dias, teto 14 | – | – | |
 | Conquista (badge) | 20–100 | – | – | |
 
-Tudo que cunha pepitas tem **carência de 7 dias** (14 para contas com confiança < 0,4 ou quando quem paga e quem recebe usaram a mesma rede). Durante a carência a pepita aparece como "+N em carência" e pode ser estornada por denúncia procedente. Teto de **300 pepitas cunhadas por pessoa por dia**.
+Tudo que cunha pepitas tem **carência de 7 dias** (14 para contas com confiança < 0,4 ou quando quem paga e quem recebe usaram a mesma rede; 3 a partir de 800 XP). Durante a carência a pepita aparece como "+N em carência" e pode ser estornada por denúncia procedente. Teto de **300 pepitas cunhadas por pessoa por dia** (`fn_cap_take('pepitas_cunhadas')`, cobrado de quem recebe em aceite, confirmação e gorjeta do orçamento): ao estourar, a ação acontece e o XP é pago, mas o lançamento sai com 0 pepitas e `teto_diario: true`. Se um estorno chegar depois de a pepita ter sido gasta, o saldo fica negativo (dívida) e a conta só volta a gastar depois de cobri-la.
 
 ## Níveis
 
 | Nível | Nome | XP | O que desbloqueia |
 |---|---|---|---|
 | 1 | Peneira | 0 | perguntar, responder, confirmar |
-| 2 | Bateia | 100 | confirmações com mais peso; gorjetas do saldo |
-| 3 | Garimpeiro | 300 | cadastra lugares sem revisão |
+| 2 | Bateia | 100 | gorjetas do próprio saldo |
+| 3 | Garimpeiro | 300 | título de Garimpeiro no perfil e no ranking |
 | 4 | Faiscador | 800 | carência das pepitas cai para 3 dias |
 | 5 | Mestre do garimpo | 2 000 | revisa denúncias da comunidade |
 | 6 | Lenda da jazida | 5 000 | missões de lojas parceiras em primeira mão |

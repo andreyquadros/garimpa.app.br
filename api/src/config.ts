@@ -31,6 +31,10 @@ export type Config = ReturnType<typeof loadConfig>;
 export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   const parsed = schema.parse(env);
   const production = parsed.NODE_ENV === 'production';
+  // O segredo padrão está no repositório: com ele qualquer sessão (inclusive de moderador) pode ser forjada.
+  if (production && parsed.SESSION_SECRET.startsWith('garimpa-dev-secret')) {
+    throw new Error('SESSION_SECRET obrigatório em produção (gere com: openssl rand -hex 32).');
+  }
   return {
     ...parsed,
     production,

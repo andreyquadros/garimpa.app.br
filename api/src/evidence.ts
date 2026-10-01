@@ -13,6 +13,8 @@ export const EXIF_MAX_AGE_DAYS = 30;
 /** <= 6 bits: mesma foto (recusa se for de outra pessoa). 7–12: parecida (aceita com aviso e desconto). */
 export const DUPLICATE_HAMMING = 6;
 export const SIMILAR_HAMMING = 12;
+/** Imagens acima disso (ex.: PNG 12000×12000) são recusadas antes de decodificar: protege memória e CPU. */
+export const MAX_INPUT_PIXELS = 50_000_000;
 
 export type Processed = {
   jpeg: Buffer;
@@ -72,7 +74,7 @@ export async function processImage(input: Buffer): Promise<Processed> {
     if (d instanceof Date && !Number.isNaN(d.getTime())) exifTakenAt = d;
   } catch { /* sem data */ }
 
-  const { data, info } = await sharp(input)
+  const { data, info } = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS })
     .rotate()
     .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: 82, mozjpeg: true })
@@ -100,7 +102,6 @@ export type ScoreInput = {
   deviceLng: number | null;
   placeLat: number;
   placeLng: number;
-  questionCreatedAt?: Date | null;
   reusedBySameUser: boolean;
   similarToOther?: boolean;
   now?: Date;

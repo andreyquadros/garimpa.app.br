@@ -12,6 +12,21 @@ export function brl(cents: number | null | undefined): string {
   if (cents == null) return '';
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
+/**
+ * Converte o preço digitado em centavos. Aceita "24,90", "24.90", "24", "1.249,90" e "R$ 24,90";
+ * com um único separador ele é decimal (teclados Android no modo decimal só oferecem ponto).
+ * "24.999" segue a grafia brasileira (R$ 24.999,00). Devolve undefined para vazio ou inválido (negativo, letras, "1,249.90").
+ */
+export function parseBrlToCents(input: string): number | undefined {
+  const t = input.trim().replace(/^R\$\s*/i, '').replace(/\s+/g, '');
+  if (!t) return undefined;
+  let norm: string;
+  if (/^\d+([.,]\d{1,2})?$/.test(t)) norm = t.replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(t)) norm = t.replace(/\./g, '').replace(',', '.');
+  else return undefined;
+  const n = Number(norm);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : undefined;
+}
 export function dist(m: number | null | undefined): string {
   if (m == null) return '';
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`;
@@ -35,6 +50,6 @@ export const FLAG_LABEL: Record<string, string> = {
 export const KIND_LABEL: Record<string, string> = {
   pergunta: 'Perguntou', tambem_quero: 'Também quer', resposta_com_evidencia: 'Respondeu com prova', resposta_aceita: 'Achado aceito', resposta_confirmada: 'Achado confirmado',
   confirmar: 'Confirmou um achado', confirmacao_validada: 'Confirmação validada', primeiro_achado: 'Primeiro achado', aceitar_resposta: 'Aceitou uma resposta',
-  gorjeta_recebida: 'Gorjeta recebida', gorjeta_enviada: 'Gorjeta enviada', bonus_streak: 'Sequência de dias', badge: 'Conquista', lugar_novo: 'Lugar novo no mapa', ajuste: 'Ajuste', estorno: 'Estorno',
+  gorjeta_recebida: 'Gorjeta recebida', gorjeta_enviada: 'Gorjeta enviada', bonus_streak: 'Sequência de dias', badge: 'Conquista', lugar_novo: 'Lugar novo no mapa', ajuste: 'Ajuste', estorno: 'Estorno', devolucao: 'Devolução de estorno',
 };
 export function pluralize(n: number, one: string, many: string) { return `${n.toLocaleString('pt-BR')} ${n === 1 ? one : many}`; }

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { HTTPException } from 'hono/http-exception';
 import { type AppEnv, requireUser, recordSignal } from '../auth.js';
 import type { Sql, Tx } from '../db.js';
-import { grantBadge, award, takeCap, loadEconomy } from '../economy.js';
+import { grantBadge, award, takeCap, loadEconomy, type Economy } from '../economy.js';
 
 export const placeRoutes = new Hono<AppEnv>();
 
@@ -17,8 +17,12 @@ export const newPlaceSchema = z.object({
 });
 export type NewPlace = z.infer<typeof newPlaceSchema>;
 
-/** Reaproveita um lugar com o mesmo nome a menos de 150 m; senão cria. Recusa pontos fora do raio da cidade. */
-export async function getOrCreatePlace(db: Sql | Tx, cityId: string, input: NewPlace, userId: string): Promise<{ id: string; created: boolean }> {
+/**
+ * Reaproveita um lugar com o mesmo nome a menos de 150 m; senão cria. Recusa pontos fora do raio da cidade.
+ * O limite diário de lugares novos é cobrado aqui, só quando um lugar é de fato criado, para valer
+ * tanto em POST /places quanto em respostas com `newPlace`.
+ */
+export async function getOrCreatePlace(db: Sql | Tx, cityId: string, input: NewPlace, userId: string, eco: Economy): Promise<{ id: string; created: boolean }> {
   const inside = await db<{ ok: boolean }[]>`
     select earth_distance(ll_to_earth(lat, lng), ll_to_earth(${input.lat}, ${input.lng})) <= radius_m as ok from cities where id = ${cityId}`;
   if (!inside[0]?.ok) throw new HTTPException(400, { message: 'Esse ponto fica fora da área do piloto (Ariquemes).' });
@@ -28,6 +32,7 @@ export async function getOrCreatePlace(db: Sql | Tx, cityId: string, input: NewP
       and earth_distance(ll_to_earth(lat, lng), ll_to_earth(${input.lat}, ${input.lng})) <= 150
     limit 1`;
   if (same[0]) return { id: same[0].id, created: false };
+  if (!(await takeCap(db, userId, 'lugares', eco.limites_dia.lugares))) throw new HTTPException(429, { message: 'Muitos lugares novos hoje. Volte amanhã.' });
   const row = await db<{ id: string }[]>`
     insert into places(city_id, name, address, lat, lng, kind, whatsapp, created_by)
     values (${cityId}, ${input.name}, ${input.address ?? null}, ${input.lat}, ${input.lng}, ${input.kind}, ${input.whatsapp ?? null}, ${userId}::uuid)
@@ -78,9 +83,7 @@ placeRoutes.post('/places', async (c) => {
   const sql = c.get('sql');
   const eco = await loadEconomy(sql);
   const input = newPlaceSchema.parse(await c.req.json());
-  if (!(await takeCap(sql, u.id, 'lugares', 15))) throw new HTTPException(429, { message: 'Muitos lugares novos hoje. Volte amanhã.' });
-  void eco;
-  const r = await sql.begin((tx) => getOrCreatePlace(tx, c.get('config').CITY_DEFAULT, input, u.id));
+  const r = await sql.begin((tx) => getOrCreatePlace(tx, c.get('config').CITY_DEFAULT, input, u.id, eco));
   await recordSignal(c, u.id);
   const place = (await sql`select id, name, address, lat, lng, kind, partner_tier from places where id = ${r.id}::uuid`)[0];
   return c.json({ place, created: r.created }, r.created ? 201 : 200);

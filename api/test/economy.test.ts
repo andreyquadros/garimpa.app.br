@@ -70,3 +70,57 @@ describe('livro-razão', () => {
     expect(results.filter(Boolean)).toHaveLength(3);
   });
 });
+
+describe('livro-razão: dívida, devolução e carência curta', () => {
+  it('estorno depois do gasto vira dívida: saldo negativo, gasto recusado até cobrir, e o cache acompanha o razão', async () => {
+    const s = await login(app, uniq('eco'));
+    const id = await award(sql, s.user.id, 'resposta_aceita', 0, 50, { type: 'resposta', id: s.user.id }, {}, 0); // já disponível
+    await award(sql, s.user.id, 'gorjeta_enviada', 0, -50, undefined, {}, 0);
+    await sql`select fn_reverse(${id}::bigint, 'teste')`;
+    const credits = async () => (await sql<{ credits: number }[]>`select credits from users where id = ${s.user.id}::uuid`)[0]!.credits;
+    expect(await credits()).toBe(-50);
+    await expect(award(sql, s.user.id, 'gorjeta_enviada', 0, -10)).rejects.toThrow(/saldo insuficiente/);
+    await award(sql, s.user.id, 'confirmar', 3, 0, undefined, {}, 0); // só XP não perdoa a dívida
+    expect(await credits()).toBe(-50);
+    await award(sql, s.user.id, 'resposta_aceita', 0, 30, undefined, {}, 0);
+    expect(await credits()).toBe(-20);
+    const sum = (await sql<{ s: number }[]>`select coalesce(sum(credits), 0)::int as s from ledger where user_id = ${s.user.id}::uuid`)[0]!.s;
+    expect(sum).toBe(-20);
+  });
+  it('fn_vest_due devolve o número de lançamentos liberados', async () => {
+    const s = await login(app, uniq('eco'));
+    const ids = [];
+    for (const v of [10, 20, 30]) ids.push(await award(sql, s.user.id, 'resposta_aceita', 0, v, { type: 'resposta', id: s.user.id }));
+    await sql`update ledger set vests_at = now() - interval '1 minute' where id = any(${ids}::bigint[])`;
+    const n = Number((await sql<{ fnVestDue: number }[]>`select fn_vest_due()`)[0]!.fnVestDue);
+    expect(n).toBeGreaterThanOrEqual(3);
+    const u = (await sql`select credits, credits_pending from users where id = ${s.user.id}::uuid`)[0]!;
+    expect(u).toEqual({ credits: 60, creditsPending: 0 });
+  });
+  it('fn_unreverse devolve o lançamento na carência original e a devolução pode ser estornada de novo', async () => {
+    const s = await login(app, uniq('eco'));
+    const id = await award(sql, s.user.id, 'resposta_aceita', 40, 40, { type: 'resposta', id: s.user.id });
+    const vests = (await sql<{ vestsAt: Date }[]>`select vests_at from ledger where id = ${id}`)[0]!.vestsAt;
+    await sql`select fn_reverse(${id}::bigint, 'denuncias_da_comunidade')`;
+    const user = async () => (await sql<{ xp: number; credits: number; creditsPending: number }[]>`select xp, credits, credits_pending from users where id = ${s.user.id}::uuid`)[0]!;
+    expect(await user()).toEqual({ xp: 20, credits: 0, creditsPending: 0 });
+    const d = (await sql<{ id: string | null }[]>`select fn_unreverse(${id}::bigint, 'denuncia_improcedente') as id`)[0]!.id;
+    expect(d).not.toBeNull();
+    expect(await user()).toEqual({ xp: 60, credits: 0, creditsPending: 40 });
+    const dev = (await sql<{ kind: string; state: string; vestsAt: Date; credits: number }[]>`select kind, state, vests_at, credits from ledger where id = ${d}`)[0]!;
+    expect(dev).toMatchObject({ kind: 'devolucao', state: 'carencia', credits: 40 });
+    expect(dev.vestsAt.getTime()).toBe(vests.getTime());
+    expect((await sql`select state from ledger where reversal_of = ${id}`)[0]!.state).toBe('estornado');
+    expect((await sql<{ id: string | null }[]>`select fn_unreverse(${id}::bigint, 'de novo') as id`)[0]!.id).toBeNull();
+    expect((await sql<{ id: string | null }[]>`select fn_reverse(${d}::bigint, 'procede') as id`)[0]!.id).not.toBeNull();
+    expect(await user()).toEqual({ xp: 20, credits: 0, creditsPending: 0 });
+  });
+  it('a carência cai para 3 dias a partir de 800 XP', async () => {
+    const s = await login(app, uniq('eco'));
+    await sql`update users set xp = 900 where id = ${s.user.id}::uuid`;
+    const id = await award(sql, s.user.id, 'resposta_aceita', 0, 10, { type: 'resposta', id: s.user.id });
+    const days = (await sql<{ d: number }[]>`select extract(epoch from (vests_at - now())) / 86400 as d from ledger where id = ${id}`)[0]!.d;
+    expect(Number(days)).toBeGreaterThan(2.9);
+    expect(Number(days)).toBeLessThan(3.1);
+  });
+});

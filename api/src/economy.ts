@@ -1,3 +1,4 @@
+import type { JSONValue } from 'postgres';
 import type { Sql, Tx } from './db.js';
 
 /** Níveis de garimpeiro por XP acumulado (XP nunca vira dinheiro; só pepitas). */
@@ -31,9 +32,12 @@ export const DEFAULT_ECONOMY = {
     resposta_aceita: 50, resposta_confirmada: 20, confirmacao_validada: 5, primeiro_achado: 10,
     fracao_segundo_achado: 0.25, gorjeta_por_pergunta: 20, bounty_tambem_quero: 5, bounty_maximo: 100,
   },
-  limites_dia: { perguntas: 10, respostas: 20, confirmacoes: 30, gorjetas_orcamento: 30, pepitas_cunhadas: 300, uploads: 40 },
+  limites_dia: { perguntas: 10, respostas: 20, confirmacoes: 30, gorjetas_orcamento: 30, pepitas_cunhadas: 300, uploads: 40, tambem_quero: 10, lugares: 15 },
   carencia_dias: 7,
   carencia_dias_baixa_confianca: 14,
+  /** A partir deste XP (nível Faiscador) a carência cai para `carencia_dias_veterano`. */
+  xp_carencia_curta: 800,
+  carencia_dias_veterano: 3,
   confianca_baixa: 0.4,
   confirmacoes_para_validar: 2,
   evidencia_forte: 60,
@@ -46,13 +50,21 @@ export async function loadEconomy(sql: Sql): Promise<Economy> {
   // value::text evita que o transform camelCase do cliente reescreva as chaves do JSON.
   const rows = await sql<{ v: string }[]>`select value::text as v from settings where key = 'economia'`;
   const v = rows[0]?.v ? (JSON.parse(rows[0].v) as Partial<Economy>) : null;
-  return v ? { ...DEFAULT_ECONOMY, ...v } : DEFAULT_ECONOMY;
+  if (!v) return DEFAULT_ECONOMY;
+  // Mescla por seção: uma chave nova no código continua valendo mesmo que settings.economia ainda não a tenha.
+  return {
+    ...DEFAULT_ECONOMY, ...v,
+    xp: { ...DEFAULT_ECONOMY.xp, ...v.xp },
+    pepitas: { ...DEFAULT_ECONOMY.pepitas, ...v.pepitas },
+    limites_dia: { ...DEFAULT_ECONOMY.limites_dia, ...v.limites_dia },
+    conversao: { ...DEFAULT_ECONOMY.conversao, ...v.conversao },
+  };
 }
 
 export type AwardKind =
   | 'pergunta' | 'tambem_quero' | 'resposta_com_evidencia' | 'resposta_aceita' | 'resposta_confirmada'
   | 'confirmar' | 'confirmacao_validada' | 'primeiro_achado' | 'aceitar_resposta' | 'gorjeta_recebida'
-  | 'gorjeta_enviada' | 'bonus_streak' | 'badge' | 'lugar_novo' | 'ajuste' | 'estorno';
+  | 'gorjeta_enviada' | 'bonus_streak' | 'badge' | 'lugar_novo' | 'ajuste' | 'estorno' | 'devolucao';
 
 export async function award(
   db: Sql | Tx,
@@ -64,9 +76,11 @@ export async function award(
   meta: Record<string, unknown> = {},
   vestDays?: number,
 ): Promise<number> {
+  // O objeto vai direto: o cliente já serializa jsonb. Com JSON.stringify aqui ele seria serializado duas vezes
+  // e o meta ficaria gravado como string JSON, invisível para filtros `meta->>'chave'` no SQL.
   const rows = await db<{ fnAward: string }[]>`
     select fn_award(${userId}::uuid, ${kind}, ${Math.round(xp)}, ${Math.round(credits)},
-                    ${ref?.type ?? null}, ${ref?.id ?? null}::uuid, ${JSON.stringify(meta)}::jsonb,
+                    ${ref?.type ?? null}, ${ref?.id ?? null}::uuid, ${db.json(meta as JSONValue)},
                     ${vestDays ?? null}::int)`;
   return Number(rows[0]!.fnAward);
 }
@@ -74,6 +88,16 @@ export async function award(
 export async function takeCap(db: Sql | Tx, userId: string, kind: string, max: number, amount = 1): Promise<boolean> {
   const rows = await db<{ fnCapTake: boolean }[]>`select fn_cap_take(${userId}::uuid, ${kind}, ${max}, ${amount})`;
   return rows[0]!.fnCapTake;
+}
+
+/**
+ * Teto diário de pepitas cunhadas (limites_dia.pepitas_cunhadas), tomado por quem recebe.
+ * Só cunhagem passa por aqui (aceite, confirmação, gorjeta do orçamento); gorjeta do saldo é transferência.
+ * Devolve false quando o lançamento não cabe no teto: a rota mantém o XP e zera as pepitas (meta teto_diario).
+ */
+export async function takeMintCap(db: Sql | Tx, userId: string, eco: Economy, credits: number): Promise<boolean> {
+  if (credits <= 0) return true;
+  return takeCap(db, userId, 'pepitas_cunhadas', eco.limites_dia.pepitas_cunhadas, credits);
 }
 
 export async function grantBadge(db: Sql | Tx, userId: string, slug: string): Promise<boolean> {

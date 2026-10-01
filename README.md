@@ -22,6 +22,7 @@ PWA colaborativa e gamificada, piloto em Ariquemes-RO, da Incubadora de Software
 
 - **Demonstração no celular, sem instalar nada**: <https://andreyquadros.github.io/garimpa.app.br/>. Roda inteira no navegador com uma API simulada e dados de exemplo; entre como `marina`, `joao`, `tais`, `lucas` ou `dona neide` (ou qualquer nome novo) e percorra o fluxo completo: buscar, perguntar, responder com foto, confirmar, aceitar, gorjeta, ranking e perfil. O selo "Demonstração" tem "Simular 7 dias" (libera as pepitas em carência) e "Reiniciar". Os dados ficam só no seu aparelho.
 - **Versão real, local**: seção "Rodar" abaixo (Postgres + API + PWA em dois comandos).
+- Para quem mantém o repositório: o link do demo é publicado pelo workflow "Demo no GitHub Pages" a cada push em `main`; na primeira vez é preciso ativar o Pages em Settings → Pages → Source: GitHub Actions.
 - **Versão real no KVM 8**: [docs/06-arquitetura-e-deploy.md](docs/06-arquitetura-e-deploy.md), seção Dokploy.
 
 ## Como funciona

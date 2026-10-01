@@ -5,7 +5,7 @@ import { RouterProvider } from 'react-router';
 import { registerSW } from 'virtual:pwa-register';
 import './styles.css';
 import { router } from './App';
-import { ToastProvider } from './lib/hooks';
+import { ThemeProvider, ToastProvider } from './lib/hooks';
 import { DEMO } from './lib/api';
 
 // Na demonstração não há service worker: nada para colocar em cache além da própria página.
@@ -16,9 +16,11 @@ const qc = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={qc}>
-      <ToastProvider>
-        <RouterProvider router={router} />
-      </ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

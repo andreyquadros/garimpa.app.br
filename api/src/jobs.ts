@@ -10,7 +10,7 @@ export async function runTick(sql: Sql): Promise<{ vested: number; weeklyBadge: 
   if (done[0]?.value !== week) {
     const top = await sql<{ userId: string }[]>`
       select user_id from ledger
-      where xp > 0 and created_at >= (date_trunc('week', (now() at time zone 'America/Porto_Velho') - interval '7 days')) at time zone 'America/Porto_Velho'
+      where xp > 0 and state <> 'estornado' and created_at >= (date_trunc('week', (now() at time zone 'America/Porto_Velho') - interval '7 days')) at time zone 'America/Porto_Velho'
         and created_at < (date_trunc('week', now() at time zone 'America/Porto_Velho')) at time zone 'America/Porto_Velho'
       group by user_id order by sum(xp) desc limit 1`;
     if (top[0]) { await grantBadge(sql, top[0].userId, 'garimpeiro_semana'); weeklyBadge = top[0].userId; }

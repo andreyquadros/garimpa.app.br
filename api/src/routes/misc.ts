@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { HTTPException } from 'hono/http-exception';
+import { bodyLimit } from 'hono/body-limit';
 import { type AppEnv, requireUser, requireRole, recordSignal } from '../auth.js';
 import { LEVELS, levelFor, loadEconomy, touchStreak, takeCap } from '../economy.js';
 import { processImage, storeImage, DUPLICATE_HAMMING, SIMILAR_HAMMING } from '../evidence.js';
-import { reverseAnswerAwards } from './answers.js';
+import { reverseAnswerAwards, restoreAnswerAwards, reopenQuestionIfAccepted } from './answers.js';
 
 export const miscRoutes = new Hono<AppEnv>();
 
@@ -20,7 +21,8 @@ miscRoutes.get('/config', async (c) => {
     levels: LEVELS,
     economy: { xp: eco.xp, pepitas: eco.pepitas, limites_dia: eco.limites_dia, carencia_dias: eco.carencia_dias, conversao: eco.conversao, evidencia_forte: eco.evidencia_forte },
     tiles: {
-      url: process.env.TILES_URL ?? 'https://onibus.incubadora.cloud/tiles/{z}/{x}/{y}.png',
+      // Padrão: OpenStreetMap (o Garimpa não depende da infraestrutura de outros apps). Servidor próprio via TILES_URL.
+      url: process.env.TILES_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       fallbackUrl: process.env.TILES_FALLBACK_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       minZoom: 12, maxZoom: 18,
     },
@@ -67,7 +69,7 @@ miscRoutes.get('/ranking', async (c) => {
     : await sql<RankRow[]>`
         select u.id, u.name, u.handle, u.avatar_url, u.xp, sum(l.xp)::int as pontos, u.streak_days
         from ledger l join users u on u.id = l.user_id
-        where l.xp > 0 and u.banned_at is null
+        where l.xp > 0 and l.state <> 'estornado' and u.banned_at is null
           and l.created_at >= date_trunc('week', (now() at time zone 'America/Porto_Velho')) at time zone 'America/Porto_Velho'
         group by u.id order by pontos desc, u.xp desc limit 50`;
   const ranked = items.map((r, i) => ({ ...r, pos: i + 1, level: levelFor(Number(r.xp)) }));
@@ -75,13 +77,26 @@ miscRoutes.get('/ranking', async (c) => {
   return c.json({ period, items: ranked, me: mine });
 });
 
+/** Corpo acima do limite é cortado ainda no stream, antes de qualquer buffer em memória. */
+const uploadBodyLimit = (c: Parameters<typeof requireUser>[0], next: () => Promise<void>) => {
+  const mb = c.get('config').MAX_UPLOAD_MB;
+  return bodyLimit({
+    maxSize: mb * 1024 * 1024 + 64 * 1024,
+    onError: () => { throw new HTTPException(413, { message: `Imagem acima de ${mb} MB.` }); },
+  })(c, next);
+};
+
 /** Envio de prova (foto, nota, recibo). Fica "solta" até virar parte de uma resposta. */
-miscRoutes.post('/uploads', async (c) => {
+miscRoutes.post('/uploads', uploadBodyLimit, async (c) => {
   const u = requireUser(c);
   const cfg = c.get('config');
   const sql = c.get('sql');
   const eco = await loadEconomy(sql);
-  if (!(await takeCap(sql, u.id, 'uploads', eco.limites_dia.uploads))) throw new HTTPException(429, { message: 'Limite de envios de hoje atingido. Volte amanhã.' });
+  // Quem já estourou a cota não gasta CPU do servidor; a cota em si só é cobrada depois que a imagem foi aceita.
+  const used = (await sql<{ n: number }[]>`
+    select coalesce(count, 0)::int as n from daily_caps
+    where user_id = ${u.id}::uuid and day = (now() at time zone 'America/Porto_Velho')::date and kind = 'uploads'`)[0]?.n ?? 0;
+  if (used >= eco.limites_dia.uploads) throw new HTTPException(429, { message: 'Limite de envios de hoje atingido. Volte amanhã.' });
   const body = await c.req.parseBody();
   const file = body['file'];
   if (!(file instanceof File)) throw new HTTPException(400, { message: 'Envie um arquivo de imagem no campo "file".' });
@@ -93,6 +108,7 @@ miscRoutes.post('/uploads', async (c) => {
   const input = Buffer.from(await file.arrayBuffer());
   let processed;
   try { processed = await processImage(input); } catch { throw new HTTPException(415, { message: 'Não consegui ler essa imagem. Envie JPG, PNG, WebP ou HEIC convertido.' }); }
+  if (!(await takeCap(sql, u.id, 'uploads', eco.limites_dia.uploads))) throw new HTTPException(429, { message: 'Limite de envios de hoje atingido. Volte amanhã.' });
 
   const dup = await sql<{ id: string; uploaderId: string; d: number }[]>`
     select id, uploader_id, fn_hamming(dhash, ${processed.dhash}::bit(64)) as d
@@ -142,8 +158,11 @@ miscRoutes.post('/flags', async (c) => {
       where f.target_type = 'resposta' and f.target_id = ${body.targetId}::uuid and f.status = 'aberta' and r.trust >= 0.6`)[0]!.n;
     if (n >= 3) {
       await sql.begin(async (tx) => {
-        await tx`update answers set status = 'oculta' where id = ${body.targetId}::uuid and status <> 'oculta'`;
-        await reverseAnswerAwards(tx, body.targetId, 'denuncias_da_comunidade');
+        const hid = await tx`update answers set status = 'oculta' where id = ${body.targetId}::uuid and status not in ('oculta', 'rejeitada') returning id`;
+        if (hid.length) {
+          await reopenQuestionIfAccepted(tx, body.targetId);
+          await reverseAnswerAwards(tx, body.targetId, 'denuncias_da_comunidade');
+        }
       });
     }
   }
@@ -168,13 +187,37 @@ miscRoutes.post('/admin/flags/:id', async (c) => {
   await sql.begin(async (tx) => {
     await tx`update flags set status = ${body.status}, resolved_at = now(), resolved_by = ${mod.id}::uuid where id = ${id}::uuid`;
     if (f.targetType === 'resposta') {
+      const aid = f.targetId;
       if (body.status === 'procede') {
-        await tx`update answers set status = 'rejeitada' where id = ${f.targetId}::uuid`;
-        await reverseAnswerAwards(tx, f.targetId, 'denuncia_procedente');
-        const author = (await tx<{ authorId: string }[]>`select author_id from answers where id = ${f.targetId}::uuid`)[0];
+        // Rejeição é definitiva: a resposta deixa de ocupar o "primeiro achado" do lugar e a pergunta reabre se ela era a aceita.
+        await tx`update answers set status = 'rejeitada', is_first_for_place = false where id = ${aid}::uuid`;
+        await reopenQuestionIfAccepted(tx, aid);
+        await reverseAnswerAwards(tx, aid, 'denuncia_procedente');
+        const author = (await tx<{ authorId: string }[]>`select author_id from answers where id = ${aid}::uuid`)[0];
         if (author) await tx`select fn_recompute_trust(${author.authorId}::uuid)`;
       } else {
-        await tx`update answers set status = 'pendente' where id = ${f.targetId}::uuid and status = 'oculta'`;
+        // Improcedente: a resposta volta com o status que tinha e com o que rendeu (na carência que ainda corria),
+        // desde que não reste outro motivo para ficar escondida (denúncia procedente, 3 denúncias confiáveis abertas
+        // ou negação pela própria comunidade).
+        const a = (await tx<{ status: string }[]>`select status from answers where id = ${aid}::uuid for update`)[0];
+        if (a?.status === 'oculta') {
+          const still = (await tx<{ procede: boolean; abertas: number; negada: boolean }[]>`
+            select exists (select 1 from flags where target_type = 'resposta' and target_id = ${aid}::uuid and status = 'procede') as procede,
+                   (select count(*)::int from flags f2 join users r on r.id = f2.reporter_id
+                     where f2.target_type = 'resposta' and f2.target_id = ${aid}::uuid and f2.status = 'aberta' and r.trust >= 0.6) as abertas,
+                   exists (select 1 from ledger where ref_type = 'resposta' and ref_id = ${aid}::uuid and kind = 'estorno'
+                             and state <> 'estornado' and meta->>'motivo' = 'negada_pela_comunidade') as negada`)[0]!;
+          if (!still.procede && still.abertas < 3 && !still.negada) {
+            await restoreAnswerAwards(tx, aid, 'denuncia_improcedente');
+            await tx`update answers set status = case
+                when exists (select 1 from questions q where q.accepted_answer_id = answers.id) then 'aceita'
+                when exists (select 1 from ledger l where l.ref_type = 'resposta' and l.ref_id = answers.id and l.state <> 'estornado'
+                               and (l.kind = 'resposta_confirmada' or (l.kind = 'devolucao' and l.meta->>'original' = 'resposta_confirmada'))) then 'confirmada'
+                else 'pendente' end
+              where id = ${aid}::uuid and status = 'oculta'`;
+            await tx`update questions set status = 'resolvida', solved_at = now() where accepted_answer_id = ${aid}::uuid and status = 'respondida'`;
+          }
+        }
       }
     }
   });

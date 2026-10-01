@@ -57,7 +57,7 @@ export function AnswerTicket({ a, meId, canAccept, canTip, distanceM, onAccept, 
             {strong ? <Check size={12} strokeWidth={3} /> : null}{strong ? 'Prova forte' : 'Prova fraca'} · {a.evidenceScore}
           </span>
           {Array.from(new Set(goodFlags)).map((f) => <span key={f} className="rounded-full px-2 h-6 inline-flex items-center bg-surface-2 text-ink-2">{FLAG_LABEL[f]}</span>)}
-          {a.seenOn && <span className="rounded-full px-2 h-6 inline-flex items-center bg-surface-2 text-ink-2">visto em {new Date(a.seenOn + 'T12:00:00').toLocaleDateString('pt-BR')}</span>}
+          {a.seenOn && <span className="rounded-full px-2 h-6 inline-flex items-center bg-surface-2 text-ink-2">visto em {new Date(a.seenOn).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>}
         </div>
       </div>
 

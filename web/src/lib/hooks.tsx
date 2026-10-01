@@ -59,14 +59,27 @@ export function useToast() {
   return ctx;
 }
 
-export function useTheme() {
-  const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>(() => (localStorage.getItem('garimpa.theme') as 'light' | 'dark' | 'auto' | null) ?? 'auto');
+/* Tema: um único estado para o app inteiro (montado em main.tsx). index.html aplica o valor salvo antes do bundle, para não piscar. */
+export type Theme = 'light' | 'dark' | 'auto';
+const THEME_KEY = 'garimpa.theme';
+function readTheme(): Theme {
+  try { const t = localStorage.getItem(THEME_KEY); return t === 'light' || t === 'dark' || t === 'auto' ? t : 'auto'; } catch { return 'auto'; }
+}
+const ThemeCtx = createContext<{ theme: Theme; setTheme: (t: Theme) => void } | null>(null);
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setTheme] = useState<Theme>(readTheme);
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', theme);
-    localStorage.setItem('garimpa.theme', theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch { /* sem storage */ }
   }, [theme]);
-  return { theme, setTheme };
+  const value = useMemo(() => ({ theme, setTheme }), [theme]);
+  return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
+}
+export function useTheme() {
+  const ctx = useContext(ThemeCtx);
+  if (!ctx) throw new Error('ThemeProvider ausente');
+  return ctx;
 }
 
 export function useDebounced<T>(value: T, ms = 350): T {

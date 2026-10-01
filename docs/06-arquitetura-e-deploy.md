@@ -10,10 +10,10 @@
                                                              │
                                                       PostgreSQL 16 (garimpa-db)
                                                       earthdistance · pg_trgm · unaccent · tsvector pt
-   tiles: https://onibus.incubadora.cloud/tiles/{z}/{x}/{y}.png (próprios) → OSM como reserva
+   tiles: OpenStreetMap por padrão (configurável por TILES_URL; servidor próprio opcional)
 ```
 
-Um contêiner de aplicação, um de banco, um de backup. Nenhum serviço externo além do login do Google e dos tiles já hospedados.
+Um contêiner de aplicação, um de banco, um de backup. Nenhum serviço externo além do login do Google e dos tiles do OpenStreetMap (ou de um servidor próprio via `TILES_URL`).
 
 ## Pastas
 
@@ -60,13 +60,16 @@ Origens JavaScript autorizadas: `https://garimpa.incubadora.cloud`, `https://gar
 
 ### Tiles
 
-O app usa os tiles próprios de Ariquemes já servidos pelo app dos ônibus (zoom 12–18). Fora dessa área, ou se o servidor estiver fora do ar, o `MapView` troca para o OpenStreetMap depois de 4 erros de tile. Para outra cidade, gere os tiles com `infra/tiles/` do repositório dos ônibus e mude `TILES_URL`.
+Por padrão o mapa usa o OpenStreetMap (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`, zoom 12–18, com a atribuição exigida). O Garimpa não depende da infraestrutura de nenhum outro aplicativo. A política de uso do OSM tolera o volume de um piloto; para produção com mais tráfego, hospede tiles próprios (ex.: `tiles.garimpa.app.br`) e aponte `TILES_URL`; `TILES_FALLBACK_URL` é a reserva que o `MapView` adota depois de 4 erros de tile.
 
 ## Segurança
 
-- Cookie `garimpa_s`: `HttpOnly`, `SameSite=Lax`, `Secure` em produção, 30 dias.
+- Cookie `garimpa_s`: `HttpOnly`, `SameSite=Lax`, `Secure` em produção, 30 dias. `SESSION_SECRET` é obrigatório em produção: a API (e `migrate`/`seed` com `NODE_ENV=production`) recusa subir com o segredo padrão do repositório.
+- Toda escrita em `/api/*` exige o cabeçalho `x-garimpa-device` (que o app sempre envia) e corpo JSON ou multipart; um formulário de outro site não consegue nem fazer login na sua conta (anti-CSRF).
+- Login com Google: o e-mail só identifica uma conta existente quando vem com `email_verified`, e um e-mail já vinculado a outro `sub` não é reatribuído (409). Quem recriar a conta Google com o mesmo e-mail precisa de suporte manual.
+- Posição de quem pergunta: guardada só como região aproximada (deslocamento aleatório de até ~200 m e 3 casas decimais).
 - Fotos regravadas sem EXIF; caminho servido só no formato `ano/mes/<sha256>.jpg`.
-- Limites diários por usuário em todas as rotas de escrita; tamanho máximo de upload 8 MB.
+- Limites diários por usuário em todas as rotas de escrita; tamanho máximo de upload 8 MB, cortado ainda no stream (`bodyLimit`) e com teto de 50 MP na decodificação.
 - IP e dispositivo guardados só como hash salgado (`user_signals`), para conluio.
 - `DELETE /api/auth/account` anonimiza a conta (LGPD).
 

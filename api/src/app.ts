@@ -18,6 +18,16 @@ export function createApp(deps: { sql: Sql; config: Config }) {
     c.set('config', deps.config);
     await next();
   });
+  // Escritas só chegam do app: o cabeçalho x-garimpa-device (que um formulário de outro site não consegue enviar e que,
+  // em fetch cross-origin, exige um preflight que a API não responde) e corpo JSON ou multipart. Fecha o login CSRF.
+  app.use('/api/*', async (c, next) => {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) {
+      if (!c.req.header('x-garimpa-device')) throw new HTTPException(403, { message: 'Requisição não reconhecida. Use o aplicativo do Garimpa.' });
+      const ct = c.req.header('content-type') ?? '';
+      if (ct && !/^(application\/json|multipart\/form-data)/i.test(ct)) throw new HTTPException(415, { message: 'Formato de requisição não aceito.' });
+    }
+    await next();
+  });
   app.use('/api/*', withUser);
 
   app.onError((err, c) => {

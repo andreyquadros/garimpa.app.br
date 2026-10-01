@@ -6,7 +6,7 @@ import { ArrowLeft, Camera, MapPin, Plus, Search } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useConfig, useDebounced, useGeo, useInvalidate, useMe, useToast } from '@/lib/hooks';
 import type { PlaceLite, UploadResult } from '@/lib/types';
-import { dist, KINDS } from '@/lib/format';
+import { dist, KINDS, parseBrlToCents } from '@/lib/format';
 import { MapView } from '@/components/MapView';
 import { checksFromUpload, EvidenceChecklist } from '@/components/EvidenceChecklist';
 import { Button, Chip, Field, PepitaIcon, Spinner, Stamp, TextArea } from '@/components/ui';
@@ -34,6 +34,7 @@ export function AnswerPage() {
   const [uploading, setUploading] = useState(false);
   const [note, setNote] = useState('');
   const [price, setPrice] = useState('');
+  const [priceError, setPriceError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ xp: number; strong: boolean; isFirst: boolean; evidenceScore: number } | null>(null);
 
@@ -54,13 +55,15 @@ export function AnswerPage() {
     } catch (e) { toast.push({ text: (e as Error).message, tone: 'erro' }); }
     finally { setUploading(false); }
   }
+  const priceCents = parseBrlToCents(price);
+  const priceInvalid = price.trim() !== '' && priceCents === undefined;
   async function submit() {
+    if (priceInvalid) { setPriceError('Preço inválido. Use algo como 24,90.'); return; }
     setBusy(true);
     try {
-      const cents = price ? Math.round(Number(price.replace(/\./g, '').replace(',', '.')) * 100) : undefined;
       const r = await api.createAnswer(id, {
         placeId: place?.id, newPlace: newPlace ? { name: newPlace.name, kind: newPlace.kind, address: newPlace.address || undefined, lat: newPlace.lat, lng: newPlace.lng } : undefined,
-        note: note.trim() || undefined, priceCents: Number.isFinite(cents) ? cents : undefined, evidenceIds: uploads.map((u) => u.id),
+        note: note.trim() || undefined, priceCents, evidenceIds: uploads.map((u) => u.id),
       });
       invalidate(['question', 'questions', 'me', 'mapFinds']);
       setResult(r);
@@ -154,7 +157,7 @@ export function AnswerPage() {
           <motion.section key="detalhes" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} className="px-4 mt-5 flex-1 space-y-4">
             <h1 className="font-display text-2xl leading-tight">Ajude quem vai lá</h1>
             <TextArea label="Onde fica dentro da loja? (opcional)" value={note} onChange={(e) => setNote(e.target.value)} maxLength={600} placeholder="Corredor dos potes, prateleira de baixo. Perguntei pro Seu Zé do caixa." />
-            <Field label="Preço que você viu (opcional)" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="24,90" />
+            <Field label="Preço que você viu (opcional)" inputMode="decimal" value={price} onChange={(e) => { setPrice(e.target.value); setPriceError(undefined); }} placeholder="24,90" error={priceError} />
             <div className="rounded-2xl bg-surface-2 p-3 text-sm">
               <p className="font-semibold flex items-center gap-1"><PepitaIcon size={16} />O que você ganha</p>
               <ul className="mt-1 text-ink-2 space-y-0.5">
@@ -163,7 +166,7 @@ export function AnswerPage() {
                 <li>Primeiro achado no lugar leva tudo; os seguintes, 25% como confirmação.</li>
               </ul>
             </div>
-            <Button variant="gold" size="lg" className="w-full" loading={busy} onClick={submit}>Enviar pista</Button>
+            <Button variant="gold" size="lg" className="w-full" loading={busy} disabled={priceInvalid} onClick={submit}>Enviar pista</Button>
           </motion.section>
         )}
 

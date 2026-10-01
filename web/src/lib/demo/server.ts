@@ -264,7 +264,7 @@ async function route(req: Request, url: URL): Promise<Out> {
     return ok({
       city: CITY, googleClientId: null, devLogin: true, levels: LEVELS,
       economy: { xp: eco.xp, pepitas: eco.pepitas, limites_dia: eco.limites_dia, carencia_dias: eco.carencia_dias, conversao: eco.conversao, evidencia_forte: eco.evidencia_forte },
-      tiles: { url: 'https://onibus.incubadora.cloud/tiles/{z}/{x}/{y}.png', fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', minZoom: 12, maxZoom: 18 },
+      tiles: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', minZoom: 3, maxZoom: 19 },
     });
   }
   if (is('GET', 'me')) {
@@ -328,7 +328,7 @@ async function route(req: Request, url: URL): Promise<Out> {
     const items = s.questions.filter((q) => {
       if (status === 'todas' ? q.status === 'fechada' : status === 'abertas' ? !(q.status === 'aberta' || q.status === 'respondida') : q.status !== status) return false;
       if (category && q.category !== category) return false;
-      if (mine && me && followed && !(q.authorId === me.id || followed.has(q.id))) return false;
+      if (mine && !(me && followed && (q.authorId === me.id || followed.has(q.id)))) return false;
       return true;
     }).map((q) => questionListItem(s, q, pos));
     items.sort((x, y) => {
@@ -374,17 +374,25 @@ async function route(req: Request, url: URL): Promise<Out> {
   if (is('POST', 'questions', null, 'follow')) {
     const u = requireUser();
     const q = question(s, b!);
+    const body = await readJson(req);
+    // Como na API: o bônus deriva do número de seguidores (seguir/deixar de seguir não cunha nada),
+    // congela depois de resolvida/fechada, e o XP de "também quero" sai uma vez por pessoa por pergunta.
+    const recount = () => {
+      q.followersCount = s.followers.filter((f) => f.questionId === q.id).length;
+      if (q.status === 'aberta' || q.status === 'respondida') q.bounty = Math.min(eco.pepitas.bounty_maximo, Math.max(0, q.followersCount - 1) * eco.pepitas.bounty_tambem_quero);
+    };
     const i = s.followers.findIndex((f) => f.questionId === q.id && f.userId === u.id);
     if (i >= 0) {
+      if (body.on === true) return ok({ following: true, bounty: q.bounty, already: true });
       if (q.authorId === u.id) throw new HttpError(400, 'Quem perguntou acompanha sempre.');
       s.followers.splice(i, 1);
-      q.followersCount = Math.max(0, q.followersCount - 1);
+      recount();
       return ok({ following: false, bounty: q.bounty });
     }
     s.followers.push({ questionId: q.id, userId: u.id, createdAt: nowIso() });
-    q.bounty = Math.min(eco.pepitas.bounty_maximo, q.bounty + eco.pepitas.bounty_tambem_quero);
-    q.followersCount++;
-    if (takeCap(s, u.id, 'tambem_quero', 10)) award(s, u.id, 'tambem_quero', eco.xp.tambem_quero, 0, { type: 'pergunta', id: q.id }, {}, 0);
+    recount();
+    const jaGanhou = s.ledger.some((l) => l.userId === u.id && l.kind === 'tambem_quero' && l.refId === q.id);
+    if (!jaGanhou && takeCap(s, u.id, 'tambem_quero', eco.limites_dia.tambem_quero)) award(s, u.id, 'tambem_quero', eco.xp.tambem_quero, 0, { type: 'pergunta', id: q.id }, {}, 0);
     return ok({ following: true, bounty: q.bounty });
   }
   if (is('POST', 'questions', null, 'close')) {

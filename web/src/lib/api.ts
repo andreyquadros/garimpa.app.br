@@ -55,7 +55,8 @@ export const api = {
   question: (id: string) => req<QuestionDetail>('GET', `/api/questions/${id}`),
   createQuestion: (b: { title: string; details?: string; category: string; lat?: number; lng?: number; photoEvidenceId?: string; force?: boolean }) =>
     req<{ id: string }>('POST', '/api/questions', b),
-  follow: (id: string) => req<{ following: boolean; bounty: number }>('POST', `/api/questions/${id}/follow`),
+  /** Sem `opts` alterna; `{ on: true }` só liga (idempotente) e devolve `already` quando já seguia. */
+  follow: (id: string, opts?: { on: boolean }) => req<{ following: boolean; bounty: number; already?: boolean }>('POST', `/api/questions/${id}/follow`, opts),
   close: (id: string) => req<{ ok: true }>('POST', `/api/questions/${id}/close`),
   accept: (id: string, answerId: string) => req<{ answerId: string; credits: number; xp: number; collusion: string | null }>('POST', `/api/questions/${id}/accept`, { answerId }),
   createAnswer: (id: string, b: { placeId?: string; newPlace?: { name: string; address?: string; lat: number; lng: number; kind: string }; note?: string; priceCents?: number; seenOn?: string; evidenceIds: string[] }) =>

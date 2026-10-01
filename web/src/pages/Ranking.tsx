@@ -57,12 +57,12 @@ export function Ranking() {
 
 function Row({ p, me }: { p: RankRow; me: boolean }) {
   return (
-    <li className={`rounded-2xl px-3 py-2 flex items-center gap-3 ${me ? 'bg-pepita-200/60' : 'bg-surface'}`}>
+    <li className={`rounded-2xl px-3 py-2 flex items-center gap-3 bg-surface ${me ? 'ring-2 ring-pepita-400' : ''}`}>
       <span className="font-display font-bold text-ink-2 w-7 text-right">{p.pos}</span>
       <Avatar name={p.name} url={p.avatarUrl} size={36} />
       <span className="flex-1 min-w-0">
         <span className="block font-semibold truncate">{p.name}{me ? ' (você)' : ''}</span>
-        <span className="block text-xs text-ink-2 flex items-center gap-1">{p.level.name}{p.streakDays >= 3 && <span className="inline-flex items-center gap-0.5 text-barro-500"><Flame size={12} />{p.streakDays}</span>}</span>
+        <span className="block text-xs text-ink-2 flex items-center gap-1">{p.level.name}{p.streakDays >= 3 && <span className="inline-flex items-center gap-0.5 text-barro-ink"><Flame size={12} />{p.streakDays}</span>}</span>
       </span>
       <span className="font-display font-bold">{p.pontos.toLocaleString('pt-BR')}</span>
     </li>

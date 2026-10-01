@@ -81,7 +81,8 @@ export async function verifyGoogleIdToken(config: Config, idToken: string): Prom
   if (!payload.sub) throw new HTTPException(401, { message: 'Token do Google sem identificador.' });
   return {
     sub: payload.sub,
-    email: typeof payload.email === 'string' ? payload.email : null,
+    // Só um e-mail confirmado pelo Google serve para reconhecer uma conta já existente.
+    email: payload.email_verified === true && typeof payload.email === 'string' ? payload.email : null,
     name: typeof payload.name === 'string' && payload.name ? payload.name : 'Garimpeiro',
     picture: typeof payload.picture === 'string' ? payload.picture : null,
   };

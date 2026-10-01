@@ -33,8 +33,12 @@ export function Ask() {
   useEffect(() => { if (useLocation && geo.state === 'idle') geo.ask(); }, [useLocation, geo]);
 
   async function want(id: string) {
-    try { await api.follow(id); toast.push({ text: 'Marcado! Você vai ver quando acharem.', xp: 2 }); nav(`/g/${id}`); }
-    catch (e) { toast.push({ text: (e as Error).message, tone: 'erro' }); }
+    try {
+      const r = await api.follow(id, { on: true });
+      toast.push(r.already ? { text: 'Você já acompanhava essa pergunta.' } : { text: 'Marcado! Você vai ver quando acharem.', xp: 2 });
+      invalidate(['question', 'questions', 'me']);
+      nav(`/g/${id}`);
+    } catch (e) { toast.push({ text: (e as Error).message, tone: 'erro' }); }
   }
   async function onPhoto(f: File | undefined) {
     if (!f) return;

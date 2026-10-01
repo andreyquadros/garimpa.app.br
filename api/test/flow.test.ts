@@ -148,3 +148,260 @@ describe('fluxo completo: perguntar, achar, confirmar, aceitar, gorjeta', () => 
     expect(far.status).toBe(400);
   });
 });
+
+/** Três contas confiáveis denunciam a resposta: é o gatilho de ocultação + estorno. Devolve os ids das denúncias. */
+async function flagThrice(answerId: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (let i = 0; i < 3; i++) {
+    const r = await login(app, uniq('Fiscal'));
+    await sql`update users set trust = 0.9 where id = ${r.user.id}::uuid`;
+    const f = await api(app, 'POST', '/api/flags', { session: r, body: { targetType: 'resposta', targetId: answerId, reason: 'foto_falsa' } });
+    expect(f.status).toBe(201);
+    ids.push((await sql<{ id: string }[]>`select id from flags where target_id = ${answerId}::uuid and reporter_id = ${r.user.id}::uuid`)[0]!.id);
+  }
+  return ids;
+}
+
+async function moderator() {
+  const m = await login(app, uniq('Mod'));
+  await sql`update users set role = 'moderator' where id = ${m.user.id}::uuid`;
+  return m;
+}
+
+const today = () => sql`select (now() at time zone 'America/Porto_Velho')::date as d`.then((r) => r[0]!.d as string);
+
+describe('bônus "também quero"', () => {
+  it('seguir/deixar de seguir em loop não infla o bônus, XP vem uma vez por pergunta e o aceite paga só o bônus de quem acompanha', async () => {
+    const alice = await login(app, uniq('Alice'));
+    const beto = await login(app, uniq('Beto'));
+    const carla = await login(app, uniq('Carla'));
+    const tag = uniq('b');
+    const q = await api(app, 'POST', '/api/questions', { session: alice, body: { title: `Furadeira de impacto 650W ${tag}`, category: 'ferramentas' } });
+    expect(q.status).toBe(201);
+    const qid = q.json.id as string;
+    const snap = async () => (await sql<{ bounty: number; followersCount: number }[]>`select bounty, followers_count from questions where id = ${qid}::uuid`)[0]!;
+    for (let i = 0; i < 12; i++) expect((await api(app, 'POST', `/api/questions/${qid}/follow`, { session: beto })).status).toBe(200);
+    expect(await snap()).toEqual({ bounty: 0, followersCount: 1 });
+    const on = await api(app, 'POST', `/api/questions/${qid}/follow`, { session: beto });
+    expect(on.json).toMatchObject({ following: true, bounty: 5 });
+    expect(await snap()).toEqual({ bounty: 5, followersCount: 2 });
+    const xpRows = (await sql<{ n: number }[]>`select count(*)::int as n from ledger where user_id = ${beto.user.id}::uuid and kind = 'tambem_quero'`)[0]!.n;
+    expect(xpRows).toBe(1);
+
+    const place = await newPlace(carla, `Ferragens ${tag}`, 0.003, 0.002);
+    const up = await upload(app, carla, await testImage(51));
+    expect(up.status).toBe(201);
+    const ans = await api(app, 'POST', `/api/questions/${qid}/answers`, { session: carla, body: { placeId: place, evidenceIds: [up.json.id] } });
+    expect(ans.status).toBe(201);
+    const acc = await api(app, 'POST', `/api/questions/${qid}/accept`, { session: alice, body: { answerId: ans.json.answerId } });
+    expect(acc.status).toBe(200);
+    expect(acc.json.credits).toBe(50 + 5);
+    expect(acc.json.primeiroAchado).toBe(10);
+    // Depois de resolvida, o bônus congela (já foi pago)
+    const off = await api(app, 'POST', `/api/questions/${qid}/follow`, { session: beto });
+    expect(off.json).toMatchObject({ following: false, bounty: 5 });
+  });
+});
+
+describe('confirmação com conluio', () => {
+  it('votantes no mesmo aparelho do autor confirmam a resposta, mas o autor não cunha pepitas', async () => {
+    const device = uniq('cel');
+    const asker = await login(app, uniq('Ask'));
+    const author = await login(app, uniq('Aut'), device);
+    const v1 = await login(app, uniq('V1'), device);
+    const v2 = await login(app, uniq('V2'), device);
+    const tag = uniq('c');
+    const q = await api(app, 'POST', '/api/questions', { session: asker, body: { title: `Panela de pressão 7 litros ${tag}`, category: 'casa' } });
+    const place = await newPlace(author, `Utilidades ${tag}`, -0.002, 0.003);
+    const up = await upload(app, author, await testImage(52));
+    const ans = await api(app, 'POST', `/api/questions/${q.json.id}/answers`, { session: author, body: { placeId: place, evidenceIds: [up.json.id] } });
+    expect(ans.status).toBe(201);
+    const xpBefore = (await sql<{ xp: number }[]>`select xp from users where id = ${author.user.id}::uuid`)[0]!.xp;
+    await api(app, 'POST', `/api/answers/${ans.json.answerId}/confirm`, { session: v1, body: { vote: 1 } });
+    const c2 = await api(app, 'POST', `/api/answers/${ans.json.answerId}/confirm`, { session: v2, body: { vote: 1 } });
+    expect(c2.json.status).toBe('confirmada');
+    expect(c2.json.collusion).toBe('forte');
+    // meta::text: o transform camelCase do cliente reescreveria as chaves do JSON
+    const row = (await sql<{ credits: number; meta: string }[]>`select credits, meta::text as meta from ledger where user_id = ${author.user.id}::uuid and kind = 'resposta_confirmada'`)[0]!;
+    expect(row.credits).toBe(0);
+    expect(JSON.parse(row.meta)).toMatchObject({ conluio: 'mesmo_dispositivo' });
+    const u = (await sql<{ xp: number; creditsPending: number }[]>`select xp, credits_pending from users where id = ${author.user.id}::uuid`)[0]!;
+    expect(u.creditsPending).toBe(0);
+    expect(u.xp).toBe(xpBefore + 20); // XP continua
+  });
+});
+
+describe('denúncia improcedente devolve status, pepitas e pergunta', () => {
+  it('3 denúncias reabrem a pergunta; "improcede" devolve "aceita", a carência e "resolvida"; um "procede" depois estorna de novo', async () => {
+    const asker = await login(app, uniq('Pergunta'));
+    const honest = await login(app, uniq('Honesto'));
+    const tag = uniq('d');
+    const q = await api(app, 'POST', '/api/questions', { session: asker, body: { title: `Cadeira de escritório ergonômica ${tag}`, category: 'casa' } });
+    const qid = q.json.id as string;
+    const place = await newPlace(honest, `Móveis ${tag}`, 0.004, -0.002);
+    const up = await upload(app, honest, await testImage(53));
+    const ans = await api(app, 'POST', `/api/questions/${qid}/answers`, { session: honest, body: { placeId: place, evidenceIds: [up.json.id] } });
+    const aid = ans.json.answerId as string;
+    const acc = await api(app, 'POST', `/api/questions/${qid}/accept`, { session: asker, body: { answerId: aid } });
+    expect(acc.status).toBe(200);
+    const user = async () => (await sql<{ xp: number; credits: number; creditsPending: number }[]>`select xp, credits, credits_pending from users where id = ${honest.user.id}::uuid`)[0]!;
+    const afterAccept = await user();
+    expect(afterAccept.creditsPending).toBe(60);
+
+    const flags = await flagThrice(aid);
+    expect((await sql`select status from answers where id = ${aid}::uuid`)[0]!.status).toBe('oculta');
+    const hidden = await user();
+    expect(hidden.creditsPending).toBe(0);
+    expect(hidden.xp).toBeLessThan(afterAccept.xp);
+    // A pergunta não fica presa em "resolvida" apontando para uma resposta invisível
+    const reopened = await api(app, 'GET', `/api/questions/${qid}`, { session: asker });
+    expect(reopened.json.question.status).toBe('respondida');
+    expect(reopened.json.answers).toEqual([]);
+    expect(reopened.json.canAccept).toBe(true);
+    // O ranking não conta XP estornado
+    const rank = await api(app, 'GET', '/api/ranking?period=semana', { session: honest });
+    expect(rank.json.me.pontos).toBe(hidden.xp);
+
+    const mod = await moderator();
+    const imp = await api(app, 'POST', `/api/admin/flags/${flags[0]}`, { session: mod, body: { status: 'improcede' } });
+    expect(imp.status).toBe(200);
+    expect((await sql`select status from answers where id = ${aid}::uuid`)[0]!.status).toBe('aceita');
+    expect((await sql`select status, accepted_answer_id from questions where id = ${qid}::uuid`)[0]).toMatchObject({ status: 'resolvida', acceptedAnswerId: aid });
+    const restored = await user();
+    expect(restored).toEqual(afterAccept); // pepitas de volta em carência, não liberadas
+    const devol = await sql<{ state: string; credits: number }[]>`select state, credits from ledger where user_id = ${honest.user.id}::uuid and kind = 'devolucao' and credits > 0`;
+    expect(devol.map((d) => d.state)).toEqual(['carencia', 'carencia']);
+    const detail = await api(app, 'GET', `/api/questions/${qid}`, { session: asker });
+    expect(detail.json.answers[0].status).toBe('aceita');
+    expect(detail.json.canAccept).toBe(false);
+
+    // Outra denúncia julgada procedente: a devolução é estornada de novo e a pergunta reabre
+    const pro = await api(app, 'POST', `/api/admin/flags/${flags[1]}`, { session: mod, body: { status: 'procede' } });
+    expect(pro.status).toBe(200);
+    expect((await sql`select status, is_first_for_place from answers where id = ${aid}::uuid`)[0]).toMatchObject({ status: 'rejeitada', isFirstForPlace: false });
+    expect((await user()).creditsPending).toBe(0);
+    expect((await sql`select status from questions where id = ${qid}::uuid`)[0]!.status).toBe('respondida');
+    // "improcede" na terceira não ressuscita uma resposta rejeitada
+    await api(app, 'POST', `/api/admin/flags/${flags[2]}`, { session: mod, body: { status: 'improcede' } });
+    expect((await sql`select status from answers where id = ${aid}::uuid`)[0]!.status).toBe('rejeitada');
+    expect((await user()).creditsPending).toBe(0);
+  });
+
+  it('quem votou contra a resposta escondida mantém o XP de confirmar', async () => {
+    const asker = await login(app, uniq('Pq'));
+    const author = await login(app, uniq('Au'));
+    const denier = await login(app, uniq('Neg'));
+    const tag = uniq('n');
+    const q = await api(app, 'POST', '/api/questions', { session: asker, body: { title: `Mangueira de jardim 30 m ${tag}`, category: 'casa' } });
+    const place = await newPlace(author, `Agro ${tag}`, -0.003, -0.004);
+    const up = await upload(app, author, await testImage(54));
+    const ans = await api(app, 'POST', `/api/questions/${q.json.id}/answers`, { session: author, body: { placeId: place, evidenceIds: [up.json.id] } });
+    const before = (await sql<{ xp: number }[]>`select xp from users where id = ${denier.user.id}::uuid`)[0]!.xp;
+    const v = await api(app, 'POST', `/api/answers/${ans.json.answerId}/confirm`, { session: denier, body: { vote: -1 } });
+    expect(v.json.xp).toBe(3);
+    await flagThrice(ans.json.answerId);
+    const after = (await sql<{ xp: number }[]>`select xp from users where id = ${denier.user.id}::uuid`)[0]!.xp;
+    expect(after).toBe(before + 3);
+  });
+});
+
+describe('resposta removida', () => {
+  it('não recebe gorjeta nem voto', async () => {
+    const asker = await login(app, uniq('Pa'));
+    const author = await login(app, uniq('Ra'));
+    const other = await login(app, uniq('Ou'));
+    const tag = uniq('r');
+    const q = await api(app, 'POST', '/api/questions', { session: asker, body: { title: `Ventilador de teto com controle ${tag}`, category: 'casa' } });
+    const place = await newPlace(author, `Elétrica ${tag}`, 0.005, 0.001);
+    const up = await upload(app, author, await testImage(55));
+    const ans = await api(app, 'POST', `/api/questions/${q.json.id}/answers`, { session: author, body: { placeId: place, evidenceIds: [up.json.id] } });
+    await sql`update answers set status = 'rejeitada' where id = ${ans.json.answerId}::uuid`;
+    const tip = await api(app, 'POST', `/api/answers/${ans.json.answerId}/tip`, { session: asker, body: { amount: 5, source: 'orcamento' } });
+    expect(tip.status).toBe(400);
+    const vote = await api(app, 'POST', `/api/answers/${ans.json.answerId}/confirm`, { session: other, body: { vote: 1 } });
+    expect(vote.status).toBe(400);
+    expect((await sql`select count(*)::int as n from tips where answer_id = ${ans.json.answerId}::uuid`)[0]!.n).toBe(0);
+  });
+});
+
+describe('corrida no primeiro achado', () => {
+  it('duas respostas simultâneas no mesmo lugar: 201 e 201, com um único primeiro achado', async () => {
+    for (let round = 0; round < 3; round++) {
+      const asker = await login(app, uniq('Co'));
+      const b = await login(app, uniq('Cb'));
+      const cc = await login(app, uniq('Cc'));
+      const tag = uniq('k');
+      const q = await api(app, 'POST', '/api/questions', { session: asker, body: { title: `Tinta spray preto fosco ${tag}`, category: 'ferramentas', force: true } });
+      expect(q.status).toBe(201);
+      const place = await newPlace(b, `Tintas ${tag}`, 0.001, 0.006);
+      const [u1, u2] = await Promise.all([upload(app, b, await testImage(56 + round * 2)), upload(app, cc, await testImage(57 + round * 2))]);
+      expect([u1.status, u2.status]).toEqual([201, 201]);
+      const [r1, r2] = await Promise.all([
+        api(app, 'POST', `/api/questions/${q.json.id}/answers`, { session: b, body: { placeId: place, evidenceIds: [u1.json.id] } }),
+        api(app, 'POST', `/api/questions/${q.json.id}/answers`, { session: cc, body: { placeId: place, evidenceIds: [u2.json.id] } }),
+      ]);
+      expect([r1.status, r2.status], JSON.stringify([r1.json, r2.json])).toEqual([201, 201]);
+      expect([r1.json.isFirst, r2.json.isFirst].filter(Boolean)).toHaveLength(1);
+    }
+  });
+});
+
+describe('teto diário de pepitas cunhadas', () => {
+  it('com 300 já cunhadas no dia, o aceite paga XP mas nenhuma pepita (teto_diario)', async () => {
+    const asker = await login(app, uniq('Pt'));
+    const author = await login(app, uniq('At'));
+    const tag = uniq('t');
+    const q = await api(app, 'POST', '/api/questions', { session: asker, body: { title: `Botijão de gás 13 kg ${tag}`, category: 'casa' } });
+    const place = await newPlace(author, `Gás ${tag}`, -0.006, 0.002);
+    const up = await upload(app, author, await testImage(62));
+    const ans = await api(app, 'POST', `/api/questions/${q.json.id}/answers`, { session: author, body: { placeId: place, evidenceIds: [up.json.id] } });
+    await sql`insert into daily_caps(user_id, day, kind, count) values (${author.user.id}::uuid, ${await today()}::date, 'pepitas_cunhadas', 300)`;
+    const xpBefore = (await sql<{ xp: number }[]>`select xp from users where id = ${author.user.id}::uuid`)[0]!.xp;
+    const acc = await api(app, 'POST', `/api/questions/${q.json.id}/accept`, { session: asker, body: { answerId: ans.json.answerId } });
+    expect(acc.status).toBe(200);
+    expect(acc.json).toMatchObject({ credits: 0, primeiroAchado: 0, tetoDiario: true, motivo: 'teto_diario', collusion: null });
+    const u = (await sql<{ xp: number; creditsPending: number }[]>`select xp, credits_pending from users where id = ${author.user.id}::uuid`)[0]!;
+    expect(u.creditsPending).toBe(0);
+    expect(u.xp).toBeGreaterThanOrEqual(xpBefore + 60);
+    const row = (await sql<{ meta: string }[]>`select meta::text as meta from ledger where user_id = ${author.user.id}::uuid and kind = 'resposta_aceita'`)[0]!;
+    expect(JSON.parse(row.meta)).toMatchObject({ teto_diario: true });
+  });
+});
+
+describe('limite de lugares novos', () => {
+  it('vale também quando o lugar nasce junto com a resposta', async () => {
+    const asker = await login(app, uniq('Pl'));
+    const author = await login(app, uniq('Al'));
+    const tag = uniq('l');
+    const q = await api(app, 'POST', '/api/questions', { session: asker, body: { title: `Capacete de bicicleta infantil ${tag}`, category: 'esporte' } });
+    const up = await upload(app, author, await testImage(63));
+    await sql`insert into daily_caps(user_id, day, kind, count) values (${author.user.id}::uuid, ${await today()}::date, 'lugares', 15)`;
+    const ans = await api(app, 'POST', `/api/questions/${q.json.id}/answers`, { session: author, body: { newPlace: { name: `Bike ${tag}`, lat: C.lat + 0.002, lng: C.lng + 0.002, kind: 'loja' }, evidenceIds: [up.json.id] } });
+    expect(ans.status).toBe(429);
+    expect((await sql`select count(*)::int as n from places where name = ${`Bike ${tag}`}`)[0]!.n).toBe(0);
+  });
+});
+
+describe('gorjeta do saldo', () => {
+  it('exige nível 2 e no mínimo 5 pepitas; XP de gorjeta é ⌊valor/5⌋', async () => {
+    const asker = await login(app, uniq('Pg'));
+    const author = await login(app, uniq('Ag'));
+    const giver = await login(app, uniq('Gg'));
+    const tag = uniq('g');
+    const q = await api(app, 'POST', '/api/questions', { session: asker, body: { title: `Caixa organizadora 56 L ${tag}`, category: 'casa' } });
+    const place = await newPlace(author, `Plásticos ${tag}`, 0.002, -0.005);
+    const up = await upload(app, author, await testImage(64));
+    const ans = await api(app, 'POST', `/api/questions/${q.json.id}/answers`, { session: author, body: { placeId: place, evidenceIds: [up.json.id] } });
+    await sql`select fn_award(${giver.user.id}::uuid, 'ajuste', 0, 30, null, null, '{}'::jsonb, 0)`; // saldo disponível
+    const lvl1 = await api(app, 'POST', `/api/answers/${ans.json.answerId}/tip`, { session: giver, body: { amount: 5, source: 'saldo' } });
+    expect(lvl1.status).toBe(403);
+    await sql`update users set xp = 150 where id = ${giver.user.id}::uuid`; // nível 2 (Bateia)
+    const tooSmall = await api(app, 'POST', `/api/answers/${ans.json.answerId}/tip`, { session: giver, body: { amount: 1, source: 'saldo' } });
+    expect(tooSmall.status).toBe(400);
+    const ok = await api(app, 'POST', `/api/answers/${ans.json.answerId}/tip`, { session: giver, body: { amount: 7, source: 'saldo' } });
+    expect(ok.status).toBe(201);
+    const row = (await sql<{ xp: number; credits: number }[]>`select xp, credits from ledger where user_id = ${author.user.id}::uuid and kind = 'gorjeta_recebida'`)[0]!;
+    expect(row).toEqual({ xp: 1, credits: 7 });
+    expect((await sql`select credits from users where id = ${giver.user.id}::uuid`)[0]!.credits).toBe(23);
+  });
+});

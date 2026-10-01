@@ -12,7 +12,7 @@ Pipeline do upload (`api/src/evidence.ts`):
 
 1. **EXIF lido antes de ser apagado**: GPS e data de captura. A imagem publicada é regravada pelo `sharp` sem metadados (privacidade de quem fotografou).
 2. **Hash perceptual (dHash 8×8, 64 bits)** armazenado em `bit(64)`, comparado por distância de Hamming com todas as fotos já enviadas:
-   - **≤ 6 bits** (mesma foto; um reenvio pelo WhatsApp fica em ~3): de **outra pessoa** → upload recusado na hora; da **mesma pessoa** → aceito, marcado `foto_reutilizada`, −30 na nota, não rende pepitas;
+   - **≤ 6 bits** (mesma foto; um reenvio pelo WhatsApp fica em ~3): de **outra pessoa** → upload recusado na hora; da **mesma pessoa** → aceito, marcado `foto_reutilizada`, −30 na nota; se **todas** as provas da resposta forem assim, aceite e confirmação pagam XP mas **0 pepitas** (meta `motivo: foto_reutilizada`);
    - **7–12 bits** (parecida; recompressão agressiva fica em ~9): aceito com aviso `foto_parecida`, −20 na nota, depende de confirmação;
    - fotos distintas ficam acima de 18 bits (`test/evidence.test.ts`). Recortes grandes escapam do hash e ficam para a comunidade e as denúncias.
 3. **SHA-256** para o caso trivial de reenvio do mesmo arquivo.
@@ -41,6 +41,8 @@ Cada ação grava `user_signals(ip_hash, device_hash)` (hash com sal, sem IP em 
 - **mesmo dispositivo** entre quem paga e quem recebe → pepitas **não são cunhadas** (XP continua), meta `conluio: mesmo_dispositivo`;
 - **mesmo IP nas últimas 24 h** (família, mesmo Wi-Fi do campus) → pepitas entram com **14 dias de carência**, tempo para denúncias chegarem.
 
+Na confirmação o par é cada votante a favor × autor: se algum votante estiver no mesmo aparelho do autor, a resposta ainda vira "confirmada" (os votos contam para o status), mas o autor não cunha; na mesma rede, carência de 14 dias. Aceites e confirmações obtidos em conluio forte não contam para a confiança da conta (`fn_recompute_trust`).
+
 Responder a própria pergunta e confirmar a própria resposta são proibidos pela API.
 
 ## 5. Confirmações ponderadas
@@ -53,15 +55,17 @@ Cada voto pesa **1** para contas normais, **0,5** para contas suspeitas (confian
 
 ## 7. Denúncias com consequência
 
-Motivos: plágio, foto falsa, lugar errado, spam, ofensivo. Três denúncias abertas de contas com confiança ≥ 0,6 escondem a resposta e estornam (`fn_reverse`) autor e confirmadores, até um moderador (nível 5+ ou papel `moderator`) decidir. Decisão "procede" rejeita e recalcula a confiança do autor; "improcede" devolve a resposta.
+Motivos: plágio, foto falsa, lugar errado, spam, ofensivo. Três denúncias abertas de contas com confiança ≥ 0,6 escondem a resposta e estornam (`fn_reverse`) autor e confirmadores, até um moderador (nível 5+ ou papel `moderator`) decidir; quem votou **contra** a resposta mantém o XP de confirmar. Se a resposta escondida era a aceita, a pergunta volta a "respondida" (pode receber pistas e um novo aceite) e guarda `accepted_answer_id` como memória.
+
+Decisão "procede": a resposta vira `rejeitada` (definitivo, deixa de ocupar o "primeiro achado" do lugar), o estorno fica e a confiança do autor é recalculada. Decisão "improcede": quando não resta motivo para esconder (nenhuma denúncia procedente, menos de 3 denúncias confiáveis abertas e nenhuma negação pela comunidade), a resposta volta ao status que tinha (aceita, confirmada ou pendente), a pergunta volta a "resolvida" se ela era a aceita, e cada estorno é desfeito por `fn_unreverse`: um lançamento `devolucao` com os mesmos valores, de volta à carência que ainda corria (mesmo `vests_at`) ou já disponível se ela venceu. A devolução é um lançamento comum: cai de novo se a resposta voltar a ser escondida. Gorjetas e confirmações em resposta `oculta`/`rejeitada` são recusadas.
 
 ## 8. Limites diários atômicos
 
-`fn_cap_take` no fuso de Porto Velho: 10 perguntas, 20 pistas, 30 confirmações, 40 envios, 30 pepitas de gorjeta, 15 lugares, 300 pepitas cunhadas. Concorrência coberta por `on conflict … do update` (teste `limite diário é atômico`).
+`fn_cap_take` no fuso de Porto Velho: 10 perguntas, 20 pistas, 30 confirmações, 40 envios (cobrados só depois de a imagem ser aceita), 30 pepitas de gorjeta, 15 lugares (também quando o lugar nasce junto com a resposta), 10 "também quero" com XP, 300 pepitas cunhadas (de quem recebe; ao estourar, o lançamento sai com 0 pepitas e `teto_diario`). Concorrência coberta por `on conflict … do update` (teste `limite diário é atômico`).
 
 ## 9. Carência e estorno como rede final
 
-Toda pepita nasce em `carencia` e só vira `disponivel` depois de 7 dias (`fn_vest_due`). Dentro desse prazo, qualquer um dos mecanismos acima pode estornar com um lançamento espelho; o livro-razão nunca é apagado, só compensado.
+Toda pepita nasce em `carencia` e só vira `disponivel` depois de 7 dias (`fn_vest_due`). Dentro desse prazo, qualquer um dos mecanismos acima pode estornar com um lançamento espelho; o livro-razão nunca é apagado, só compensado. Se o estorno chegar depois de a pepita ter sido gasta (gorjeta do saldo para um cúmplice), o saldo de quem recebeu o estorno fica **negativo**: o cache `users.credits` acompanha o livro-razão, e `fn_award` recusa qualquer gasto até a dívida ser coberta por novos ganhos. As pepitas já transferidas ao cúmplice não são perseguidas automaticamente; ficam para a moderação.
 
 ## O que fica para depois
 

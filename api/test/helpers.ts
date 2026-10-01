@@ -32,8 +32,9 @@ export async function login(app: App, name: string, device = `dev-${name}`): Pro
 }
 
 export async function api(app: App, method: string, url: string, opts: { body?: unknown; session?: Session; form?: FormData } = {}) {
-  const headers: Record<string, string> = {};
-  if (opts.session) { headers['cookie'] = opts.session.cookie; headers['x-garimpa-device'] = opts.session.device; }
+  // O cliente web manda x-garimpa-device em toda chamada; sem ele as escritas são recusadas (anti-CSRF).
+  const headers: Record<string, string> = { 'x-garimpa-device': opts.session?.device ?? 'dev-anonimo' };
+  if (opts.session) headers['cookie'] = opts.session.cookie;
   let body: BodyInit | undefined;
   if (opts.form) body = opts.form;
   else if (opts.body !== undefined) { headers['content-type'] = 'application/json'; body = JSON.stringify(opts.body); }

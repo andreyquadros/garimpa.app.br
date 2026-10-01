@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { HTTPException } from 'hono/http-exception';
 import { type AppEnv, requireUser, recordSignal, collusionBetween } from '../auth.js';
 import type { Sql } from '../db.js';
-import { award, takeCap, loadEconomy, grantBadge } from '../economy.js';
+import { award, takeCap, takeMintCap, loadEconomy, grantBadge } from '../economy.js';
+import { allEvidencesReused } from './answers.js';
 
 export const questionRoutes = new Hono<AppEnv>();
 
@@ -89,7 +90,7 @@ questionRoutes.get('/questions', async (c) => {
     where qu.city_id = ${cfg.CITY_DEFAULT}
       ${p.status === 'todas' ? sql`and qu.status <> 'fechada'` : p.status === 'abertas' ? sql`and qu.status in ('aberta','respondida')` : sql`and qu.status = ${p.status}`}
       ${p.category ? sql`and qu.category = ${p.category}` : sql``}
-      ${p.mine && me ? sql`and (qu.author_id = ${me.id}::uuid or exists (select 1 from question_followers f where f.question_id = qu.id and f.user_id = ${me.id}::uuid))` : sql``}
+      ${p.mine ? (me ? sql`and (qu.author_id = ${me.id}::uuid or exists (select 1 from question_followers f where f.question_id = qu.id and f.user_id = ${me.id}::uuid))` : sql`and false`) : sql``}
     order by ${p.sort === 'populares' ? sql`qu.bounty desc, qu.followers_count desc, qu.created_at desc`
               : p.sort === 'perto' && hasPos ? sql`distance_m asc nulls last, qu.created_at desc`
               : sql`qu.created_at desc`}
@@ -106,6 +107,11 @@ const createSchema = z.object({
   photoEvidenceId: z.string().uuid().optional(),
   force: z.boolean().default(false),
 });
+
+/** Coordenada aproximada: deslocamento aleatório de até ±0,002° (≈ 200 m) e arredondamento a 3 casas (≈ 110 m). */
+export function approxCoord(v: number): number {
+  return Math.round((v + (Math.random() - 0.5) * 0.004) * 1000) / 1000;
+}
 
 questionRoutes.post('/questions', async (c) => {
   const u = requireUser(c);
@@ -124,10 +130,14 @@ questionRoutes.post('/questions', async (c) => {
     const ev = (await sql<{ filePath: string }[]>`select file_path from evidences where id = ${body.photoEvidenceId}::uuid and uploader_id = ${u.id}::uuid and answer_id is null`)[0];
     photoPath = ev?.filePath ?? null;
   }
+  // A posição é pública e vem do GPS de quem pergunta: guardamos só a região aproximada (deslocamento até ~200 m, 3 casas).
+  const hasPos = body.lat != null && body.lng != null;
+  const lat = hasPos ? approxCoord(body.lat!) : null;
+  const lng = hasPos ? approxCoord(body.lng!) : null;
   const q = await sql.begin(async (tx) => {
     const row = (await tx<{ id: string }[]>`
       insert into questions(city_id, author_id, title, details, category, lat, lng, photo_path, followers_count, tip_budget_left)
-      values (${cfg.CITY_DEFAULT}, ${u.id}::uuid, ${body.title}, ${body.details ?? null}, ${body.category}, ${body.lat ?? null}, ${body.lng ?? null}, ${photoPath}, 1, ${eco.pepitas.gorjeta_por_pergunta})
+      values (${cfg.CITY_DEFAULT}, ${u.id}::uuid, ${body.title}, ${body.details ?? null}, ${body.category}, ${lat}, ${lng}, ${photoPath}, 1, ${eco.pepitas.gorjeta_por_pergunta})
       returning id`)[0]!;
     await tx`insert into question_followers(question_id, user_id) values (${row.id}::uuid, ${u.id}::uuid)`;
     await award(tx, u.id, 'pergunta', eco.xp.pergunta, 0, { type: 'pergunta', id: row.id }, {}, 0);
@@ -147,7 +157,7 @@ questionRoutes.get('/questions/:id', async (c) => {
     from questions qu join users u on u.id = qu.author_id where qu.id = ${id}::uuid`)[0];
   if (!question) throw new HTTPException(404, { message: 'Pergunta não encontrada.' });
   const answers = await sql`
-    select a.id, a.note, a.price_cents, a.seen_on, a.status, a.evidence_score, a.is_first_for_place, a.confirms, a.denies, a.created_at,
+    select a.id, a.note, a.price_cents, to_char(a.seen_on, 'YYYY-MM-DD') as seen_on, a.status, a.evidence_score, a.is_first_for_place, a.confirms, a.denies, a.created_at,
            p.id as place_id, p.name as place_name, p.address as place_address, p.lat as place_lat, p.lng as place_lng, p.kind as place_kind, p.partner_tier,
            u.id as author_id, u.name as author_name, u.avatar_url as author_avatar, u.xp as author_xp,
            coalesce((select json_agg(json_build_object(
@@ -165,25 +175,40 @@ questionRoutes.get('/questions/:id', async (c) => {
   return c.json({ question: pub, answers, canAccept: !!me && me.id === question.authorId && question.status !== 'resolvida' && question.status !== 'fechada' });
 });
 
+const followSchema = z.object({ on: z.boolean().optional() });
+
+/** Sem corpo, alterna (segue/deixa de seguir). Com `{ on: true }` só liga: quem já segue recebe `already: true` e nada muda. */
 questionRoutes.post('/questions/:id/follow', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
   const eco = await loadEconomy(sql);
   const id = c.req.param('id');
+  const body = followSchema.parse(await c.req.json().catch(() => ({})));
   const result = await sql.begin(async (tx) => {
     const q = (await tx<{ authorId: string; bounty: number; status: string }[]>`select author_id, bounty, status from questions where id = ${id}::uuid for update`)[0];
     if (!q) throw new HTTPException(404, { message: 'Pergunta não encontrada.' });
     const existing = await tx`select 1 from question_followers where question_id = ${id}::uuid and user_id = ${u.id}::uuid`;
+    // O bônus é função de quem acompanha agora: +5 por pessoa além do autor, teto 100. Sair devolve os 5; entrar e sair
+    // em loop não cunha nada. Depois de resolvida/fechada o bônus congela (já foi pago ou não será).
+    const recompute = async () => (await tx<{ bounty: number }[]>`
+      with n as (select count(*)::int as c from question_followers where question_id = ${id}::uuid)
+      update questions set followers_count = n.c,
+        bounty = case when status in ('resolvida', 'fechada') then bounty
+                      else least(${eco.pepitas.bounty_maximo}, greatest(0, n.c - 1) * ${eco.pepitas.bounty_tambem_quero}) end
+      from n where id = ${id}::uuid returning bounty`)[0]!.bounty;
     if (existing.length) {
+      if (body.on === true) return { following: true, bounty: q.bounty, already: true };
       if (q.authorId === u.id) throw new HTTPException(400, { message: 'Quem perguntou acompanha sempre.' });
       await tx`delete from question_followers where question_id = ${id}::uuid and user_id = ${u.id}::uuid`;
-      await tx`update questions set followers_count = greatest(0, followers_count - 1) where id = ${id}::uuid`;
-      return { following: false, bounty: q.bounty };
+      return { following: false, bounty: await recompute() };
     }
     await tx`insert into question_followers(question_id, user_id) values (${id}::uuid, ${u.id}::uuid)`;
-    const bounty = Math.min(eco.pepitas.bounty_maximo, q.bounty + eco.pepitas.bounty_tambem_quero);
-    await tx`update questions set followers_count = followers_count + 1, bounty = ${bounty} where id = ${id}::uuid`;
-    if (await takeCap(tx, u.id, 'tambem_quero', 10)) await award(tx, u.id, 'tambem_quero', eco.xp.tambem_quero, 0, { type: 'pergunta', id }, {}, 0);
+    const bounty = await recompute();
+    // XP de "também quero" uma vez por pergunta (re-seguir não paga de novo), dentro do limite diário.
+    const paid = await tx`select 1 from ledger where user_id = ${u.id}::uuid and kind = 'tambem_quero' and ref_type = 'pergunta' and ref_id = ${id}::uuid and state <> 'estornado'`;
+    if (!paid.length && (await takeCap(tx, u.id, 'tambem_quero', eco.limites_dia.tambem_quero))) {
+      await award(tx, u.id, 'tambem_quero', eco.xp.tambem_quero, 0, { type: 'pergunta', id }, {}, 0);
+    }
     return { following: true, bounty };
   });
   return c.json(result);
@@ -215,25 +240,35 @@ questionRoutes.post('/questions/:id/accept', async (c) => {
     if (!a) throw new HTTPException(404, { message: 'Resposta não encontrada nessa pergunta.' });
     if (a.status === 'oculta' || a.status === 'rejeitada') throw new HTTPException(400, { message: 'Essa resposta foi removida.' });
     const col = await collusionBetween(tx, u.id, a.authorId);
+    const reused = await allEvidencesReused(tx, a.id);
     const fraction = a.isFirstForPlace ? 1 : eco.pepitas.fracao_segundo_achado;
     let credits = Math.round(eco.pepitas.resposta_aceita * fraction) + (a.isFirstForPlace ? q.bounty : 0);
+    let primeiro = a.isFirstForPlace ? eco.pepitas.primeiro_achado : 0;
     const meta: Record<string, unknown> = { primeiro: a.isFirstForPlace, bounty: q.bounty, evidencia: a.evidenceScore };
     let vestDays: number | undefined;
-    if (col.strong) { credits = 0; meta['conluio'] = 'mesmo_dispositivo'; }
-    else if (col.weak) { vestDays = 14; meta['conluio'] = 'mesma_rede'; }
+    let motivo: string | null = null;
+    // Sem pepitas (XP continua): mesmo aparelho, só fotos que o autor já tinha usado, ou teto diário de cunhagem.
+    if (col.strong) { credits = 0; primeiro = 0; meta['conluio'] = 'mesmo_dispositivo'; motivo = 'mesmo_dispositivo'; }
+    else if (col.weak) { vestDays = eco.carencia_dias_baixa_confianca; meta['conluio'] = 'mesma_rede'; }
+    if (reused) { credits = 0; primeiro = 0; meta['motivo'] = 'foto_reutilizada'; motivo ??= 'foto_reutilizada'; }
+    if (!(await takeMintCap(tx, a.authorId, eco, credits + primeiro))) { credits = 0; primeiro = 0; meta['teto_diario'] = true; motivo ??= 'teto_diario'; }
     await tx`update questions set status = 'resolvida', accepted_answer_id = ${a.id}::uuid, solved_at = now() where id = ${id}::uuid`;
     await tx`update answers set status = 'aceita' where id = ${a.id}::uuid`;
     await award(tx, a.authorId, 'resposta_aceita', eco.xp.resposta_aceita, credits, { type: 'resposta', id: a.id }, meta, vestDays);
-    if (a.isFirstForPlace && !col.strong) {
-      await award(tx, a.authorId, 'primeiro_achado', eco.xp.primeiro_achado, eco.pepitas.primeiro_achado, { type: 'resposta', id: a.id }, {}, vestDays);
+    if (a.isFirstForPlace) {
+      const why: Record<string, unknown> = {};
+      for (const k of ['conluio', 'motivo', 'teto_diario']) if (meta[k] !== undefined) why[k] = meta[k];
+      await award(tx, a.authorId, 'primeiro_achado', eco.xp.primeiro_achado, primeiro, { type: 'resposta', id: a.id }, why, vestDays);
     }
-    await award(tx, u.id, 'aceitar_resposta', eco.xp.aceitar_resposta, 0, { type: 'pergunta', id }, {}, 0);
+    // XP por fechar o garimpo: uma vez por pergunta (um re-aceite depois de a resposta aceita cair não paga de novo).
+    const closedBefore = await tx`select 1 from ledger where user_id = ${u.id}::uuid and kind = 'aceitar_resposta' and ref_type = 'pergunta' and ref_id = ${id}::uuid and state <> 'estornado'`;
+    if (!closedBefore.length) await award(tx, u.id, 'aceitar_resposta', eco.xp.aceitar_resposta, 0, { type: 'pergunta', id }, {}, 0);
     const firsts = (await tx<{ n: number }[]>`
       select count(distinct place_id)::int as n from answers where author_id = ${a.authorId}::uuid and status = 'aceita' and is_first_for_place`)[0]!.n;
     await grantBadge(tx, a.authorId, 'primeiro_achado');
     if (firsts >= 5) await grantBadge(tx, a.authorId, 'olho_de_lince');
     await tx`select fn_recompute_trust(${a.authorId}::uuid)`;
-    return { answerId: a.id, credits, xp: eco.xp.resposta_aceita, collusion: col.strong ? 'forte' : col.weak ? 'fraco' : null };
+    return { answerId: a.id, credits, primeiroAchado: primeiro, xp: eco.xp.resposta_aceita, collusion: col.strong ? 'forte' : col.weak ? 'fraco' : null, motivo, tetoDiario: meta['teto_diario'] === true };
   });
   await recordSignal(c, u.id);
   return c.json(out);

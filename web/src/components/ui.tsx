@@ -31,12 +31,12 @@ const variants: Record<Variant, string> = {
   soft: 'bg-surface-2 text-ink hover:bg-rio-100',
   danger: 'bg-barro-100 text-barro-700 hover:bg-barro-500 hover:text-white',
 };
-export function Button({ variant = 'primary', size = 'md', loading, className = '', children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md' | 'lg'; loading?: boolean }) {
+export function Button({ variant = 'primary', size = 'md', loading, disabled, className = '', children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md' | 'lg'; loading?: boolean }) {
   const sz = size === 'sm' ? 'h-9 px-3 text-sm' : size === 'lg' ? 'h-14 px-6 text-lg' : 'h-12 px-5 text-base';
   return (
     <motion.button whileTap={{ scale: 0.96 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       className={`inline-flex items-center justify-center gap-2 rounded-full font-display font-semibold tracking-wide disabled:opacity-50 disabled:pointer-events-none transition-colors ${sz} ${variants[variant]} ${className}`}
-      disabled={loading || rest.disabled} {...(rest as object)}>
+      {...(rest as object)} disabled={loading || disabled}>
       {loading ? <Spinner size={18} /> : children}
     </motion.button>
   );
@@ -68,7 +68,7 @@ export function Field({ label, hint, error, ...rest }: InputHTMLAttributes<HTMLI
     <label className="block">
       <span className="block text-sm font-semibold text-ink-2 mb-1">{label}</span>
       <input {...rest} className={`w-full h-12 rounded-2xl border bg-surface px-4 text-base outline-none focus:border-rio-400 ${error ? 'border-barro-500' : 'border-line'} ${rest.className ?? ''}`} />
-      {error ? <span className="block text-sm text-barro-700 mt-1">{error}</span> : hint ? <span className="block text-sm text-ink-2 mt-1">{hint}</span> : null}
+      {error ? <span className="block text-sm text-barro-ink mt-1">{error}</span> : hint ? <span className="block text-sm text-ink-2 mt-1">{hint}</span> : null}
     </label>
   );
 }

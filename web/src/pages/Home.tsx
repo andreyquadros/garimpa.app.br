@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import { LocateFixed, MapPin, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
-import { useConfig, useDebounced, useGeo, useMe } from '@/lib/hooks';
+import { useConfig, useDebounced, useGeo, useMe, useToast } from '@/lib/hooks';
 import type { Find } from '@/lib/types';
 import { MapView } from '@/components/MapView';
 import { SearchPill } from '@/components/SearchPill';
@@ -23,8 +23,19 @@ export function Home() {
   const [highlight, setHighlight] = useState<string | null>(null);
   const [fly, setFly] = useState<[number, number] | null>(null);
   const geo = useGeo();
+  const { push: notify } = useToast();
+  // "Minha localização": a posição chega num callback assíncrono, então guardamos a intenção e voamos quando ela existir.
+  const [goMe, setGoMe] = useState(false);
 
   useEffect(() => { setParams(q ? { q } : {}, { replace: true }); }, [q, setParams]);
+  useEffect(() => {
+    if (!goMe) return;
+    if (geo.pos) { setFly([geo.pos.lat, geo.pos.lng]); setGoMe(false); return; }
+    if (geo.state === 'denied' || geo.state === 'unavailable') {
+      notify({ text: geo.state === 'denied' ? 'Localização negada no navegador.' : 'Localização indisponível neste aparelho.', tone: 'erro' });
+      setGoMe(false);
+    }
+  }, [goMe, geo.pos, geo.state, notify]);
 
   const search = useQuery({ queryKey: ['search', q], queryFn: () => api.search(q), enabled: q.length >= 2 });
   const finds = useQuery({ queryKey: ['mapFinds', bbox, q], queryFn: () => api.mapFinds(bbox!, q || undefined), enabled: !!bbox, placeholderData: (p) => p });
@@ -74,16 +85,15 @@ export function Home() {
                   <p className="text-xs font-bold text-ink-2 px-1 mb-1.5">Tem em {pins.length} {pins.length === 1 ? 'lugar' : 'lugares'}</p>
                   <ul className="space-y-1">
                     {pins.slice(0, 6).map((f) => (
-                      <li key={f.placeId}>
-                        <button type="button" onClick={() => { setHighlight(f.placeId); setFly([f.lat, f.lng]); }}
-                          className={`w-full text-left rounded-2xl px-3 py-2 flex items-center gap-3 ${highlight === f.placeId ? 'bg-pepita-200/60' : 'hover:bg-surface-2'}`}>
+                      <li key={f.placeId} className={`flex items-center rounded-2xl ${highlight === f.placeId ? 'bg-pepita-200/60' : 'hover:bg-surface-2'}`}>
+                        <button type="button" onClick={() => { setHighlight(f.placeId); setFly([f.lat, f.lng]); }} className="flex-1 min-w-0 text-left px-3 py-2 flex items-center gap-3">
                           <span className="h-9 w-9 rounded-full bg-pepita-400 text-rio-900 grid place-items-center font-display font-bold">{f.finds}</span>
                           <span className="flex-1 min-w-0">
                             <span className="block font-semibold truncate">{f.name}</span>
                             <span className="block text-xs text-ink-2 truncate">{f.titles.slice(0, 2).join(' · ')} · {timeAgo(f.lastFindAt)}</span>
                           </span>
-                          <Link to={`/lugar/${f.placeId}`} onClick={(e) => e.stopPropagation()} className="text-xs font-bold text-accent">abrir</Link>
                         </button>
+                        <Link to={`/lugar/${f.placeId}`} className="shrink-0 h-11 px-3 grid place-items-center text-xs font-bold text-accent">abrir</Link>
                       </li>
                     ))}
                   </ul>
@@ -109,7 +119,7 @@ export function Home() {
       </div>
 
       <div className="absolute right-3 bottom-28 z-[500] flex flex-col gap-2">
-        <button type="button" onClick={() => { geo.ask(); if (geo.pos) setFly([geo.pos.lat, geo.pos.lng]); }} aria-label="Minha localização"
+        <button type="button" onClick={() => { setGoMe(true); geo.ask(); }} aria-label="Minha localização"
           className={`h-12 w-12 rounded-full grid place-items-center shadow-float border border-line ${geo.state === 'ok' ? 'bg-rio-700 text-white' : 'bg-surface text-accent'}`}>
           {geo.state === 'asking' ? <Spinner size={18} /> : <LocateFixed size={22} />}
         </button>
@@ -123,7 +133,7 @@ export function Home() {
                 className={`snap-start shrink-0 w-56 text-left rounded-2xl p-3 shadow-float border ${highlight === f.placeId ? 'bg-pepita-200 border-pepita-400' : 'bg-surface border-line'}`}>
                 <p className="font-display leading-tight truncate flex items-center gap-1"><MapPin size={14} className="text-accent" />{f.name}</p>
                 <p className="text-xs text-ink-2 mt-1 line-clamp-2">{f.titles.slice(0, 3).join(' · ')}</p>
-                <p className="text-xs font-bold text-pepita-700 mt-1">{f.finds} {f.finds === 1 ? 'achado' : 'achados'}</p>
+                <p className={`text-xs font-bold mt-1 ${highlight === f.placeId ? 'text-pepita-700' : 'text-gold-ink'}`}>{f.finds} {f.finds === 1 ? 'achado' : 'achados'}</p>
               </button>
             ))}
           </div>

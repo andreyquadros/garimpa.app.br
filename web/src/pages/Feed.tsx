@@ -15,7 +15,9 @@ export function Feed() {
   const [cat, setCat] = useState<string | null>(null);
   const [sort, setSort] = useState<'recentes' | 'populares' | 'perto'>('recentes');
   const geo = useGeo();
-  const { data: me } = useMe();
+  const { data: me, isPending: meLoading } = useMe();
+  // "Meus" só faz sentido com sessão: sem ela a API ignoraria `mine` e devolveria o feed inteiro.
+  const needLogin = tab === 'minhas' && !meLoading && !me;
   const query = useInfiniteQuery({
     queryKey: ['questions', tab, cat, sort, geo.pos?.lat, geo.pos?.lng],
     queryFn: ({ pageParam }) => api.questions({
@@ -24,6 +26,7 @@ export function Feed() {
     }),
     initialPageParam: 0,
     getNextPageParam: (last) => last.nextOffset ?? undefined,
+    enabled: !(tab === 'minhas' && !me),
   });
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
   return (
@@ -50,14 +53,18 @@ export function Feed() {
         </div>
       </header>
       <div className="px-3 mt-3 space-y-2">
-        {query.isPending && <div className="grid place-items-center py-10"><Spinner /></div>}
-        {items.map((q) => <QuestionCard key={q.id} q={q} />)}
-        {query.isSuccess && items.length === 0 && (
-          <EmptyState icon={<Inbox />} title={tab === 'minhas' && !me ? 'Entre para ver os seus' : 'Nada por aqui ainda'}
-            text={tab === 'minhas' ? 'Perguntas que você fez ou marcou "também quero" aparecem aqui.' : 'Que tal perguntar o que você não encontra?'}
-            action={<Link to={tab === 'minhas' && !me ? '/entrar' : '/perguntar'}><Button variant="gold">{tab === 'minhas' && !me ? 'Entrar' : 'Perguntar onde tem'}</Button></Link>} />
+        {query.isLoading && <div className="grid place-items-center py-10"><Spinner /></div>}
+        {needLogin && (
+          <EmptyState icon={<Inbox />} title="Entre para ver os seus" text='Perguntas que você fez ou marcou "também quero" aparecem aqui.'
+            action={<Link to="/entrar?next=/garimpos"><Button variant="gold">Entrar</Button></Link>} />
         )}
-        {query.hasNextPage && <Button variant="ghost" className="w-full" loading={query.isFetchingNextPage} onClick={() => query.fetchNextPage()}>Carregar mais</Button>}
+        {!needLogin && items.map((q) => <QuestionCard key={q.id} q={q} />)}
+        {!needLogin && query.isSuccess && items.length === 0 && (
+          <EmptyState icon={<Inbox />} title="Nada por aqui ainda"
+            text={tab === 'minhas' ? 'Perguntas que você fez ou marcou "também quero" aparecem aqui.' : 'Que tal perguntar o que você não encontra?'}
+            action={<Link to="/perguntar"><Button variant="gold">Perguntar onde tem</Button></Link>} />
+        )}
+        {!needLogin && query.hasNextPage && <Button variant="ghost" className="w-full" loading={query.isFetchingNextPage} onClick={() => query.fetchNextPage()}>Carregar mais</Button>}
       </div>
     </div>
   );

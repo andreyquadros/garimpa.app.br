@@ -45,7 +45,7 @@ export function Profile() {
   const eco = cfg?.economy;
   const reais = eco ? (user.credits / eco.conversao.pepitas_por_real).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : null;
 
-  async function logout() { await api.logout(); qc.setQueryData(['me'], null); qc.invalidateQueries(); nav('/'); }
+  async function logout() { await api.logout(); qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'config' }); qc.setQueryData(['me'], null); nav('/'); }
 
   return (
     <div className="pb-32">
@@ -105,8 +105,8 @@ export function Profile() {
             {(ledger.data?.items ?? []).slice(0, 12).map((l) => (
               <li key={l.id} className="rounded-2xl bg-surface px-3 py-2 flex items-center gap-3 text-sm">
                 <span className="flex-1 min-w-0"><span className="block font-semibold truncate">{KIND_LABEL[l.kind] ?? l.kind}</span><span className="block text-xs text-ink-2">{timeAgo(l.createdAt)}{l.state === 'carencia' ? ' · em carência' : l.state === 'estornado' ? ' · estornado' : ''}</span></span>
-                {l.xp !== 0 && <span className={`font-display font-bold ${l.xp > 0 ? 'text-accent' : 'text-barro-700'}`}>{l.xp > 0 ? '+' : ''}{l.xp} XP</span>}
-                {l.credits !== 0 && <span className={`font-display font-bold inline-flex items-center gap-1 ${l.credits > 0 ? 'text-pepita-700' : 'text-barro-700'}`}><PepitaIcon size={14} />{l.credits > 0 ? '+' : ''}{l.credits}</span>}
+                {l.xp !== 0 && <span className={`font-display font-bold ${l.xp > 0 ? 'text-accent' : 'text-barro-ink'}`}>{l.xp > 0 ? '+' : ''}{l.xp} XP</span>}
+                {l.credits !== 0 && <span className={`font-display font-bold inline-flex items-center gap-1 ${l.credits > 0 ? 'text-gold-ink' : 'text-barro-ink'}`}><PepitaIcon size={14} />{l.credits > 0 ? '+' : ''}{l.credits}</span>}
               </li>
             ))}
             {ledger.isSuccess && ledger.data.items.length === 0 && <li className="text-sm text-ink-2">Nada ainda. Responda uma pergunta com foto para começar.</li>}
@@ -135,7 +135,7 @@ export function Profile() {
                   ['Sua pista é aceita', eco.xp.resposta_aceita, eco.pepitas.resposta_aceita], ['Primeiro achado no lugar', eco.xp.primeiro_achado, eco.pepitas.primeiro_achado],
                   ['Duas pessoas confirmam sua pista', eco.xp.resposta_confirmada, eco.pepitas.resposta_confirmada], ['Confirmar pista de alguém', eco.xp.confirmar, 0],
                   ['Sua confirmação é validada', eco.xp.confirmacao_validada, eco.pepitas.confirmacao_validada], ['Aceitar uma resposta', eco.xp.aceitar_resposta, 0],
-                ].map(([l, x, p]) => <tr key={l as string}><td className="py-1.5">{l as string}</td><td className="text-right font-semibold">+{x as number}</td><td className="text-right font-semibold text-pepita-700">{(p as number) > 0 ? `+${p}` : '–'}</td></tr>)}
+                ].map(([l, x, p]) => <tr key={l as string}><td className="py-1.5">{l as string}</td><td className="text-right font-semibold">+{x as number}</td><td className="text-right font-semibold text-gold-ink">{(p as number) > 0 ? `+${p}` : '–'}</td></tr>)}
               </tbody>
             </table>
             <ul className="space-y-1 text-ink-2">

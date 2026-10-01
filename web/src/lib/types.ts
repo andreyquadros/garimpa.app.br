@@ -19,6 +19,7 @@ export type QuestionListItem = {
 };
 export type Evidence = { id: string; url: string; kind: string; score: number; flags: string[]; width: number; height: number; hasGps: boolean; takenAt: string | null; distanceExifM: number | null; distanceDeviceM: number | null };
 export type Answer = {
+  /** `seenOn`: dia em que viu o produto, `YYYY-MM-DD` (sem hora; a API normaliza a coluna date). */
   id: string; note: string | null; priceCents: number | null; seenOn: string | null; status: string; evidenceScore: number; isFirstForPlace: boolean; confirms: number; denies: number; createdAt: string;
   placeId: string; placeName: string; placeAddress: string | null; placeLat: number; placeLng: number; placeKind: string; partnerTier: string | null;
   authorId: string; authorName: string; authorAvatar: string | null; authorXp: number;

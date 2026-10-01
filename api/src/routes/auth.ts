@@ -11,12 +11,21 @@ import { slugify } from '../text.js';
 
 export const authRoutes = new Hono<AppEnv>();
 
-async function upsertGoogleUser(sql: Sql, p: GoogleProfile, cityId: string) {
+/**
+ * Encontra ou cria a conta de um perfil Google. A linha achada pelo `sub` vem antes da achada só pelo e-mail
+ * (verificado), e um e-mail já vinculado a outro `sub` nunca é reatribuído: isso seria tomada de conta.
+ */
+export async function upsertGoogleUser(sql: Sql, p: GoogleProfile, cityId: string) {
   return sql.begin(async (tx) => {
-    const found = await tx<{ id: string }[]>`
-      select id from users where google_sub = ${p.sub} or (${p.email}::citext is not null and email = ${p.email}::citext) limit 1`;
+    const found = await tx<{ id: string; googleSub: string | null }[]>`
+      select id, google_sub from users
+      where google_sub = ${p.sub} or (${p.email}::citext is not null and email = ${p.email}::citext)
+      order by (google_sub = ${p.sub}) desc nulls last limit 1`;
     if (found[0]) {
-      await tx`update users set google_sub = ${p.sub}, name = ${p.name}, avatar_url = coalesce(${p.picture}, avatar_url),
+      if (found[0].googleSub && found[0].googleSub !== p.sub) {
+        throw new HTTPException(409, { message: 'Este e-mail já está vinculado a outra conta Google. Entre com a conta original.' });
+      }
+      await tx`update users set google_sub = coalesce(google_sub, ${p.sub}), name = ${p.name}, avatar_url = coalesce(${p.picture}, avatar_url),
                email = coalesce(email, ${p.email}::citext) where id = ${found[0].id}::uuid`;
       return found[0].id;
     }

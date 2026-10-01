@@ -17,12 +17,18 @@ export function Login() {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const done = useCallback(async () => { await qc.invalidateQueries({ queryKey: ['me'] }); nav(next, { replace: true }); }, [qc, nav, next]);
+  const done = useCallback(async () => {
+    // Troca de conta: descarta tudo que era do usuário anterior (extrato, votos, ranking), menos a configuração.
+    qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'config' });
+    await qc.invalidateQueries({ queryKey: ['me'] });
+    nav(next, { replace: true });
+  }, [qc, nav, next]);
   const onGoogle = useCallback(async (credential: string) => {
     try { await api.loginGoogle(credential); toast.push({ text: 'Bem-vindo ao garimpo.' }); await done(); }
     catch (e) { toast.push({ text: (e as Error).message, tone: 'erro' }); }
   }, [done, toast]);
   async function dev() {
+    if (busy) return;
     setBusy(true);
     try { await api.loginDev(name.trim()); await done(); } catch (e) { toast.push({ text: (e as Error).message, tone: 'erro' }); } finally { setBusy(false); }
   }

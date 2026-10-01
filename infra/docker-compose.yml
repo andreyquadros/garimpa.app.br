@@ -36,7 +36,7 @@ services:
       UPLOAD_DIR: /data/uploads
       SERVE_WEB_DIR: /app/web/dist
       TRUST_PROXY: "true"
-      TILES_URL: ${TILES_URL:-https://onibus.incubadora.cloud/tiles/{z}/{x}/{y}.png}
+      TILES_URL: ${TILES_URL:-https://tile.openstreetmap.org/{z}/{x}/{y}.png}
       TILES_FALLBACK_URL: ${TILES_FALLBACK_URL:-https://tile.openstreetmap.org/{z}/{x}/{y}.png}
     volumes:
       - garimpa-uploads:/data/uploads

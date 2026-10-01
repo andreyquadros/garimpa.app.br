@@ -35,7 +35,7 @@ export function GoogleButton({ clientId, onCredential }: { clientId: string; onC
   return (
     <div className="flex flex-col items-center gap-2">
       <div ref={ref} className="min-h-11" />
-      {error && <p className="text-sm text-barro-700">{error}</p>}
+      {error && <p className="text-sm text-barro-ink">{error}</p>}
     </div>
   );
 }
