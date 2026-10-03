@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, BadgeCheck, Camera, Check, Clock, Eye, MapPin, Plus, Search, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BadgeCheck, Camera, Check, Clock, Eye, MapPin, Plus, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useConfig, useDebounced, useGeo, useInvalidate, useMe, useToast } from '@/lib/hooks';
 import type { PlaceLite, UploadResult } from '@/lib/types';
-import { categoryOf, dist, KINDS, parseBrlToCents } from '@/lib/format';
+import { dist, KINDS, parseBrlToCents } from '@/lib/format';
 import { MapView } from '@/components/MapView';
 import { checksFromUpload, EvidenceChecklist } from '@/components/EvidenceChecklist';
 import { Button, Chip, Field, Spinner, TextArea } from '@/components/ui';
 import { Anim, NuggetIcon, Pepi } from '@/components/brand';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import { celebrate } from '@/lib/reward';
 
 type Step = 'prova' | 'lugar' | 'detalhes' | 'pronto';
@@ -48,7 +49,6 @@ export function AnswerPage() {
   const city: [number, number] = cfg?.city ? [cfg.city.lat, cfg.city.lng] : [-9.9075, -63.0415];
   const chosenName = place?.name ?? newPlace?.name ?? '';
   const question = q.data?.question;
-  const cat = question ? categoryOf(question.category) : null;
   const reward = (cfg?.economy.pepitas.resposta_aceita ?? 50) + (question?.bounty ?? 0);
 
   async function onFiles(files: FileList | null) {
@@ -76,7 +76,6 @@ export function AnswerPage() {
       setResult(r);
       setStep('pronto');
       celebrate();
-      toast.push({ text: r.strong ? 'Evidência forte enviada.' : 'Evidência enviada. Peça para alguém confirmar.', xp: r.xp });
     } catch (e) { toast.push({ text: (e as Error).message, tone: 'erro' }); }
     finally { setBusy(false); }
   }
@@ -91,17 +90,13 @@ export function AnswerPage() {
         <p className="eyebrow mt-6">{result.strong ? 'Evidência enviada' : 'Evidência em análise'}</p>
         <div className="relative mx-auto mt-4 w-fit">
           <span className="absolute inset-0 -m-8 rounded-full bg-lima-100 dark:bg-floresta-600" aria-hidden="true" />
-          <span className="absolute inset-0 -m-12 rounded-full border-2 border-dashed border-line" aria-hidden="true" />
           <Pepi pose="comemorando" size={220} celebrate className="relative" />
           <motion.span initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.5, type: 'spring', stiffness: 400, damping: 18 }}
-            className="absolute left-1/2 -translate-x-1/2 -bottom-4 inline-flex items-center gap-1.5 rounded-2xl bg-floresta-700 text-lima-400 font-display font-extrabold text-2xl px-5 h-13 shadow-float dark:bg-floresta-600">+{result.xp} <span className="text-base text-creme">XP</span></motion.span>
+            className="absolute left-1/2 -translate-x-1/2 -bottom-9 inline-flex items-center gap-1.5 rounded-2xl bg-floresta-700 text-lima-400 font-display font-extrabold text-2xl px-5 h-13 shadow-float dark:bg-floresta-600">+{result.xp} <span className="text-base text-creme">XP</span></motion.span>
         </div>
-        <h1 className="font-display font-extrabold text-[2rem] leading-[1.08] mt-10 text-balance">{result.isFirst ? 'Boa! Você abriu caminho.' : 'Boa! Sua pista reforça a descoberta.'}</h1>
+        <h1 className="display text-[2rem] mt-14">{result.isFirst ? 'Boa! Você abriu caminho.' : 'Boa! Sua pista reforça a descoberta.'}</h1>
         <p className="text-ink-2 mt-3 text-balance">{result.isFirst ? 'Você foi a primeira pessoa a apontar esse lugar. ' : 'Esse lugar já tinha sido apontado; a sua entra como confirmação. '}{result.strong ? `Quando aceitarem ou confirmarem, as pepitas caem na sua carteira (${cfg?.economy.carencia_dias ?? 7} dias de carência).` : 'A evidência ficou fraca: peça para alguém confirmar no local para render pepitas.'}</p>
-        <div className="mt-5 flex justify-center gap-6 text-sm text-ink-2">
-          <span className="inline-flex items-center gap-1.5"><BadgeCheck size={18} className="text-accent" />{result.strong ? 'Evidência forte' : 'Evidência fraca'}</span>
-          <span className="inline-flex items-center gap-1.5"><Users size={18} className="text-accent" />Comunidade ajudada</span>
-        </div>
+        <p className={`mt-5 inline-flex items-center justify-center gap-1.5 text-sm font-bold ${result.strong ? 'text-green-ink' : 'text-gold-ink'}`}>{result.strong ? <BadgeCheck size={18} /> : <AlertTriangle size={18} />}{result.strong ? 'Evidência forte' : 'Evidência fraca: peça uma confirmação no local'}</p>
         <Link to={`/m/${id}`} className="block mt-8"><Button variant="primary" size="lg" className="w-full"><Sparkles size={18} />Voltar à missão</Button></Link>
         <Link to="/jornada" className="block mt-3 font-display font-extrabold text-accent">Ver minha jornada</Link>
         <p className="text-xs text-ink-2 mt-5">XP evolui seu nível. Pepitas reconhecem sua ajuda. São contas separadas.</p>
@@ -123,7 +118,7 @@ export function AnswerPage() {
 
       {question && (
         <div className="mt-4 rounded-card bg-surface-2 p-3.5 flex items-center gap-3">
-          <span className="h-14 w-14 shrink-0 grid place-items-center rounded-2xl bg-surface text-2xl" aria-hidden="true">{cat?.emoji}</span>
+          <span className="h-12 w-12 shrink-0 grid place-items-center rounded-xl bg-surface text-accent"><CategoryIcon id={question.category} size={20} /></span>
           <div className="min-w-0">
             <p className="eyebrow !text-[0.62rem]">Missão da comunidade</p>
             <p className="font-display font-extrabold leading-tight truncate">{question.title}</p>
@@ -142,12 +137,6 @@ export function AnswerPage() {
               <span className="text-sm font-bold text-accent mt-1">Anexar evidência · até 4 fotos</span>
               <input type="file" accept="image/*" capture="environment" multiple className="sr-only" disabled={uploading || uploads.length >= 4} onChange={(e) => onFiles(e.target.files)} />
             </label>
-            <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
-              {[['Foto própria', Camera, true], ['Comprovante', BadgeCheck, false], ['Localização', MapPin, !!geo.pos]].map(([l, I, on]) => {
-                const Icon = I as typeof Camera;
-                return <span key={l as string} className={`shrink-0 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full border text-sm font-bold ${on ? 'bg-lima-100 dark:bg-floresta-600 border-esmeralda-600 text-green-ink dark:text-lima-400' : 'bg-surface border-line text-ink-2'}`}><Icon size={16} />{l as string}</span>;
-              })}
-            </div>
             <div className="mt-4 space-y-3">
               {uploads.map((u, i) => (
                 <motion.div key={u.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">

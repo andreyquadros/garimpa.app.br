@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
-import { AnimatePresence, animate, motion } from 'motion/react';
+import { AnimatePresence, animate, motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, X } from 'lucide-react';
 import { NuggetIcon, StateArt, Symbol, XpStar } from './brand';
 
@@ -22,11 +22,39 @@ export function Button({ variant = 'primary', size = 'md', loading, arrow, class
   const sz = size === 'sm' ? 'h-9 px-3.5 text-sm' : size === 'lg' ? 'h-14 px-6 text-base' : 'h-12 px-5 text-[15px]';
   return (
     <motion.button whileTap={{ scale: 0.97 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-      className={`inline-flex items-center justify-center gap-2 rounded-full font-display font-bold tracking-tight disabled:opacity-50 disabled:pointer-events-none transition-colors ${sz} ${variants[variant]} ${className}`}
+      className={`press inline-flex items-center justify-center gap-2 rounded-full font-display font-bold tracking-tight disabled:opacity-40 disabled:saturate-50 disabled:pointer-events-none ${sz} ${variants[variant]} ${className}`}
       disabled={loading || disabled} {...(rest as object)}>
       {loading ? <Spinner size={18} /> : <>{children}{arrow && <ArrowRight size={18} strokeWidth={2.5} className="ml-auto" />}</>}
     </motion.button>
   );
+}
+
+/** Controle segmentado com um indicador que desliza (a seleção vem de algum lugar e vai para outro). */
+export function Segmented<T extends string>({ value, onChange, options, id, className = '' }: { value: T; onChange: (v: T) => void; options: Array<{ id: T; label: ReactNode }>; id: string; className?: string }) {
+  return (
+    <div role="tablist" className={`segmented ${className}`}>
+      {options.map((o) => (
+        <button key={o.id} type="button" role="tab" aria-selected={value === o.id} onClick={() => onChange(o.id)} className="font-display">
+          {value === o.id && <motion.span layoutId={`seg-${id}`} className="seg-pill" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
+          <span className="relative">{o.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Entrada da tela: o protagonista chega primeiro, o resto segue na ordem de leitura (só na primeira montagem). */
+const revealParent = { hidden: {}, show: { transition: { staggerChildren: 0.06, delayChildren: 0.02 } } };
+const revealChild = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.2, 0.8, 0.2, 1] as const } } };
+export function Reveal({ children, className = '' }: { children: ReactNode; className?: string }) {
+  const reduce = useReducedMotion();
+  if (reduce) return <div className={className}>{children}</div>;
+  return <motion.div className={className} variants={revealParent} initial="hidden" animate="show">{children}</motion.div>;
+}
+export function RevealItem({ children, className = '' }: { children: ReactNode; className?: string }) {
+  const reduce = useReducedMotion();
+  if (reduce) return <div className={className}>{children}</div>;
+  return <motion.div className={className} variants={revealChild}>{children}</motion.div>;
 }
 
 export function Spinner({ size = 20, className = '' }: { size?: number; className?: string }) {
@@ -36,7 +64,7 @@ export function Spinner({ size = 20, className = '' }: { size?: number; classNam
 export function Chip({ active, children, onClick, className = '' }: { active?: boolean; children: ReactNode; onClick?: () => void; className?: string }) {
   return (
     <button type="button" onClick={onClick}
-      className={`shrink-0 rounded-full px-3.5 h-9 text-sm font-semibold transition-colors border ${active ? 'bg-lima-400 text-floresta-900 border-lima-400' : 'bg-surface text-ink-2 border-line hover:bg-surface-2'} ${className}`}>
+      className={`press shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 h-9 text-sm font-semibold border ${active ? 'bg-lima-400 text-floresta-900 border-lima-400 dark:bg-lima-400/15 dark:text-lima-400 dark:border-lima-400/40' : 'bg-surface text-ink-2 border-line hover:bg-surface-2'} ${className}`}>
       {children}
     </button>
   );
@@ -200,7 +228,7 @@ export function Headline({ eyebrow, title, right, className = '' }: { eyebrow?: 
     <div className={`flex items-start gap-3 ${className}`}>
       <div className="flex-1 min-w-0">
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1 className="font-display font-extrabold text-[1.9rem] leading-[1.08] text-balance mt-0.5">{title}</h1>
+        <h1 className="display text-[2rem] mt-1">{title}</h1>
       </div>
       {right}
     </div>

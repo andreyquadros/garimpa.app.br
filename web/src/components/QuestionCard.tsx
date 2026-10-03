@@ -1,7 +1,8 @@
 import { Link } from 'react-router';
-import { ChevronRight, Clock, MapPin, Users } from 'lucide-react';
+import { MapPin } from 'lucide-react';
+import { CategoryIcon } from './CategoryIcon';
 import type { QuestionListItem, Similar } from '@/lib/types';
-import { categoryOf, dist, timeAgo } from '@/lib/format';
+import { dist, timeAgo } from '@/lib/format';
 import { PepitaPill, StatusChip } from './ui';
 
 const STATUS: Record<string, { label: string; tone: 'ok' | 'wait' | 'warn' | 'muted' }> = {
@@ -9,28 +10,19 @@ const STATUS: Record<string, { label: string; tone: 'ok' | 'wait' | 'warn' | 'mu
 };
 
 /** Cartão de missão da comunidade. */
-export function QuestionCard({ q }: { q: QuestionListItem }) {
-  const cat = categoryOf(q.category);
+export function QuestionCard({ q, hideStatus }: { q: QuestionListItem; hideStatus?: string }) {
   const st = STATUS[q.status] ?? STATUS['aberta']!;
+  const meta = [hideStatus === q.status ? null : st.label, timeAgo(q.createdAt), q.followersCount === 1 ? '1 pessoa' : `${q.followersCount} pessoas`, q.distanceM != null ? dist(q.distanceM) : null].filter(Boolean);
   return (
-    <Link to={`/m/${q.id}`} className="block rounded-card bg-surface border border-line p-4 active:bg-surface-2">
+    <Link to={`/m/${q.id}`} className="press block rounded-card bg-surface border border-line p-4">
       <div className="flex items-start gap-3">
-        <span className="h-12 w-12 shrink-0 grid place-items-center rounded-2xl bg-surface-2 text-2xl" aria-hidden="true">{cat.emoji}</span>
+        <span className="h-11 w-11 shrink-0 grid place-items-center rounded-xl bg-surface-2 text-accent"><CategoryIcon id={q.category} size={20} /></span>
         <div className="flex-1 min-w-0">
-          <p className="eyebrow !text-[0.62rem]">Missão da comunidade</p>
-          <h3 className="font-display font-extrabold text-[17px] leading-snug mt-0.5">{q.title}</h3>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-2">
-            <StatusChip tone={st.tone}>{st.label}</StatusChip>
-            <span className="inline-flex items-center gap-1"><Clock size={13} />{timeAgo(q.createdAt)}</span>
-            <span className="inline-flex items-center gap-1"><Users size={13} />{q.followersCount}</span>
-            {q.distanceM != null && <span>{dist(q.distanceM)}</span>}
-          </div>
+          <h3 className="font-display font-extrabold text-[17px] leading-snug">{q.title}</h3>
+          <p className={`mt-1.5 text-[13px] ${q.status === 'resolvida' ? 'text-green-ink' : 'text-ink-2'}`}>{meta.join(' · ')}</p>
           {q.topPlace && <p className="mt-2 text-sm font-semibold text-accent inline-flex items-center gap-1"><MapPin size={14} />{q.topPlace}</p>}
         </div>
-        <div className="flex flex-col items-end gap-2 self-stretch justify-between">
-          {q.bounty > 0 ? <PepitaPill value={q.bounty} size="sm" /> : <span />}
-          <ChevronRight size={18} className="text-ink-2" />
-        </div>
+        {q.bounty > 0 && <PepitaPill value={q.bounty} size="sm" />}
       </div>
     </Link>
   );

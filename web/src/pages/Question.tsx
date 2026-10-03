@@ -11,6 +11,7 @@ import { MapView } from '@/components/MapView';
 import { AnswerTicket } from '@/components/AnswerTicket';
 import { Avatar, Button, EmptyState, PepitaPill, Sheet, Spinner, StatusChip } from '@/components/ui';
 import { NuggetIcon, Pepi } from '@/components/brand';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import { celebrate } from '@/lib/reward';
 
 const STATUS: Record<string, { label: string; tone: 'ok' | 'wait' | 'warn' | 'muted' }> = {
@@ -96,22 +97,22 @@ export function QuestionPage() {
         <button type="button" onClick={async () => { const r = await share(`Onde encontro ${question.title} em Ariquemes?`); if (r === 'copied') toast.push({ text: 'Link copiado.' }); }} aria-label="Compartilhar" className="h-10 w-10 grid place-items-center rounded-full bg-surface border border-line text-ink-2"><Share2 size={18} /></button>
       </header>
 
-      <section className="mt-4 rounded-card bg-surface-2 p-4">
-        <div className="flex items-center gap-3">
-          <span className="h-12 w-12 shrink-0 grid place-items-center rounded-2xl bg-surface text-2xl" aria-hidden="true">{cat.emoji}</span>
-          <p className="eyebrow !text-[0.62rem] flex-1">Missão da comunidade</p>
+      <section className="mt-5">
+        <div className="flex items-center gap-2">
+          <span className="h-8 w-8 grid place-items-center rounded-lg bg-surface-2 text-accent"><CategoryIcon id={question.category} size={16} /></span>
+          <p className="eyebrow flex-1">{cat.label}</p>
           <StatusChip tone={st.tone}>{st.label}</StatusChip>
         </div>
-        <h1 className="font-display font-extrabold text-[1.45rem] leading-tight mt-3 text-balance">{question.title}</h1>
-        <p className="text-sm text-ink-2 mt-2 flex items-center gap-1.5"><Avatar name={question.authorName} url={question.authorAvatar} size={20} />{mine ? 'Pedido seu' : `Pedido de ${question.authorName.split(' ')[0]}`} · {timeAgo(question.createdAt)}</p>
+        <h1 className="display text-[1.75rem] mt-2">{question.title}</h1>
+        <p className="text-sm text-ink-2 mt-3 flex items-center gap-1.5"><Avatar name={question.authorName} url={question.authorAvatar} size={22} />{mine ? 'Pedido seu' : `Pedido de ${question.authorName.split(' ')[0]}`} · {timeAgo(question.createdAt)}</p>
       </section>
       {question.details && <p className="mt-3 text-[15px] leading-snug">{question.details}</p>}
       {question.photoPath && <img src={/^(data|blob|https?):/.test(question.photoPath) ? question.photoPath : `/u/${question.photoPath}`} alt="Referência enviada por quem abriu a missão" className="mt-3 rounded-card max-h-56 object-cover" />}
 
-      <div className="mt-3 flex items-center gap-2">
-        <div className="flex-1 rounded-card bg-surface border border-line px-3 py-2 flex items-center gap-3">
+      <div className="mt-4 flex items-center gap-3">
+        <div className="flex-1 flex items-center gap-3">
           <PepitaPill value={reward} />
-          <span className="text-xs text-ink-2 leading-tight">para quem encontrar{question.bounty > 0 ? `, com ${question.bounty} de bônus de quem também precisa` : ''}</span>
+          <span className="text-sm text-ink-2 leading-tight">para quem encontrar{question.bounty > 0 ? ` · ${question.bounty} de bônus` : ''}</span>
         </div>
         {!mine && question.status !== 'resolvida' && (
           <Button variant={question.iFollow ? 'lime' : 'ghost'} onClick={follow} className="shrink-0" aria-label={question.iFollow ? 'Deixar de acompanhar' : 'Também preciso'}><Users size={18} />{question.followersCount}</Button>
@@ -119,7 +120,7 @@ export function QuestionPage() {
       </div>
 
       {cfg && pins.length > 0 && (
-        <div className="mt-4 h-48 rounded-card overflow-hidden border border-line">
+        <div className="mt-4 h-40 rounded-card overflow-hidden border border-line">
           <MapView center={[pins[0]!.lat, pins[0]!.lng]} zoom={14} tiles={cfg.tiles} finds={pins} me={geo.pos} highlight={question.acceptedAnswerId ? answers.find((a) => a.id === question.acceptedAnswerId)?.placeId : null} onFind={(f) => nav(`/lugar/${f.placeId}`)} />
         </div>
       )}

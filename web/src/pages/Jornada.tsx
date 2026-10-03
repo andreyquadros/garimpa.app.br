@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { useMe, useShare, useToast } from '@/lib/hooks';
 import { LEVELS } from '@/lib/economy';
 import type { RankRow } from '@/lib/types';
-import { Avatar, Button, Card, EmptyState, Headline, Spinner } from '@/components/ui';
+import { Avatar, Button, Card, EmptyState, Headline, Segmented, Spinner } from '@/components/ui';
 import { Pepi, RankBadge, XpStar } from '@/components/brand';
 
 const BADGES = [
@@ -71,13 +71,13 @@ export function Jornada() {
               <Avatar name={user.name} url={user.avatarUrl} size={60} lime />
               <div className="min-w-0">
                 <h2 className="font-display font-extrabold text-2xl leading-tight line-clamp-2">{user.name}</h2>
-                <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-floresta-900/50 px-2.5 h-7 text-[11px] font-extrabold uppercase tracking-wider text-lima-400">
+                <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-floresta-900/50 px-2.5 h-7 text-xs font-bold text-lima-400 whitespace-nowrap">
                   <Sparkles size={13} />Nível {level.level} · {level.name}
                 </span>
               </div>
             </div>
           </div>
-          <Pepi pose="explorador" size={96} className="-mr-2 -mt-1 shrink-0" />
+          <Pepi pose="explorador" size={88} className="-mr-2 -mt-2 shrink-0" />
         </div>
         <div className="mt-4 flex items-end justify-between gap-3">
           <p className="font-display font-extrabold text-4xl leading-none tabular">{user.xp.toLocaleString('pt-BR')} <span className="text-base text-lima-400">XP</span></p>
@@ -89,15 +89,10 @@ export function Jornada() {
         <p className="text-sm text-sage-200 mt-2">{level.next ? `Faltam ${level.toNext.toLocaleString('pt-BR')} XP para ser ${level.next.name}.` : 'Você é referência para a comunidade.'}</p>
       </motion.section>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {[[stats.achados, 'descobertas válidas'], [stats.respostas, 'pistas enviadas'], [stats.confirmacoes, 'confirmações']].map(([v, l], i) => (
-          <motion.div key={l as string} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.07 }} className="rounded-card bg-surface border border-line py-3.5 px-2 text-center">
-            <p className="font-display font-extrabold text-2xl tabular">{v as number}</p>
-            <p className="text-xs text-ink-2 leading-tight mt-0.5">{l as string}</p>
-          </motion.div>
-        ))}
-      </div>
-      {user.streakDays > 1 && <p className="mt-3 text-sm font-bold text-gold-ink inline-flex items-center gap-1.5"><Flame size={16} />{user.streakDays} dias seguidos ajudando</p>}
+      <p className="mt-3 text-sm text-ink-2 tabular">
+        <b className="text-ink">{stats.achados}</b> {stats.achados === 1 ? 'descoberta válida' : 'descobertas válidas'} · <b className="text-ink">{stats.respostas}</b> {stats.respostas === 1 ? 'pista' : 'pistas'} · <b className="text-ink">{stats.confirmacoes}</b> {stats.confirmacoes === 1 ? 'confirmação' : 'confirmações'}
+        {user.streakDays > 1 && <span className="font-bold text-gold-ink inline-flex items-center gap-1 ml-2"><Flame size={14} />{user.streakDays} dias seguidos</span>}
+      </p>
 
       <section className="mt-7">
         <div className="flex items-baseline justify-between">
@@ -154,9 +149,7 @@ export function Jornada() {
       <section className="mt-7">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-display font-extrabold text-xl">Quem mais ajudou</h2>
-          <div className="flex gap-1 rounded-full bg-surface-2 p-1">
-            {(['semana', 'geral'] as const).map((p) => <button key={p} type="button" onClick={() => setPeriod(p)} className={`h-8 px-3 rounded-full font-display font-bold text-xs ${period === p ? 'bg-brand text-on-brand' : 'text-ink-2'}`}>{p === 'semana' ? 'Semana' : 'Geral'}</button>)}
-          </div>
+          <Segmented id="ranking" value={period} onChange={setPeriod} options={[{ id: 'semana', label: 'Semana' }, { id: 'geral', label: 'Geral' }]} className="w-40 [&>button]:h-8 [&>button]:text-xs" />
         </div>
         {ranking.isPending && <div className="grid place-items-center py-8"><Spinner /></div>}
         {ranking.isSuccess && items.length === 0 && <EmptyState art="pending" title="Ninguém pontuou ainda" text="A semana começou agora. Envie uma evidência e apareça aqui." />}

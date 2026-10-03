@@ -43,7 +43,7 @@ export function Shell() {
 function TopBar() {
   const { data: me } = useMe();
   return (
-    <header className="sticky top-0 z-30 bg-bg/92 backdrop-blur safe-top">
+    <header className="sticky top-0 z-30 bg-bg safe-top">
       <div className="h-14 px-4 flex items-center gap-2">
         <Link to="/" aria-label="Pepita Social, início" className="mr-auto"><Wordmark size={24} /></Link>
         {me ? (

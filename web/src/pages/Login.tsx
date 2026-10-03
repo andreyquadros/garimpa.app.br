@@ -43,13 +43,13 @@ export function Login() {
       </header>
 
       <div className="flex-1 flex flex-col justify-center">
-        <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="relative mx-auto w-full max-w-[340px] aspect-square">
+        <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="relative mx-auto w-full max-w-[340px] aspect-square max-h-[38vh]">
           <span className="absolute inset-[6%] rounded-full bg-lima-100 dark:bg-floresta-600" aria-hidden="true" />
           <motion.img src={asset('ilustracoes/comercio-local.webp')} alt="Ilustração de lojas de bairro com um marcador de mapa" draggable={false}
             className="relative w-full h-full object-contain" animate={{ y: [0, -6, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} />
         </motion.div>
         <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="mt-6">
-          <h1 className="font-display font-extrabold text-[2.2rem] leading-[1.08] text-balance">O que você procura está mais perto.</h1>
+          <h1 className="display text-[2.2rem]">O que você procura está mais perto.</h1>
           <p className="text-ink-2 text-lg mt-3 leading-snug">Encontre produtos na sua cidade. Ajude pessoas. Receba pepitas.</p>
         </motion.div>
       </div>
@@ -59,10 +59,8 @@ export function Login() {
           <GoogleButton clientId={cfg.googleClientId} onCredential={onGoogle} />
         ) : cfg?.devLogin ? (
           <form onSubmit={(e) => { e.preventDefault(); dev(); }} className="space-y-3">
-            <p className="text-xs font-extrabold text-gold-ink bg-ouro-100 rounded-full px-3 h-7 inline-flex items-center uppercase tracking-wider">{import.meta.env.VITE_DEMO === '1' ? 'Demonstração' : 'Ambiente de desenvolvimento'}</p>
             <Field label="Seu nome" value={name} onChange={(e) => setName(e.target.value)} placeholder="Marina Castro" autoFocus />
             <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy} disabled={name.trim().length < 2} arrow>Continuar</Button>
-            <p className="text-xs text-ink-2">Em produção este formulário some e só o botão do Google aparece.</p>
           </form>
         ) : cfg ? <p className="text-sm text-ink-2 text-center">Login indisponível no momento.</p> : <div className="h-14" />}
         <Link to="/" className="block text-center font-display font-extrabold text-accent mt-5">Explorar primeiro</Link>

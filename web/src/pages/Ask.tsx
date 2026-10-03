@@ -10,6 +10,7 @@ import type { Similar } from '@/lib/types';
 import { SimilarCard } from '@/components/QuestionCard';
 import { Button, Chip, Sheet, TextArea } from '@/components/ui';
 import { NuggetIcon } from '@/components/brand';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 /** Nova missão: um formulário só, com reuso de missões parecidas antes de publicar. */
 export function Ask() {
@@ -22,6 +23,7 @@ export function Ask() {
   const geo = useGeo();
   const [title, setTitle] = useState(params.get('title') ?? '');
   const [category, setCategory] = useState('outros');
+  const [picked, setPicked] = useState(false);
   const [details, setDetails] = useState('');
   const [useLocation, setUseLocation] = useState(true);
   const [checked, setChecked] = useState(false);
@@ -75,7 +77,6 @@ export function Ask() {
       </header>
       <p className="eyebrow mt-4">Nova missão</p>
       <h1 className="font-display font-extrabold text-[1.9rem] leading-[1.08]">Abra uma missão local</h1>
-      <p className="text-ink-2 mt-2 leading-snug">Descreva o produto. Uma boa pista pode estar mais perto do que você imagina.</p>
 
       <label className="block mt-6">
         <span className="block font-display font-bold mb-2">O que você está procurando?</span>
@@ -101,7 +102,7 @@ export function Ask() {
       <div className="mt-5">
         <span className="block font-display font-bold mb-2">Categoria</span>
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((c) => <Chip key={c.id} active={category === c.id} onClick={() => setCategory(c.id)}>{c.emoji} {c.label}</Chip>)}
+          {CATEGORIES.map((c) => <Chip key={c.id} active={picked && category === c.id} onClick={() => { setCategory(c.id); setPicked(true); }}><CategoryIcon id={c.id} size={15} /> {c.label}</Chip>)}
         </div>
       </div>
 

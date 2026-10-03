@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
-import { BadgeCheck, ChevronRight, Clock, Flag, LocateFixed, MapPin, RefreshCw, Store } from 'lucide-react';
+import { BadgeCheck, ChevronRight, Clock, Flag, LocateFixed, RefreshCw, Store } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useConfig, useDebounced, useGeo, useToast } from '@/lib/hooks';
 import type { Find } from '@/lib/types';
 import { MapView } from '@/components/MapView';
 import { SearchHero } from '@/components/SearchPill';
 import { SimilarCard } from '@/components/QuestionCard';
-import { Button, Spinner, StatusChip } from '@/components/ui';
+import { Button, Spinner } from '@/components/ui';
 import { Anim, Pepi } from '@/components/brand';
 import { timeAgo } from '@/lib/format';
 
@@ -68,22 +68,18 @@ export function Home() {
 
   return (
     <div className="flex-1 flex flex-col pb-28">
-      <div className="relative h-[46dvh] min-h-[320px]">
+      <div className="relative h-[42dvh] min-h-[300px]">
         {cfg && (
           <MapView center={center} zoom={14} tiles={cfg.tiles} finds={pins} open={searching ? [] : open.data?.items ?? []} highlight={highlight} me={geo.pos}
             flyTo={fly} onBounds={setBbox} onFind={focus} onOpen={(o) => nav(`/m/${o.id}`)} />
         )}
-        <div className="absolute left-3 top-3 z-[500] pointer-events-none">
-          <span className="pointer-events-auto inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-surface/95 backdrop-blur shadow-float font-display font-extrabold text-[15px]"><MapPin size={16} className="text-accent" />{cityLabel}</span>
+        <div className="absolute inset-x-0 top-0 z-[500] px-3 pt-3 pointer-events-none">
+          <div className="pointer-events-auto"><SearchHero value={text} onChange={setText} loading={search.isFetching} compact placeholder={`Buscar em ${cityLabel}`} /></div>
         </div>
         <button type="button" onClick={() => { setGoMe(true); geo.ask(); }} aria-label="Minha localização"
-          className={`absolute right-3 bottom-24 z-[500] h-12 w-12 rounded-full grid place-items-center shadow-float border border-line ${geo.state === 'ok' ? 'bg-brand text-on-brand' : 'bg-surface text-accent'}`}>
+          className={`press absolute right-3 bottom-5 z-[500] h-12 w-12 rounded-full grid place-items-center shadow-float border border-line ${geo.state === 'ok' ? 'bg-brand text-on-brand' : 'bg-surface text-accent'}`}>
           {geo.state === 'asking' ? <Spinner size={18} /> : <LocateFixed size={22} />}
         </button>
-        <div className="absolute inset-x-0 bottom-0 z-[500] px-4 pb-3 pointer-events-none bg-gradient-to-t from-bg via-bg/75 to-transparent pt-16 [text-shadow:0_1px_14px_var(--bg),0_0_4px_var(--bg)]">
-          <div className="pointer-events-auto"><SearchHero value={text} onChange={setText} loading={search.isFetching} compact={searching} /></div>
-          {!searching && <p className="text-center text-xs font-semibold text-ink-2 mt-2 pointer-events-auto">Perto de você: casa & cozinha · ferramentas · farmácias</p>}
-        </div>
       </div>
 
       <section className="relative -mt-3 rounded-t-sheet bg-bg px-4 pt-3 shadow-[0_-8px_24px_rgb(16_61_50_/_0.06)]">
@@ -91,14 +87,11 @@ export function Home() {
         <AnimatePresence mode="wait">
           {!searching ? (
             <motion.div key="idle" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <div className="mt-4 flex items-end justify-between gap-3">
-                <div>
-                  <h2 className="font-display font-extrabold text-2xl leading-tight">Já encontraram por aqui.</h2>
-                  <p className="text-ink-2 mt-0.5">Reaproveite descobertas da comunidade.</p>
-                </div>
-                <Link to="/missoes?tab=resolvida" className="shrink-0 inline-flex items-center gap-0.5 font-bold text-accent text-sm pb-1">Ver todas <ChevronRight size={16} /></Link>
+              <div className="mt-3 flex items-baseline justify-between gap-3">
+                <h2 className="display text-[1.5rem]">Já encontraram por aqui.</h2>
+                <Link to="/missoes?tab=resolvida" className="shrink-0 inline-flex items-center gap-0.5 font-bold text-accent text-sm">Ver todas <ChevronRight size={16} /></Link>
               </div>
-              <ul className="mt-4 space-y-2">
+              <ul className="mt-3 space-y-2">
                 {finds.isPending && !finds.data && <li className="grid place-items-center py-6"><Anim name="search-radar" size={72} /></li>}
                 {(finds.data?.items ?? []).slice(0, 8).map((f) => <FindRow key={f.placeId} f={f} hi={highlight === f.placeId} onFocus={() => focus(f)} />)}
                 {finds.isSuccess && (finds.data?.items.length ?? 0) === 0 && (
@@ -114,22 +107,17 @@ export function Home() {
             </motion.div>
           ) : (
             <motion.div key="search" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <p className="eyebrow mt-4">Busca local</p>
-              <h2 className="font-display font-extrabold text-2xl leading-tight">Perto. E já encontrado.</h2>
+              <h2 className="display text-[1.5rem] mt-3">Perto. E já encontrado.</h2>
               {search.isPending && <div className="flex items-center gap-3 text-ink-2 text-sm mt-4"><Anim name="search-radar" size={56} />Procurando descobertas…</div>}
               {similar.length > 0 && (
-                <div className="mt-4 rounded-card bg-lima-100 dark:bg-floresta-600 border border-esmeralda-100 dark:border-floresta-600 p-4 flex gap-3">
-                  <RefreshCw size={22} className="text-accent shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display font-extrabold">Você não precisa começar do zero.</p>
-                    <p className="text-sm text-ink-2">{similar.length === 1 ? 'Uma missão parecida já encontrou pistas.' : `${similar.length} missões parecidas já encontraram pistas.`}</p>
-                    <div className="mt-3 space-y-2">{similar.slice(0, 3).map((s) => <SimilarCard key={s.id} s={s} />)}</div>
-                  </div>
+                <div className="mt-4">
+                  <p className="text-sm text-ink-2 inline-flex items-center gap-1.5"><RefreshCw size={14} className="text-accent" />{similar.length === 1 ? 'Uma missão parecida já encontrou pistas.' : `${similar.length} missões parecidas já encontraram pistas.`}</p>
+                  <div className="mt-2 space-y-2">{similar.slice(0, 3).map((s) => <SimilarCard key={s.id} s={s} />)}</div>
                 </div>
               )}
               {pins.length > 0 && (
                 <div className="mt-5">
-                  <div className="flex items-baseline justify-between"><h3 className="font-display font-extrabold text-lg">{pins.length === 1 ? '1 pista para sua busca' : `${pins.length} pistas para sua busca`}</h3><span className="text-xs text-ink-2">toque para ver no mapa</span></div>
+                  <h3 className="font-display font-extrabold text-lg">{pins.length === 1 ? '1 pista para sua busca' : `${pins.length} pistas para sua busca`}</h3>
                   <ul className="mt-3 space-y-2">{pins.slice(0, 8).map((f) => <FindRow key={f.placeId} f={f} hi={highlight === f.placeId} onFocus={() => focus(f)} />)}</ul>
                 </div>
               )}
@@ -151,24 +139,21 @@ export function Home() {
   );
 }
 
-/** Linha de descoberta: estado (Confirmado, Reconfirmar, Patrocinado), lugar, última evidência. */
+/** Linha de descoberta: lugar, o que acharam, estado em texto. Toque abre o lugar; passar por cima realça no mapa. */
 function FindRow({ f, hi, onFocus }: { f: Find; hi: boolean; onFocus: () => void }) {
   const stale = isStale(f);
+  const state = f.partnerTier ? ['Patrocinado', 'text-gold-ink', Store] as const : stale ? ['Reconfirmar', 'text-ink-2', Clock] as const : ['Confirmado', 'text-green-ink', BadgeCheck] as const;
+  const Icon = state[2];
   return (
-    <li className={`rounded-card bg-surface border overflow-hidden ${hi ? 'border-lima-400 ring-2 ring-lima-400/50' : 'border-line'}`}>
-      <div className="flex items-stretch">
-        <button type="button" onClick={onFocus} className="flex-1 min-w-0 text-left p-3.5 flex items-start gap-3">
-          <span className={`h-14 w-14 shrink-0 grid place-items-center rounded-2xl ${f.partnerTier ? 'bg-ouro-100 text-gold-ink' : stale ? 'bg-surface-2 text-ink-2' : 'bg-esmeralda-100 text-esmeralda-800'}`}><Store size={24} /></span>
-          <span className="flex-1 min-w-0">
-            {f.partnerTier ? <StatusChip tone="warn" icon={<Store size={12} />}>Patrocinado</StatusChip> : stale ? <StatusChip tone="wait" icon={<Clock size={12} />}>Reconfirmar</StatusChip> : <StatusChip tone="ok" icon={<BadgeCheck size={12} />}>Confirmado</StatusChip>}
-            <span className="block font-display font-extrabold text-[17px] leading-snug mt-1.5 truncate">{f.name}</span>
-            <span className="block text-sm text-ink-2 truncate">{f.titles.slice(0, 2).join(' · ')}</span>
-            <span className="mt-1.5 flex items-center gap-1 text-xs text-ink-2"><Clock size={12} />Evidência {timeAgo(f.lastFindAt)} · {stale ? 'precisa reconfirmar' : 'estoque pode mudar'}</span>
-          </span>
-        </button>
-        <Link to={`/lugar/${f.placeId}`} aria-label={`Abrir ${f.name}`} className="shrink-0 w-12 grid place-items-center text-accent border-l border-line"><ChevronRight size={20} /></Link>
-      </div>
-      {f.finds > 1 && <p className="px-3.5 py-1.5 border-t border-line text-xs font-bold text-green-ink bg-surface-2/60">{f.finds} descobertas registradas aqui</p>}
+    <li>
+      <Link to={`/lugar/${f.placeId}`} onMouseEnter={onFocus} onFocus={onFocus} className={`press flex items-start gap-3 rounded-card bg-surface border p-3.5 ${hi ? 'border-lima-400 ring-2 ring-lima-400/50' : 'border-line'}`}>
+        <span className={`h-11 w-11 shrink-0 grid place-items-center rounded-xl ${f.partnerTier ? 'bg-ouro-100 text-gold-ink' : 'bg-surface-2 text-accent'}`}><Store size={20} /></span>
+        <span className="flex-1 min-w-0">
+          <span className="block font-display font-extrabold text-[17px] leading-snug truncate">{f.name}</span>
+          <span className="block text-sm text-ink-2 truncate">{f.titles.slice(0, 2).join(' · ')}</span>
+          <span className={`mt-1.5 inline-flex items-center gap-1 text-xs font-bold ${state[1]}`}><Icon size={12} />{state[0]}<span className="font-semibold text-ink-2"> · {timeAgo(f.lastFindAt)}{f.finds > 1 ? ` · ${f.finds} descobertas` : ''}</span></span>
+        </span>
+      </Link>
     </li>
   );
 }

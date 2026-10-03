@@ -54,8 +54,9 @@
   --radius-card: 1.25rem;
   --radius-ticket: 1rem;
 
-  --shadow-float: 0 12px 32px -14px rgb(16 61 50 / 0.35);
-  --shadow-card: 0 1px 2px rgb(16 61 50 / 0.06), 0 8px 24px -16px rgb(16 61 50 / 0.18);
+  --shadow-float: 0 1px 0 rgb(255 255 255 / 0.6) inset, 0 2px 6px -2px rgb(16 61 50 / 0.12), 0 18px 40px -18px rgb(16 61 50 / 0.32);
+  --shadow-card: 0 1px 1px rgb(16 61 50 / 0.04), 0 10px 30px -18px rgb(16 61 50 / 0.16);
+  --shadow-press: 0 1px 2px rgb(16 61 50 / 0.18) inset;
   --shadow-ouro: 0 10px 24px -10px rgb(243 183 73 / 0.6);
   --shadow-lima: 0 8px 20px -8px rgb(215 244 106 / 0.7);
 
@@ -71,7 +72,7 @@
 :root {
   --bg: #F6F5EE;
   --surface: #FFFFFF;
-  --surface-2: #EDF1E5;
+  --surface-2: #ECF0E3;
   --text: #183D34;
   --text-2: #59776C;
   --line: #D8E4DB;
@@ -90,7 +91,7 @@
   --surface: #103D32;
   --surface-2: #0D3029;
   --text: #F6F5EE;
-  --text-2: #A9C2B5;
+  --text-2: #C9D3CC;
   --line: #22574A;
   --accent: #D7F46A;
   --accent-soft: #15503F;
@@ -108,7 +109,7 @@
     --surface: #103D32;
     --surface-2: #0D3029;
     --text: #F6F5EE;
-    --text-2: #A9C2B5;
+    --text-2: #C9D3CC;
     --line: #22574A;
     --accent: #D7F46A;
     --accent-soft: #15503F;
@@ -150,8 +151,18 @@ body {
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
 }
-.font-display { font-family: var(--font-display); letter-spacing: -0.015em; }
-.eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.font-display { font-family: var(--font-display); letter-spacing: -0.02em; }
+/* Manchetes: contraste de escala com o corpo é o que dá o ar premium; não é peso a mais. */
+.display { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; text-wrap: balance; }
+.eyebrow { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+/* Toque: tudo que é pressionável afunda 2% e perde um pouco de sombra, a mesma gramática em botões, chips e cartões. */
+.press { transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 160ms, background-color 160ms; }
+.press:active { transform: scale(0.98); }
+/* Controle segmentado: um só indicador que desliza entre as opções (ver ui.tsx > Segmented). */
+.segmented { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface-2); }
+.segmented > button { position: relative; flex: 1; height: 2.25rem; border-radius: 999px; font-weight: 700; font-size: 0.875rem; color: var(--text-2); }
+.segmented > button[aria-selected='true'] { color: var(--on-brand); }
+.segmented .seg-pill { position: absolute; inset: 0; border-radius: 999px; background: var(--brand); box-shadow: var(--shadow-card); }
 .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
 .safe-top { padding-top: max(env(safe-area-inset-top), 0.5rem); }
 .tabular { font-variant-numeric: tabular-nums; }

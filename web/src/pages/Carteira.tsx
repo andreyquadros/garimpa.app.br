@@ -6,7 +6,7 @@ import { Clock, Heart, HelpCircle, Info, Lock, LogOut, Moon, Share2, Sun } from 
 import { api } from '@/lib/api';
 import { useConfig, useMe, useShare, useTheme, useToast } from '@/lib/hooks';
 import { KIND_LABEL, timeAgo } from '@/lib/format';
-import { Avatar, Button, Headline, Sheet, Spinner, StatusChip } from '@/components/ui';
+import { Avatar, Button, Headline, Sheet, Spinner } from '@/components/ui';
 import { asset, NuggetIcon, Pepi, XpStar } from '@/components/brand';
 
 /** Carteira: pepitas de agradecimento, fundo de recompensas e histórico. */
@@ -64,16 +64,12 @@ export function Carteira() {
           <div>
             <p className="font-display font-bold text-sage-200">Pepitas de agradecimento</p>
             <p data-testid="credits" className="font-display font-extrabold text-[3.6rem] leading-none mt-3 tabular">{user.credits.toLocaleString('pt-BR')}</p>
-            <p className="text-sage-200 mt-3">Recebidas por ajudar a comunidade.</p>
-            {user.creditsPending > 0 && <p className="text-sm text-lima-400 font-bold mt-1 inline-flex items-center gap-1.5"><Clock size={14} />+{user.creditsPending} em carência{vestDate ? `, liberam ${vestDate}` : ''}</p>}
+            {user.creditsPending > 0 ? <p className="text-sm text-lima-400 font-bold mt-3 inline-flex items-center gap-1.5"><Clock size={14} />+{user.creditsPending} em carência{vestDate ? `, liberam ${vestDate}` : ''}</p> : <p className="text-sage-200 mt-3">Pepitas chegam quando a sua pista faz alguém encontrar.</p>}
           </div>
-          <motion.img src={asset('conquistas/nugget-stack.svg')} alt="" aria-hidden="true" draggable={false} className="w-28 shrink-0 -mr-2"
+          <motion.img src={asset('conquistas/nugget.svg')} alt="" aria-hidden="true" draggable={false} className="w-24 shrink-0 -mr-1 mt-2"
             animate={{ y: [0, -6, 0] }} transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut' }} />
         </div>
-        <div className="mt-4 pt-4 border-t border-creme/15 flex items-center justify-between gap-3">
-          <span className="text-sm text-sage-200">{import.meta.env.VITE_DEMO === '1' ? 'Saldo demonstrativo' : 'Saldo do piloto'}</span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-floresta-900/50 px-3.5 h-9 text-sm font-bold text-lima-400"><Lock size={15} />Resgate indisponível</span>
-        </div>
+        <p className="mt-4 pt-4 border-t border-creme/15 text-sm text-sage-200 inline-flex items-center gap-2"><Lock size={14} />Resgate abre na fase 2, com as lojas parceiras.</p>
       </motion.section>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -81,22 +77,9 @@ export function Carteira() {
         <button type="button" onClick={() => historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="h-14 rounded-full bg-surface border border-line font-display font-extrabold inline-flex items-center justify-center gap-2"><Clock size={20} className="text-accent" />Meu histórico</button>
       </div>
 
-      <section className="mt-3 rounded-card bg-surface-2 border border-line p-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-display font-extrabold text-lg">Fundo de recompensas</h2>
-          <StatusChip tone="muted">PILOTO</StatusChip>
-        </div>
-        <p className="mt-1 flex items-baseline gap-2"><span className="font-display font-extrabold text-4xl tabular">R$ 0,00</span><span className="text-sm text-ink-2">disponíveis para resgate</span></p>
-        <div className="h-1.5 rounded-full bg-line mt-3" aria-hidden="true" />
-        <p className="text-sm text-ink-2 mt-3 leading-snug">O fundo só recebe recursos depois da receita de lojas parceiras. Primeiro construímos uma comunidade útil e ativa.</p>
-        <ol className="mt-4 grid grid-cols-3 text-center">
-          {[['1', 'Comunidade', true], ['2', 'Parceiros', false], ['3', 'Fundo e regras', false]].map(([n, l, on]) => (
-            <li key={n as string}>
-              <span className={`mx-auto h-8 w-8 rounded-full grid place-items-center font-display font-extrabold text-sm ${on ? 'bg-lima-400 text-floresta-900' : 'bg-line text-ink-2'}`}>{n as string}</span>
-              <span className="block text-xs font-bold text-ink-2 mt-1">{l as string}</span>
-            </li>
-          ))}
-        </ol>
+      <section className="mt-4 flex items-start gap-3 px-1">
+        <span className="mt-0.5 h-8 w-8 shrink-0 grid place-items-center rounded-full bg-surface-2 text-accent"><Info size={16} /></span>
+        <p className="text-sm text-ink-2 leading-snug"><b className="text-ink">Fundo de recompensas: R$ 0,00.</b> Ele passa a receber quando as lojas parceiras entrarem. Primeiro, uma comunidade útil; depois, parceiros; então, fundo e regras.</p>
       </section>
 
       <section ref={historyRef} className="mt-7 scroll-mt-20">
@@ -137,7 +120,6 @@ export function Carteira() {
         )}
       </section>
 
-      <p className="mt-5 rounded-card bg-ouro-100 text-gold-ink text-sm px-4 py-3 flex gap-2.5 leading-snug"><Info size={18} className="shrink-0 mt-0.5" />Pepitas não são dinheiro e não têm cotação fixa. Resgates futuros dependerão de receita e regras.</p>
 
       <section className="mt-7">
         <h2 className="font-display font-extrabold text-xl">Conta</h2>
@@ -151,7 +133,7 @@ export function Carteira() {
           </div>
           <button type="button" onClick={logout} className="w-full px-4 py-3 flex items-center gap-3 text-sm font-bold text-brasa-ink"><LogOut size={16} />Sair</button>
         </div>
-        <p className="text-xs text-ink-2 mt-3">Pepita Social é um piloto da Incubadora de Software do IFRO em Ariquemes. XP nunca vira dinheiro.</p>
+        <p className="text-xs text-ink-2 mt-3">Pepita Social é um piloto da Incubadora de Software do IFRO em Ariquemes. Pepitas não são dinheiro nem têm cotação fixa; XP nunca vira dinheiro.</p>
       </section>
 
       <Sheet open={how} onClose={() => setHow(false)} title="Como funcionam as pepitas" tall>

@@ -60,13 +60,7 @@ export function AnswerTicket({ a, meId, canAccept, canTip, distanceM, onAccept, 
             {a.priceCents != null && <span className="shrink-0 font-display font-extrabold text-lg text-floresta-700 dark:text-lima-400 tabular">{brl(a.priceCents)}</span>}
           </div>
         )}
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <StatusChip tone={strong ? 'ok' : 'wait'} icon={strong ? <Check size={12} strokeWidth={3} /> : undefined}>{strong ? 'Evidência forte' : 'Evidência fraca'} · {a.evidenceScore}</StatusChip>
-          {a.isFirstForPlace && <StatusChip tone="muted">1º achado</StatusChip>}
-          {goodFlags.map((f) => <StatusChip key={f} tone="muted">{FLAG_LABEL[f]}</StatusChip>)}
-          {a.seenOn && <StatusChip tone="muted"><Clock size={12} />visto em {new Date(a.seenOn).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</StatusChip>}
-        </div>
-        <p className="mt-2 text-xs text-ink-2">Estoque pode mudar. Confirme com a loja.</p>
+        <p className="mt-3 text-xs leading-snug"><span className={`font-bold ${strong ? 'text-green-ink' : 'text-gold-ink'}`}>{strong ? 'Evidência forte' : 'Evidência fraca'} ({a.evidenceScore})</span><span className="text-ink-2">{[a.isFirstForPlace ? '1ª descoberta aqui' : null, ...goodFlags.map((f) => FLAG_LABEL[f]), a.seenOn ? `visto em ${new Date(a.seenOn).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}` : null].filter(Boolean).map((t) => ` · ${t}`).join('')}</span></p>
       </div>
 
       <div className="ticket-cut" />
