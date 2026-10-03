@@ -4,18 +4,25 @@ import type { CSSProperties } from 'react';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 export const asset = (p: string) => `${base}/brand/${p}`;
 
-/** Símbolo "p" na pepita de ouro (SVG do pacote de identidade). `light` para fundos escuros. */
-export function Symbol({ size = 32, light = false, className = '' }: { size?: number; light?: boolean; className?: string }) {
-  return <img src={asset(light ? 'id/symbol-light.svg' : 'id/symbol.svg')} width={size} height={size} alt="" aria-hidden="true" className={`shrink-0 ${className}`} draggable={false} />;
+/** Símbolo "p" na pepita de ouro (SVG do pacote de identidade). `light` força a versão clara; sem ele, acompanha o tema. */
+export function Symbol({ size = 32, light, className = '' }: { size?: number; light?: boolean; className?: string }) {
+  const common = { width: size, height: size, alt: '', 'aria-hidden': true as const, draggable: false };
+  if (light !== undefined) return <img src={asset(light ? 'id/symbol-light.svg' : 'id/symbol.svg')} {...common} className={`shrink-0 ${className}`} />;
+  return (
+    <>
+      <img src={asset('id/symbol.svg')} {...common} className={`shrink-0 dark:hidden ${className}`} />
+      <img src={asset('id/symbol-light.svg')} {...common} className={`shrink-0 hidden dark:block ${className}`} />
+    </>
+  );
 }
 
 /** Marca horizontal: símbolo + "pepita social" em Manrope. `tone` acompanha o fundo. */
 export function Wordmark({ size = 28, tone = 'ink', className = '' }: { size?: number; tone?: 'ink' | 'light'; className?: string }) {
-  const color = tone === 'light' ? 'text-creme' : 'text-floresta-700';
-  const soft = tone === 'light' ? 'text-lima-400' : 'text-esmeralda-600';
+  const color = tone === 'light' ? 'text-creme' : 'text-brand-ink';
+  const soft = tone === 'light' ? 'text-lima-400' : 'text-accent';
   return (
     <span className={`inline-flex items-center gap-2 ${className}`} aria-label="Pepita Social">
-      <Symbol size={size * 1.15} light={tone === 'light'} />
+      <Symbol size={size * 1.15} light={tone === 'light' ? true : undefined} />
       <span className={`font-display font-extrabold leading-none ${color}`} style={{ fontSize: size, letterSpacing: '-0.03em' }}>
         pepita<span className={`font-semibold ${soft}`}>social</span>
       </span>

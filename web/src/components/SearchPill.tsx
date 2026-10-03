@@ -8,8 +8,7 @@ export function SearchHero({ value, onChange, onSubmit, loading, autoFocus, comp
     <form role="search" onSubmit={(e) => { e.preventDefault(); onSubmit?.(); }} className="w-full">
       {!compact && (
         <div className="px-1 mb-3 text-center">
-          <p className="eyebrow">Tem algum tesouro por perto?</p>
-          <h1 className="font-display font-extrabold text-[2rem] leading-[1.05] text-floresta-700 dark:text-creme mt-1 text-balance">O que você precisa encontrar?</h1>
+          <h1 className="font-display font-extrabold text-[2rem] leading-[1.05] text-brand-ink text-balance">O que você precisa encontrar?</h1>
         </div>
       )}
       <div className="flex items-center gap-2 h-14 rounded-full bg-surface shadow-float border border-line pl-4 pr-1.5">

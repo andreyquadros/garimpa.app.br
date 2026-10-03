@@ -94,7 +94,7 @@ export function AnswerPage() {
           <span className="absolute inset-0 -m-12 rounded-full border-2 border-dashed border-line" aria-hidden="true" />
           <Pepi pose="comemorando" size={220} celebrate className="relative" />
           <motion.span initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.5, type: 'spring', stiffness: 400, damping: 18 }}
-            className="absolute left-1/2 -translate-x-1/2 -bottom-4 inline-flex items-center gap-1.5 rounded-2xl bg-floresta-700 text-lima-400 font-display font-extrabold text-2xl px-5 h-13 shadow-float">+{result.xp} <span className="text-base text-creme">XP</span></motion.span>
+            className="absolute left-1/2 -translate-x-1/2 -bottom-4 inline-flex items-center gap-1.5 rounded-2xl bg-floresta-700 text-lima-400 font-display font-extrabold text-2xl px-5 h-13 shadow-float dark:bg-floresta-600">+{result.xp} <span className="text-base text-creme">XP</span></motion.span>
         </div>
         <h1 className="font-display font-extrabold text-[2rem] leading-[1.08] mt-10 text-balance">{result.isFirst ? 'Boa! Você abriu caminho.' : 'Boa! Sua pista reforça a descoberta.'}</h1>
         <p className="text-ink-2 mt-3 text-balance">{result.isFirst ? 'Você foi a primeira pessoa a apontar esse lugar. ' : 'Esse lugar já tinha sido apontado; a sua entra como confirmação. '}{result.strong ? `Quando aceitarem ou confirmarem, as pepitas caem na sua carteira (${cfg?.economy.carencia_dias ?? 7} dias de carência).` : 'A evidência ficou fraca: peça para alguém confirmar no local para render pepitas.'}</p>

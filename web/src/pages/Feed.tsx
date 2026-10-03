@@ -41,7 +41,7 @@ export function Feed() {
           right={<Link to="/missoes/nova" aria-label="Abrir uma missão" className="h-11 w-11 grid place-items-center rounded-full bg-lima-400 text-floresta-900 shadow-lima"><Flag size={20} /></Link>} />
         <div className="mt-4 flex gap-1 rounded-full bg-surface-2 p-1">
           {TABS.map((t) => (
-            <button key={t.id} type="button" onClick={() => setTab(t.id)} className={`flex-1 h-9 rounded-full font-display font-bold text-sm transition-colors ${tab === t.id ? 'bg-floresta-700 text-lima-400 shadow-sm' : 'text-ink-2'}`}>{t.label}</button>
+            <button key={t.id} type="button" onClick={() => setTab(t.id)} className={`flex-1 h-9 rounded-full font-display font-bold text-sm transition-colors ${tab === t.id ? 'bg-brand text-on-brand shadow-sm' : 'text-ink-2'}`}>{t.label}</button>
           ))}
         </div>
         <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">

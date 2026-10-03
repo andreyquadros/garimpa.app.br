@@ -55,7 +55,7 @@ function TopBar() {
             </Link>
           </>
         ) : (
-          <Link to="/entrar" className="h-9 px-4 rounded-full bg-floresta-700 text-lima-400 font-display font-bold text-sm grid place-items-center">Entrar</Link>
+          <Link to="/entrar" className="h-9 px-4 rounded-full bg-brand text-on-brand font-display font-bold text-sm grid place-items-center">Entrar</Link>
         )}
       </div>
     </header>
@@ -64,7 +64,7 @@ function TopBar() {
 
 function Tab({ to, label, icon: Icon, end }: { to: string; label: string; icon: typeof Compass; end?: boolean }) {
   return (
-    <NavLink to={to} end={end} className="relative grid place-items-center text-ink-2 aria-[current=page]:text-floresta-700 dark:aria-[current=page]:text-creme">
+    <NavLink to={to} end={end} className="relative grid place-items-center text-ink-2 aria-[current=page]:text-brand-ink">
       {({ isActive }) => (
         <span className="flex flex-col items-center gap-1 text-[12px] font-bold">
           <span className="relative h-9 w-14 grid place-items-center">
@@ -86,7 +86,7 @@ function Toasts() {
         {toasts.map((t) => (
           <motion.button key={t.id} onClick={() => dismiss(t.id)} initial={{ y: 30, opacity: 0, scale: 0.92 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 10, opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-            className={`pointer-events-auto text-left rounded-2xl pl-3 pr-4 py-2.5 shadow-float border flex items-center gap-3 ${t.tone === 'erro' ? 'bg-brasa-100 border-brasa-500/40 text-brasa-700' : 'bg-floresta-700 border-floresta-600 text-creme'}`}>
+            className={`pointer-events-auto text-left rounded-2xl pl-3 pr-4 py-2.5 shadow-float border flex items-center gap-3 ${t.tone === 'erro' ? 'bg-brasa-100 border-brasa-500/40 text-brasa-700' : 'bg-floresta-700 border-floresta-600 text-creme dark:bg-floresta-600 dark:border-line'}`}>
             {t.pepitas ? <Anim name="gratitude-pop" size={44} /> : t.xp ? <Anim name="xp-rise" size={44} /> : null}
             <span className="flex-1 min-w-0">
               {(t.xp || t.pepitas) ? (

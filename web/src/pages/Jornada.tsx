@@ -62,7 +62,7 @@ export function Jornada() {
       <Headline eyebrow="Sua jornada" title="Cada ajuda conta." className="mt-3"
         right={<button type="button" onClick={invite} aria-label="Convidar amigos" className="h-11 w-11 grid place-items-center rounded-full bg-surface border border-line text-ink-2"><Share2 size={18} /></button>} />
 
-      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-5 relative overflow-hidden rounded-card bg-floresta-700 text-creme p-5 shadow-float">
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-5 relative overflow-hidden rounded-card bg-floresta-700 text-creme p-5 shadow-float dark:bg-floresta-600">
         <span className="absolute -right-16 -top-16 h-56 w-56 rounded-full border border-lima-400/20" aria-hidden="true" />
         <span className="absolute -right-6 -top-6 h-36 w-36 rounded-full border border-lima-400/20" aria-hidden="true" />
         <div className="flex items-start gap-4">
@@ -155,7 +155,7 @@ export function Jornada() {
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-display font-extrabold text-xl">Quem mais ajudou</h2>
           <div className="flex gap-1 rounded-full bg-surface-2 p-1">
-            {(['semana', 'geral'] as const).map((p) => <button key={p} type="button" onClick={() => setPeriod(p)} className={`h-8 px-3 rounded-full font-display font-bold text-xs ${period === p ? 'bg-floresta-700 text-lima-400' : 'text-ink-2'}`}>{p === 'semana' ? 'Semana' : 'Geral'}</button>)}
+            {(['semana', 'geral'] as const).map((p) => <button key={p} type="button" onClick={() => setPeriod(p)} className={`h-8 px-3 rounded-full font-display font-bold text-xs ${period === p ? 'bg-brand text-on-brand' : 'text-ink-2'}`}>{p === 'semana' ? 'Semana' : 'Geral'}</button>)}
           </div>
         </div>
         {ranking.isPending && <div className="grid place-items-center py-8"><Spinner /></div>}

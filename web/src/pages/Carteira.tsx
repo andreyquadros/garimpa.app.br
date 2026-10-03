@@ -59,7 +59,7 @@ export function Carteira() {
       <Headline eyebrow="Sua carteira" title={<>A ajuda volta<br />em reconhecimento.</>} className="mt-3"
         right={<button type="button" onClick={invite} aria-label="Convidar amigos" className="h-11 w-11 grid place-items-center rounded-full bg-surface border border-line text-ink-2"><Share2 size={18} /></button>} />
 
-      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-5 relative overflow-hidden rounded-card bg-floresta-700 text-creme p-5 shadow-float">
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-5 relative overflow-hidden rounded-card bg-floresta-700 text-creme p-5 shadow-float dark:bg-floresta-600">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="font-display font-bold text-sage-200">Pepitas de agradecimento</p>
@@ -147,7 +147,7 @@ export function Carteira() {
             <span className="flex-1 min-w-0"><span className="block font-bold truncate">{user.name}</span><span className="block text-xs text-ink-2">@{user.handle}</span></span>
           </div>
           <div className="px-4 py-3 flex items-center gap-3 text-sm"><span className="flex-1 font-bold">Tema</span>
-            {(['auto', 'light', 'dark'] as const).map((t) => <button key={t} type="button" onClick={() => setTheme(t)} aria-label={`Tema ${t}`} className={`h-8 px-3 rounded-full text-xs font-bold ${theme === t ? 'bg-floresta-700 text-lima-400' : 'bg-surface-2'}`}>{t === 'auto' ? 'Auto' : t === 'light' ? <Sun size={14} /> : <Moon size={14} />}</button>)}
+            {(['auto', 'light', 'dark'] as const).map((t) => <button key={t} type="button" onClick={() => setTheme(t)} aria-label={`Tema ${t}`} className={`h-8 px-3 rounded-full text-xs font-bold ${theme === t ? 'bg-brand text-on-brand' : 'bg-surface-2'}`}>{t === 'auto' ? 'Auto' : t === 'light' ? <Sun size={14} /> : <Moon size={14} />}</button>)}
           </div>
           <button type="button" onClick={logout} className="w-full px-4 py-3 flex items-center gap-3 text-sm font-bold text-brasa-ink"><LogOut size={16} />Sair</button>
         </div>

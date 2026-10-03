@@ -9,8 +9,8 @@ export function Logo({ size = 28 }: { size?: number }) { return <Symbol size={si
 
 type Variant = 'primary' | 'secondary' | 'gold' | 'lime' | 'ghost' | 'soft' | 'danger';
 const variants: Record<Variant, string> = {
-  primary: 'bg-floresta-700 text-lima-400 hover:bg-floresta-800 shadow-float',
-  secondary: 'bg-surface text-floresta-700 border border-line hover:bg-surface-2 dark:text-creme',
+  primary: 'bg-brand text-on-brand hover:brightness-95 shadow-float',
+  secondary: 'bg-surface text-brand-ink border border-line hover:bg-surface-2',
   gold: 'bg-ouro-400 text-floresta-900 hover:bg-ouro-500 shadow-ouro',
   lime: 'bg-lima-400 text-floresta-900 hover:bg-lima-300 shadow-lima',
   ghost: 'bg-transparent text-ink hover:bg-surface-2 border border-line',
@@ -44,7 +44,7 @@ export function Chip({ active, children, onClick, className = '' }: { active?: b
 
 /** Rótulo de estado com forma + ícone + texto, nunca só cor (guia visual). */
 export function StatusChip({ tone, icon, children, className = '' }: { tone: 'ok' | 'wait' | 'warn' | 'sponsor' | 'muted'; icon?: ReactNode; children: ReactNode; className?: string }) {
-  const t = { ok: 'bg-esmeralda-100 text-esmeralda-800', wait: 'bg-surface-2 text-ink-2', warn: 'bg-ouro-100 text-ouro-700', sponsor: 'bg-floresta-700 text-lima-400', muted: 'bg-surface-2 text-ink-2' }[tone];
+  const t = { ok: 'bg-esmeralda-100 text-esmeralda-800', wait: 'bg-surface-2 text-ink-2', warn: 'bg-ouro-100 text-ouro-700', sponsor: 'bg-brand text-on-brand', muted: 'bg-surface-2 text-ink-2' }[tone];
   return <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 h-7 text-xs font-bold ${t} ${className}`}>{icon}{children}</span>;
 }
 
@@ -52,7 +52,7 @@ export function Avatar({ name, url, size = 36, lime = false }: { name: string; u
   const initials = name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('');
   return url
     ? <img src={url} alt="" width={size} height={size} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} referrerPolicy="no-referrer" />
-    : <span className={`rounded-full grid place-items-center font-display font-extrabold shrink-0 ${lime ? 'bg-lima-400 text-floresta-900' : 'bg-floresta-700 text-lima-400'}`} style={{ width: size, height: size, fontSize: size * 0.38 }} aria-hidden="true">{initials}</span>;
+    : <span className={`rounded-full grid place-items-center font-display font-extrabold shrink-0 ${lime ? 'bg-lima-400 text-floresta-900' : 'bg-brand text-on-brand'}`} style={{ width: size, height: size, fontSize: size * 0.38 }} aria-hidden="true">{initials}</span>;
 }
 
 export function Field({ label, hint, error, ...rest }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string }) {
@@ -135,7 +135,7 @@ export function PepitaPill({ value, pending, size = 'md' }: { value: number; pen
 
 export function XpChip({ xp, size = 'md' }: { xp: number; size?: 'sm' | 'md' }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full bg-surface border border-line font-display font-extrabold text-floresta-700 dark:text-creme ${size === 'sm' ? 'h-8 px-2.5 text-sm' : 'h-10 px-3.5 text-base'}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full bg-surface border border-line font-display font-extrabold text-brand-ink ${size === 'sm' ? 'h-8 px-2.5 text-sm' : 'h-10 px-3.5 text-base'}`}>
       <XpStar size={size === 'sm' ? 16 : 20} /><AnimatedNumber value={xp} /><span className="text-[11px] font-bold text-ink-2">XP</span>
     </span>
   );
@@ -159,7 +159,7 @@ export function LevelRing({ progress, level, size = 72, children }: { progress: 
 /** Barra de XP no estilo "Progresso de XP" do guia: fundo Floresta, barra Lima. */
 export function XpProgress({ xp, level }: { xp: number; level: { name: string; next: { name: string; xp: number } | null; progress: number; toNext: number; xp: number } }) {
   return (
-    <div className="rounded-card bg-floresta-700 text-creme p-4">
+    <div className="rounded-card bg-floresta-700 text-creme p-4 dark:bg-floresta-600">
       <p className="text-sm text-sage-200">Seu próximo nível</p>
       <div className="flex items-end justify-between gap-3">
         <p className="font-display font-extrabold text-2xl leading-tight">{level.next?.name ?? level.name}</p>
@@ -208,6 +208,6 @@ export function Headline({ eyebrow, title, right, className = '' }: { eyebrow?: 
 }
 
 export function Card({ children, className = '', tone = 'surface' }: { children: ReactNode; className?: string; tone?: 'surface' | 'soft' | 'forest' | 'gold' }) {
-  const t = { surface: 'bg-surface border border-line', soft: 'bg-surface-2', forest: 'bg-floresta-700 text-creme', gold: 'bg-ouro-100 text-ouro-700 border border-ouro-200' }[tone];
+  const t = { surface: 'bg-surface border border-line', soft: 'bg-surface-2', forest: 'bg-floresta-700 text-creme dark:bg-floresta-600', gold: 'bg-ouro-100 text-ouro-700 border border-ouro-200' }[tone];
   return <div className={`rounded-card ${t} ${className}`}>{children}</div>;
 }

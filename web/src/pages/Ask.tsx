@@ -129,7 +129,7 @@ export function Ask() {
         </div>
       </div>
 
-      <div className="mt-5 rounded-card bg-floresta-700 text-creme p-4 flex gap-3">
+      <div className="mt-5 rounded-card bg-floresta-700 text-creme p-4 flex gap-3 dark:bg-floresta-600">
         <ShieldCheck size={28} className="text-lima-400 shrink-0" />
         <div>
           <p className="font-display font-extrabold">A melhor pista vem com prova.</p>

@@ -77,7 +77,7 @@ export function Home() {
           <span className="pointer-events-auto inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-surface/95 backdrop-blur shadow-float font-display font-extrabold text-[15px]"><MapPin size={16} className="text-accent" />{cityLabel}</span>
         </div>
         <button type="button" onClick={() => { setGoMe(true); geo.ask(); }} aria-label="Minha localização"
-          className={`absolute right-3 bottom-24 z-[500] h-12 w-12 rounded-full grid place-items-center shadow-float border border-line ${geo.state === 'ok' ? 'bg-floresta-700 text-lima-400' : 'bg-surface text-accent'}`}>
+          className={`absolute right-3 bottom-24 z-[500] h-12 w-12 rounded-full grid place-items-center shadow-float border border-line ${geo.state === 'ok' ? 'bg-brand text-on-brand' : 'bg-surface text-accent'}`}>
           {geo.state === 'asking' ? <Spinner size={18} /> : <LocateFixed size={22} />}
         </button>
         <div className="absolute inset-x-0 bottom-0 z-[500] px-4 pb-3 pointer-events-none bg-gradient-to-t from-bg via-bg/75 to-transparent pt-16 [text-shadow:0_1px_14px_var(--bg),0_0_4px_var(--bg)]">

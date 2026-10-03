@@ -4,6 +4,14 @@
 
 /* Pepita Social · tokens da identidade (guia visual): Floresta é a base e o CTA, Lima é o acento ativo,
    Ouro é só das pepitas, Creme é o papel. Manrope em dois pesos. */
+/* `dark:` segue o tema escolhido (data-theme) e, sem escolha, o sistema. */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) { @slot; }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) { @slot; }
+  }
+}
+
 @theme {
   --font-display: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -69,6 +77,9 @@
   --line: #D8E4DB;
   --accent: #187B56;
   --accent-soft: #DDEFE4;
+  --brand: #103D32;
+  --on-brand: #D7F46A;
+  --brand-ink: #103D32;
   --gold-ink: #9A6A12;
   --green-ink: #0F5B3F;
   --brasa-ink: #8E3A26;
@@ -83,6 +94,9 @@
   --line: #22574A;
   --accent: #D7F46A;
   --accent-soft: #15503F;
+  --brand: #D7F46A;
+  --on-brand: #08211B;
+  --brand-ink: #F6F5EE;
   --gold-ink: #F3B749;
   --green-ink: #8FE0B5;
   --brasa-ink: #F0A58C;
@@ -98,6 +112,9 @@
     --line: #22574A;
     --accent: #D7F46A;
     --accent-soft: #15503F;
+    --brand: #D7F46A;
+    --on-brand: #08211B;
+    --brand-ink: #F6F5EE;
     --gold-ink: #F3B749;
     --green-ink: #8FE0B5;
     --brasa-ink: #F0A58C;
@@ -114,6 +131,9 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-brand: var(--brand);
+  --color-on-brand: var(--on-brand);
+  --color-brand-ink: var(--brand-ink);
   --color-gold-ink: var(--gold-ink);
   --color-green-ink: var(--green-ink);
   --color-brasa-ink: var(--brasa-ink);

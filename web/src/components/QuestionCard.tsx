@@ -48,14 +48,14 @@ export function SimilarCard({ s, onWant }: { s: Similar; onWant?: (id: string) =
       {s.places.length > 0 && (
         <ul className="mt-2.5 flex flex-wrap gap-1.5">
           {s.places.slice(0, 3).map((p) => (
-            <li key={p.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 h-7 text-xs font-bold ${p.status === 'aceita' ? 'bg-esmeralda-100 text-esmeralda-800' : p.status === 'confirmada' ? 'bg-lima-100 text-floresta-700' : 'bg-surface-2 text-ink-2'}`}>
+            <li key={p.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 h-7 text-xs font-bold ${p.status === 'aceita' ? 'bg-esmeralda-100 text-esmeralda-800' : p.status === 'confirmada' ? 'bg-lima-100 text-floresta-700 dark:bg-floresta-600 dark:text-lima-400' : 'bg-surface-2 text-ink-2'}`}>
               <MapPin size={12} />{p.name}
             </li>
           ))}
         </ul>
       )}
       <div className="mt-3 flex gap-2">
-        <Link to={`/m/${s.id}`} className="flex-1 h-10 rounded-full bg-floresta-700 text-lima-400 grid place-items-center font-display font-bold text-sm">Ver descoberta</Link>
+        <Link to={`/m/${s.id}`} className="flex-1 h-10 rounded-full bg-brand text-on-brand grid place-items-center font-display font-bold text-sm">Ver descoberta</Link>
         {onWant && s.status !== 'resolvida' && <button type="button" onClick={() => onWant(s.id)} className="flex-1 h-10 rounded-full border border-line font-display font-bold text-sm">Também preciso</button>}
       </div>
     </div>
