@@ -137,14 +137,16 @@ await page.waitForFunction((before) => {
 const creditsAfter = await credits();
 step(`pepitas disponíveis depois: ${creditsAfter}`);
 if (creditsAfter !== creditsBefore + 75) throw new Error(`esperava ${creditsBefore + 75}, veio ${creditsAfter}`);
-// A sequência de 7 dias (XP de streak + Maratonista) faz Lucas subir de patente: a cerimônia abre e precisa ser fechada.
-const levelUp = await page.waitForSelector('text=Nova patente', { timeout: 5000 }).catch(() => null);
-if (levelUp) {
-  const name = await page.$eval('[role=dialog] h2', (el) => el.textContent);
-  await shot('demo-08-nova-patente');
-  await page.click('button:has-text("Continuar ajudando")');
-  await page.waitForSelector('[role=dialog]', { state: 'detached' });
-  step(`subiu de patente: ${name}`);
+// A sequência de 7 dias (XP de streak + Maratonista) pode abrir cerimônias de patente e de conquista: fecha todas antes de seguir.
+for (let i = 0; i < 3; i++) {
+  const dlg = await page.waitForSelector('[role=dialog]', { timeout: 4000 }).catch(() => null);
+  if (!dlg) break;
+  const title = await page.$eval('[role=dialog] h2', (el) => el.textContent).catch(() => '?');
+  const kind = (await page.$('[role=dialog] >> text=Nova conquista')) ? 'conquista' : (await page.$('[role=dialog] >> text=Nova patente')) ? 'patente' : 'cerimônia';
+  if (kind === 'conquista') await shot('demo-08-nova-conquista'); else if (kind === 'patente') await shot('demo-08-nova-patente');
+  await page.click('[role=dialog] button:has-text("Continuar")');
+  await page.waitForTimeout(600);
+  step(`${kind}: ${title}`);
 }
 
 // 6. Jornada: patente, árvore de níveis e ranking

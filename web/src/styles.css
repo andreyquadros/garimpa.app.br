@@ -158,6 +158,15 @@ body {
 /* Toque: tudo que é pressionável afunda 2% e perde um pouco de sombra, a mesma gramática em botões, chips e cartões. */
 .press { transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 160ms, background-color 160ms; }
 .press:active { transform: scale(0.98); }
+/* Botão "de tijolo": borda inferior de 4px que some quando o botão afunda, a resposta tátil da ação principal. */
+.btn-3d { --edge: rgb(0 0 0 / 0.25); box-shadow: 0 4px 0 var(--edge); transition: transform 110ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 110ms, filter 160ms; will-change: transform; }
+.btn-3d:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 var(--edge); }
+.btn-3d:disabled { box-shadow: 0 2px 0 var(--edge); }
+@keyframes flicker { 0%, 100% { transform: scale(1) rotate(-3deg); } 40% { transform: scale(1.12) rotate(3deg); } 70% { transform: scale(0.96) rotate(-1deg); } }
+.flame { animation: flicker 1.4s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes ringpulse { 0% { transform: scale(0.9); opacity: 0.7; } 100% { transform: scale(1.45); opacity: 0; } }
+.node-ring { animation: ringpulse 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .flame, .node-ring { animation: none; } }
 /* Controle segmentado: um só indicador que desliza entre as opções (ver ui.tsx > Segmented). */
 .segmented { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface-2); }
 .segmented > button { position: relative; flex: 1; height: 2.25rem; border-radius: 999px; font-weight: 700; font-size: 0.875rem; color: var(--text-2); }

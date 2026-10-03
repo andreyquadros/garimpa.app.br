@@ -2,25 +2,15 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
-import { Camera, Disc, Eye, Flag, Flame, Gem, Hand, Lock, Map, Share2, Sparkles, Trophy, ArrowRight } from 'lucide-react';
+import { BadgeCheck, Camera, Check, Flame, Lock, Share2, Sparkles } from 'lucide-react';
+import { BADGES } from '@/lib/badges';
+import type { LedgerItem } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useMe, useShare, useToast } from '@/lib/hooks';
 import { LEVELS } from '@/lib/economy';
 import type { RankRow } from '@/lib/types';
 import { Avatar, Button, Card, EmptyState, Headline, Segmented, Spinner } from '@/components/ui';
 import { Pepi, RankBadge, XpStar } from '@/components/brand';
-
-const BADGES = [
-  { slug: 'fundador', name: 'Fundador', description: 'Entrou no piloto de Ariquemes.', icon: Flag },
-  { slug: 'primeiro_achado', name: 'Primeira descoberta', description: 'Teve a primeira evidência aceita.', icon: Gem },
-  { slug: 'olho_de_lince', name: 'Olho de lince', description: 'Cinco primeiras descobertas em lugares diferentes.', icon: Eye },
-  { slug: 'bateia', name: 'Bateia', description: 'Confirmou dez descobertas indo até o lugar.', icon: Disc },
-  { slug: 'bom_de_prova', name: 'Boa evidência', description: 'Dez evidências fortes.', icon: Camera },
-  { slug: 'maratonista', name: 'Maratonista', description: 'Sete dias seguidos ajudando.', icon: Flame },
-  { slug: 'mao_aberta', name: 'Mão aberta', description: 'Agradeceu dez vezes com pepitas.', icon: Hand },
-  { slug: 'cartografo', name: 'Cartógrafo', description: 'Cadastrou cinco lugares novos.', icon: Map },
-  { slug: 'garimpeiro_semana', name: 'Destaque da semana', description: 'Topo do ranking semanal.', icon: Trophy },
-];
 
 /** Jornada: patente, árvore de níveis, conquistas e quem mais ajudou a cidade. */
 export function Jornada() {
@@ -29,6 +19,7 @@ export function Jornada() {
   const toast = useToast();
   const [period, setPeriod] = useState<'semana' | 'geral'>('semana');
   const ranking = useQuery({ queryKey: ['ranking', period], queryFn: () => api.ranking(period) });
+  const ledger = useQuery({ queryKey: ['ledger'], queryFn: api.ledger, enabled: !!me });
 
   if (isPending) return <div className="grid place-items-center py-24"><Spinner /></div>;
   if (!me) {
@@ -99,33 +90,11 @@ export function Jornada() {
           <h2 className="font-display font-extrabold text-xl">Sua árvore de conquistas</h2>
           <span className="text-sm text-ink-2">{LEVELS.length} níveis</span>
         </div>
-        <ol className="mt-3 relative">
-          <span className="absolute left-[2.1rem] top-6 bottom-6 w-px bg-line" aria-hidden="true" />
-          {LEVELS.map((l, i) => {
-            const state = l.level === level.level ? 'atual' : l.level < level.level ? 'feito' : 'futuro';
-            return (
-              <motion.li key={l.level} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.08 }}
-                className={`relative flex items-center gap-3 px-2 py-2.5 rounded-card ${state === 'atual' ? 'bg-lima-100 dark:bg-floresta-600' : ''}`}>
-                <span className={`relative h-[3.3rem] w-[3.3rem] shrink-0 grid place-items-center rounded-2xl ${state === 'atual' ? 'bg-lima-400' : state === 'feito' ? 'bg-esmeralda-100' : 'bg-surface border border-line'}`}>
-                  <RankBadge level={l.level} size={30} dim={state === 'futuro'} />
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className={`block font-display font-extrabold text-[17px] leading-tight ${state === 'futuro' ? 'text-ink-2' : ''}`}>{l.name}</span>
-                  <span className="block text-sm text-ink-2 leading-snug">{l.motto}</span>
-                </span>
-                <span className={`text-sm font-bold tabular shrink-0 ${state === 'atual' ? 'text-green-ink' : 'text-ink-2'}`}>{l.xp.toLocaleString('pt-BR')} XP{state === 'atual' ? ' · atual' : ''}</span>
-              </motion.li>
-            );
-          })}
-        </ol>
+        <LevelPath current={level.level} />
         <p className="text-sm text-ink-2 mt-2 px-2">{level.perk}</p>
       </section>
 
-      <Link to="/missoes" className="mt-5 flex items-center gap-3 rounded-card bg-surface border border-line px-4 py-3.5">
-        <span className="h-10 w-10 grid place-items-center rounded-full bg-ouro-100 text-gold-ink"><Trophy size={20} /></span>
-        <span className="flex-1 min-w-0"><span className="block font-display font-extrabold">Missão da semana</span><span className="block text-sm text-ink-2">Reconfirme uma pista antiga.</span></span>
-        <span className="inline-flex items-center gap-1 font-bold text-green-ink text-sm">+15 XP <ArrowRight size={16} /></span>
-      </Link>
+      <DailyGoals items={ledger.data?.items ?? []} />
 
       <section className="mt-7">
         <div className="flex items-baseline justify-between">
@@ -193,5 +162,81 @@ function Row({ p, me }: { p: RankRow; me: boolean }) {
       </span>
       <span className="font-display font-extrabold tabular">{p.pontos.toLocaleString('pt-BR')}</span>
     </li>
+  );
+}
+
+/** Trilha de patentes no estilo caminho do Duolingo: nós alternando os lados, ligados por uma linha tracejada; o atual pulsa e tem o Pepi ao lado. */
+function LevelPath({ current }: { current: number }) {
+  const xs = [22, 64, 32, 70, 46];
+  const step = 112; const pad = 64;
+  const nodes = LEVELS.map((l, i) => ({ l, x: xs[i] ?? 50, y: pad + i * step }));
+  const h = pad * 2 + (LEVELS.length - 1) * step;
+  const d = nodes.map((n, i) => (i === 0 ? `M ${n.x} ${n.y}` : `C ${nodes[i - 1]!.x} ${(nodes[i - 1]!.y + n.y) / 2}, ${n.x} ${(nodes[i - 1]!.y + n.y) / 2}, ${n.x} ${n.y}`)).join(' ');
+  const doneUntil = nodes.findIndex((n) => n.l.level === current);
+  const dDone = nodes.slice(0, doneUntil + 1).map((n, i) => (i === 0 ? `M ${n.x} ${n.y}` : `C ${nodes[i - 1]!.x} ${(nodes[i - 1]!.y + n.y) / 2}, ${n.x} ${(nodes[i - 1]!.y + n.y) / 2}, ${n.x} ${n.y}`)).join(' ');
+  return (
+    <div className="relative mt-1" style={{ height: h }}>
+      <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 100 ${h}`} preserveAspectRatio="none" aria-hidden="true">
+        <path d={d} fill="none" stroke="var(--line)" strokeWidth="6" strokeLinecap="round" strokeDasharray="0.1 12" vectorEffect="non-scaling-stroke" />
+        <motion.path d={dDone} fill="none" stroke="var(--accent)" strokeWidth="6" strokeLinecap="round" vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: 'easeOut', delay: 0.2 }} />
+      </svg>
+      {nodes.map((n, i) => {
+        const state = n.l.level === current ? 'atual' : n.l.level < current ? 'feito' : 'futuro';
+        const left = n.x < 50;
+        return (
+          <motion.div key={n.l.level} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 + i * 0.1, type: 'spring', stiffness: 320, damping: 20 }}
+            className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center" style={{ left: `${n.x}%`, top: n.y }}>
+            <div className="relative">
+              {state === 'atual' && <span className="node-ring absolute inset-0 rounded-full bg-lima-400/50" aria-hidden="true" />}
+              <span className={`relative h-[4.25rem] w-[4.25rem] rounded-full grid place-items-center border-4 border-bg ${state === 'atual' ? 'bg-lima-400 shadow-lima' : state === 'feito' ? 'bg-brand text-on-brand' : 'bg-surface-2 text-ink-2'}`}>
+                {state === 'feito' ? <Check size={28} strokeWidth={3} /> : state === 'futuro' ? <Lock size={22} /> : <RankBadge level={n.l.level} size={34} />}
+              </span>
+              {state === 'atual' && <Pepi pose="explorador" size={60} className={`absolute -top-3 ${left ? 'left-[3.9rem]' : 'right-[3.9rem]'}`} />}
+            </div>
+            <span className={`mt-1.5 text-center leading-tight ${state === 'futuro' ? 'text-ink-2' : ''}`}>
+              <span className="block font-display font-extrabold text-sm whitespace-nowrap">{n.l.name}</span>
+              <span className="block text-xs text-ink-2 tabular">{n.l.xp.toLocaleString('pt-BR')} XP</span>
+            </span>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Metas de hoje, calculadas do extrato do dia (renovam à meia-noite). Sem recompensa inventada: o XP vem das próprias ações. */
+function DailyGoals({ items }: { items: LedgerItem[] }) {
+  const today = new Date().toDateString();
+  const todays = items.filter((l) => l.state !== 'estornado' && new Date(l.createdAt).toDateString() === today);
+  const count = (kind: string) => todays.filter((l) => l.kind === kind).length;
+  const xp = todays.reduce((s, l) => s + Math.max(0, l.xp), 0);
+  const goals = [
+    { label: 'Envie uma evidência', done: count('resposta_com_evidencia'), target: 1, icon: Camera },
+    { label: 'Confirme uma descoberta', done: count('confirmar') + count('confirmacao_validada'), target: 1, icon: BadgeCheck },
+    { label: 'Ganhe 20 XP hoje', done: Math.min(xp, 20), target: 20, icon: Sparkles },
+  ];
+  const all = goals.every((g) => g.done >= g.target);
+  return (
+    <section className="mt-7">
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-display font-extrabold text-xl">Metas de hoje</h2>
+        <span className="text-sm text-ink-2">{all ? 'Tudo feito!' : 'renovam à meia-noite'}</span>
+      </div>
+      <ul className="mt-3 rounded-card bg-surface border border-line divide-y divide-line">
+        {goals.map((g, i) => {
+          const ok = g.done >= g.target;
+          return (
+            <li key={g.label} className="flex items-center gap-3 px-4 py-3">
+              <motion.span initial={false} animate={ok ? { scale: [1, 1.2, 1] } : { scale: 1 }} className={`h-10 w-10 shrink-0 grid place-items-center rounded-full ${ok ? 'bg-lima-400 text-floresta-900' : 'bg-surface-2 text-accent'}`}>{ok ? <Check size={20} strokeWidth={3} /> : <g.icon size={18} />}</motion.span>
+              <span className="flex-1 min-w-0">
+                <span className={`block font-bold text-[15px] ${ok ? 'text-ink-2 line-through decoration-2' : ''}`}>{g.label}</span>
+                <span className="mt-1.5 block h-2 rounded-full bg-surface-2 overflow-hidden"><motion.span className={`block h-full rounded-full ${ok ? 'bg-lima-400' : 'bg-accent'}`} initial={{ width: 0 }} animate={{ width: `${Math.min(100, (g.done / g.target) * 100)}%` }} transition={{ duration: 0.8, delay: 0.2 + i * 0.1, ease: 'easeOut' }} /></span>
+              </span>
+              <span className="text-sm font-bold tabular text-ink-2 shrink-0">{Math.min(g.done, g.target)}/{g.target}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

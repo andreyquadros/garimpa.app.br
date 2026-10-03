@@ -15,6 +15,9 @@ export function celebrate(kind: 'achado' | 'nivel' = 'achado') {
   confetti({ particleCount: 90, spread: 70, startVelocity: 38, origin: { y: 0.7 }, colors, shapes: ['circle', 'square'], scalar: 0.9 });
 }
 
+/** Resposta tátil curta nos botões principais (só onde o navegador permite). */
+export function haptic(ms = 8) { try { navigator.vibrate?.(ms); } catch { /* sem vibração */ } }
+
 export function sparkle(x: number, y: number) {
   if (reduced()) return;
   confetti({ particleCount: 18, spread: 50, startVelocity: 18, gravity: 0.8, ticks: 60, origin: { x: x / window.innerWidth, y: y / window.innerHeight }, colors: ['#F2B705', '#FBE7A1'], scalar: 0.7 });

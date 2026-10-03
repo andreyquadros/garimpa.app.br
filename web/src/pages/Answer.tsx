@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertTriangle, ArrowLeft, BadgeCheck, Camera, Check, Clock, Eye, MapPin, Plus, Search, ShieldCheck, Sparkles } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BadgeCheck, Camera, Check, Clock, Eye, Flame, MapPin, Plus, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useConfig, useDebounced, useGeo, useInvalidate, useMe, useToast } from '@/lib/hooks';
 import type { PlaceLite, UploadResult } from '@/lib/types';
@@ -96,8 +96,21 @@ export function AnswerPage() {
         </div>
         <h1 className="display text-[2rem] mt-14">{result.isFirst ? 'Boa! Você abriu caminho.' : 'Boa! Sua pista reforça a descoberta.'}</h1>
         <p className="text-ink-2 mt-3 text-balance">{result.isFirst ? 'Você foi a primeira pessoa a apontar esse lugar. ' : 'Esse lugar já tinha sido apontado; a sua entra como confirmação. '}{result.strong ? `Quando aceitarem ou confirmarem, as pepitas caem na sua carteira (${cfg?.economy.carencia_dias ?? 7} dias de carência).` : 'A evidência ficou fraca: peça para alguém confirmar no local para render pepitas.'}</p>
-        <p className={`mt-5 inline-flex items-center justify-center gap-1.5 text-sm font-bold ${result.strong ? 'text-green-ink' : 'text-gold-ink'}`}>{result.strong ? <BadgeCheck size={18} /> : <AlertTriangle size={18} />}{result.strong ? 'Evidência forte' : 'Evidência fraca: peça uma confirmação no local'}</p>
-        <Link to={`/m/${id}`} className="block mt-8"><Button variant="primary" size="lg" className="w-full"><Sparkles size={18} />Voltar à missão</Button></Link>
+        <div className="mt-6 grid grid-cols-3 gap-2" style={{ perspective: 800 }}>
+          {[
+            { k: 'xp', label: 'XP ganho', value: `+${result.xp}`, tone: 'bg-lima-400 text-floresta-900', icon: <Sparkles size={16} /> },
+            { k: 'streak', label: 'Sequência', value: `${me?.user.streakDays ?? 1} ${(me?.user.streakDays ?? 1) === 1 ? 'dia' : 'dias'}`, tone: 'bg-ouro-400 text-floresta-900', icon: <Flame size={16} className="fill-floresta-900/20" /> },
+            { k: 'ev', label: 'Evidência', value: result.strong ? 'Forte' : 'Fraca', tone: result.strong ? 'bg-brand text-on-brand' : 'bg-surface-2 text-ink', icon: result.strong ? <BadgeCheck size={16} /> : <AlertTriangle size={16} /> },
+          ].map((c, i) => (
+            <motion.div key={c.k} initial={{ rotateX: 90, opacity: 0, y: 12 }} animate={{ rotateX: 0, opacity: 1, y: 0 }} transition={{ delay: 0.9 + i * 0.18, type: 'spring', stiffness: 260, damping: 18 }}
+              className={`rounded-card px-2 py-3 ${c.tone}`}>
+              <span className="mx-auto h-7 w-7 grid place-items-center rounded-full bg-black/10">{c.icon}</span>
+              <span className="block font-display font-extrabold text-lg mt-1 tabular leading-tight">{c.value}</span>
+              <span className="block text-[11px] font-bold opacity-80">{c.label}</span>
+            </motion.div>
+          ))}
+        </div>
+        <Link to={`/m/${id}`} className="block mt-6"><Button variant="primary" size="lg" className="w-full"><Sparkles size={18} />Voltar à missão</Button></Link>
         <Link to="/jornada" className="block mt-3 font-display font-extrabold text-accent">Ver minha jornada</Link>
         <p className="text-xs text-ink-2 mt-5">XP evolui seu nível. Pepitas reconhecem sua ajuda. São contas separadas.</p>
       </motion.div>

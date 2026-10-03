@@ -4,7 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import { Compass, Flag, FlaskConical, Sparkles, Wallet } from 'lucide-react';
 import { useMe, useToast } from '@/lib/hooks';
-import { Sheet, Button, Avatar, XpChip } from './ui';
+import { Sheet, Button, Avatar, XpChip, StreakChip } from './ui';
+import { badgeBySlug } from '@/lib/badges';
+import type { Badge } from '@/lib/types';
 import { Anim, Pepi, RankBadge, Wordmark } from './brand';
 import { celebrate } from '@/lib/reward';
 
@@ -35,6 +37,7 @@ export function Shell() {
       <Toasts />
       {import.meta.env.VITE_DEMO === '1' && <DemoBadge />}
       {me && <LevelUpWatcher xp={me.user.xp} level={me.level.level} name={me.level.name} perk={me.level.perk} userId={me.user.id} />}
+      {me && <BadgeWatcher badges={me.badges} userId={me.user.id} />}
     </div>
   );
 }
@@ -48,6 +51,7 @@ function TopBar() {
         <Link to="/" aria-label="Pepita Social, início" className="mr-auto"><Wordmark size={24} /></Link>
         {me ? (
           <>
+            <Link to="/jornada" aria-label="Sua sequência"><StreakChip days={me.user.streakDays} size="sm" /></Link>
             <Link to="/jornada" aria-label="Sua jornada"><XpChip xp={me.user.xp} size="sm" /></Link>
             <Link to="/carteira" aria-label="Sua carteira" className="relative">
               <Avatar name={me.user.name} url={me.user.avatarUrl} size={38} />
@@ -69,7 +73,9 @@ function Tab({ to, label, icon: Icon, end }: { to: string; label: string; icon: 
         <span className="flex flex-col items-center gap-1 text-[12px] font-bold">
           <span className="relative h-9 w-14 grid place-items-center">
             {isActive && <motion.span layoutId="tab-bg" className="absolute inset-0 rounded-full bg-lima-400" transition={{ type: 'spring', stiffness: 420, damping: 32 }} />}
-            <Icon size={22} className={`relative ${isActive ? 'text-floresta-900' : ''}`} strokeWidth={isActive ? 2.4 : 1.9} />
+            <motion.span key={String(isActive)} animate={isActive ? { scale: [1, 1.28, 1], rotate: [0, -8, 0] } : { scale: 1 }} transition={{ duration: 0.38, ease: 'easeOut' }} className="relative grid place-items-center">
+              <Icon size={22} className={isActive ? 'text-floresta-900' : ''} strokeWidth={isActive ? 2.4 : 1.9} />
+            </motion.span>
           </span>
           {label}
         </span>
@@ -129,6 +135,42 @@ function LevelUpWatcher({ xp, level, name, perk, userId }: { xp: number; level: 
         <p className="text-sm text-ink-2 mt-1">{xp.toLocaleString('pt-BR')} XP acumulados</p>
         <Button variant="primary" size="lg" className="mt-6 w-full" onClick={() => setShow(false)}>Continuar ajudando</Button>
       </div>
+    </Sheet>
+  );
+}
+
+/** Cerimônia de conquista nova: a insígnia cai na tela com o Pepi comemorando. Uma vez por conquista, por usuário. */
+function BadgeWatcher({ badges, userId }: { badges: Badge[]; userId: string }) {
+  const key = `garimpa.badges.${userId}`;
+  const [show, setShow] = useState<Badge | null>(null);
+  useEffect(() => {
+    const slugs = badges.map((b) => b.slug);
+    let prev: string[] | null = null;
+    try { prev = JSON.parse(localStorage.getItem(key) ?? 'null'); } catch { prev = null; }
+    if (prev) {
+      const fresh = slugs.find((s) => !prev!.includes(s));
+      if (fresh) { const t = setTimeout(() => { setShow(badges.find((b) => b.slug === fresh) ?? null); celebrate(); }, 500); localStorage.setItem(key, JSON.stringify(slugs)); return () => clearTimeout(t); }
+    }
+    localStorage.setItem(key, JSON.stringify(slugs));
+  }, [badges, key]);
+  const meta = show ? badgeBySlug(show.slug) : null;
+  const Icon = meta?.icon;
+  return (
+    <Sheet open={!!show} onClose={() => setShow(null)}>
+      {show && (
+        <div className="text-center pt-2 pb-3">
+          <div className="relative mx-auto w-fit">
+            <Pepi pose="comemorando" size={150} celebrate />
+            <motion.span initial={{ scale: 0, rotate: -30, y: -40 }} animate={{ scale: 1, rotate: -8, y: 0 }} transition={{ delay: 0.35, type: 'spring', stiffness: 380, damping: 14 }}
+              className="absolute -right-6 bottom-2 h-20 w-20 rounded-full bg-ouro-400 text-floresta-900 grid place-items-center shadow-ouro border-4 border-bg">{Icon && <Icon size={36} />}</motion.span>
+          </div>
+          <p className="eyebrow mt-5">Nova conquista</p>
+          <h2 className="display text-3xl mt-1">{show.name}</h2>
+          <p className="mt-3 text-balance text-ink-2">{meta?.description ?? show.description}</p>
+          {meta?.xpBonus ? <p className="mt-2 font-display font-extrabold text-green-ink">+{meta.xpBonus} XP de bônus</p> : null}
+          <Button variant="lime" size="lg" className="mt-6 w-full" onClick={() => setShow(null)}>Continuar</Button>
+        </div>
+      )}
     </Sheet>
   );
 }

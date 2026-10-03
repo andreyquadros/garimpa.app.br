@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import { AnimatePresence, animate, motion, useReducedMotion } from 'motion/react';
-import { ArrowRight, X } from 'lucide-react';
+import { ArrowRight, Flame, X } from 'lucide-react';
 import { NuggetIcon, StateArt, Symbol, XpStar } from './brand';
+import { haptic } from '@/lib/reward';
 
 /** Compatibilidade: a pepita do pacote substitui o ícone desenhado à mão. */
 export function PepitaIcon({ size = 18, className = '' }: { size?: number; className?: string }) { return <NuggetIcon size={size} className={className} />; }
@@ -9,20 +10,22 @@ export function Logo({ size = 28 }: { size?: number }) { return <Symbol size={si
 
 type Variant = 'primary' | 'secondary' | 'gold' | 'lime' | 'ghost' | 'soft' | 'danger';
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand text-on-brand hover:brightness-95 shadow-float',
+  primary: 'btn-3d bg-brand text-on-brand [--edge:#061A15] dark:[--edge:#A9C73A]',
   secondary: 'bg-surface text-brand-ink border border-line hover:bg-surface-2',
-  gold: 'bg-ouro-400 text-floresta-900 hover:bg-ouro-500 shadow-ouro',
-  lime: 'bg-lima-400 text-floresta-900 hover:bg-lima-300 shadow-lima',
+  gold: 'btn-3d bg-ouro-400 text-floresta-900 [--edge:#C98E1F]',
+  lime: 'btn-3d bg-lima-400 text-floresta-900 [--edge:#A9C73A]',
   ghost: 'bg-transparent text-ink hover:bg-surface-2 border border-line',
   soft: 'bg-accent-soft text-ink hover:bg-floresta-100',
   danger: 'bg-brasa-100 text-brasa-700 hover:bg-brasa-500 hover:text-white',
 };
-export function Button({ variant = 'primary', size = 'md', loading, arrow, className = '', children, disabled, ...rest }:
+export function Button({ variant = 'primary', size = 'md', loading, arrow, className = '', children, disabled, onClick, ...rest }:
   ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md' | 'lg'; loading?: boolean; arrow?: boolean }) {
+  const tactile = variant === 'primary' || variant === 'lime' || variant === 'gold';
   const sz = size === 'sm' ? 'h-9 px-3.5 text-sm' : size === 'lg' ? 'h-14 px-6 text-base' : 'h-12 px-5 text-[15px]';
   return (
-    <motion.button whileTap={{ scale: 0.97 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-      className={`press inline-flex items-center justify-center gap-2 rounded-full font-display font-bold tracking-tight disabled:opacity-40 disabled:saturate-50 disabled:pointer-events-none ${sz} ${variants[variant]} ${className}`}
+    <motion.button whileTap={tactile ? undefined : { scale: 0.97 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+      onClick={(e) => { if (tactile) haptic(); onClick?.(e); }}
+      className={`${tactile ? '' : 'press'} inline-flex items-center justify-center gap-2 rounded-full font-display font-bold tracking-tight disabled:opacity-40 disabled:saturate-50 disabled:pointer-events-none ${sz} ${variants[variant]} ${className}`}
       disabled={loading || disabled} {...(rest as object)}>
       {loading ? <Spinner size={18} /> : <>{children}{arrow && <ArrowRight size={18} strokeWidth={2.5} className="ml-auto" />}</>}
     </motion.button>
@@ -161,10 +164,32 @@ export function PepitaPill({ value, pending, size = 'md' }: { value: number; pen
   );
 }
 
+/** Chip de XP: quando o valor sobe, o chip dá um pulo e um "+N" flutua para cima (o ganho acontece onde o número mora). */
 export function XpChip({ xp, size = 'md' }: { xp: number; size?: 'sm' | 'md' }) {
+  const prev = useRef(xp);
+  const [gain, setGain] = useState<{ n: number; id: number } | null>(null);
+  useEffect(() => {
+    const d = xp - prev.current; prev.current = xp;
+    if (d > 0) { setGain({ n: d, id: Date.now() }); const t = setTimeout(() => setGain(null), 1400); return () => clearTimeout(t); }
+  }, [xp]);
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full bg-surface border border-line font-display font-extrabold text-brand-ink ${size === 'sm' ? 'h-8 px-2.5 text-sm' : 'h-10 px-3.5 text-base'}`}>
+    <motion.span key={gain?.id ?? 'idle'} animate={gain ? { scale: [1, 1.14, 1] } : { scale: 1 }} transition={{ duration: 0.45, ease: 'easeOut' }}
+      className={`relative inline-flex items-center gap-1.5 rounded-full bg-surface border border-line font-display font-extrabold text-brand-ink ${size === 'sm' ? 'h-8 px-2.5 text-sm' : 'h-10 px-3.5 text-base'}`}>
       <XpStar size={size === 'sm' ? 16 : 20} /><AnimatedNumber value={xp} /><span className="text-[11px] font-bold text-ink-2">XP</span>
+      <AnimatePresence>
+        {gain && <motion.span initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: -22 }} exit={{ opacity: 0 }} transition={{ duration: 0.9, ease: 'easeOut' }}
+          className="absolute left-1/2 -translate-x-1/2 top-0 text-sm font-extrabold text-green-ink pointer-events-none">+{gain.n}</motion.span>}
+      </AnimatePresence>
+    </motion.span>
+  );
+}
+
+/** Sequência de dias com a chama do Duolingo: acesa quando há sequência, apagada quando não. */
+export function StreakChip({ days, size = 'md' }: { days: number; size?: 'sm' | 'md' }) {
+  const on = days > 0;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full font-display font-extrabold tabular ${on ? 'bg-ouro-100 text-gold-ink' : 'bg-surface border border-line text-ink-2'} ${size === 'sm' ? 'h-8 px-2.5 text-sm' : 'h-10 px-3.5 text-base'}`} title={on ? `${days} dias seguidos ajudando` : 'Ajude hoje para começar uma sequência'}>
+      <Flame size={size === 'sm' ? 16 : 18} className={on ? 'flame fill-ouro-400 text-ouro-500' : ''} />{days}
     </span>
   );
 }
