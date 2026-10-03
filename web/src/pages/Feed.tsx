@@ -45,7 +45,7 @@ export function Feed() {
           </RevealItem>
           <RevealItem className="mt-4"><Segmented id="missoes" value={tab} onChange={setTab} options={TABS.map((t) => ({ id: t.id, label: t.label }))} /></RevealItem>
           <RevealItem className="mt-3 flex items-center gap-2">
-            <div className="flex-1 min-w-0 flex gap-2 overflow-x-auto no-scrollbar -ml-4 pl-4 pr-2">
+            <div className="flex-1 min-w-0 flex gap-2 overflow-x-auto no-scrollbar -ml-4 pl-4 pr-8 [mask-image:linear-gradient(to_right,black_calc(100%-40px),transparent)]">
               <Chip active={!cat} onClick={() => setCat(null)}>Tudo</Chip>
               {CATEGORIES.map((c) => <Chip key={c.id} active={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)}><CategoryIcon id={c.id} size={15} /> {c.label}</Chip>)}
             </div>
