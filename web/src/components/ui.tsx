@@ -1,43 +1,30 @@
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import { AnimatePresence, animate, motion } from 'motion/react';
-import { X } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
+import { NuggetIcon, StateArt, Symbol, XpStar } from './brand';
 
-export function PepitaIcon({ size = 18, className = '' }: { size?: number; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden="true">
-      <path d="M12 2.5l6.5 3.8 2.2 7-4.4 6.3H7.7L3.3 13.3l2.2-7z" fill="#F2B705" stroke="#8A6200" strokeWidth="1.2" strokeLinejoin="round" />
-      <path d="M12 2.5l6.5 3.8-5.2 1.9-3.8-3z" fill="#FBE7A1" />
-      <path d="M7.7 19.6l4.3-6.6 4.3 6.6z" fill="#D99E00" />
-    </svg>
-  );
-}
+/** Compatibilidade: a pepita do pacote substitui o ícone desenhado à mão. */
+export function PepitaIcon({ size = 18, className = '' }: { size?: number; className?: string }) { return <NuggetIcon size={size} className={className} />; }
+export function Logo({ size = 28 }: { size?: number }) { return <Symbol size={size} />; }
 
-export function Logo({ size = 28 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
-      <path d="M32 4c-12.2 0-22 9.6-22 21.5C10 41 32 60 32 60s22-19 22-34.5C54 13.6 44.2 4 32 4z" fill="#0F4C4C" />
-      <path d="M32 16l9 5.5 3 9.5-6 8.5H26l-6-8.5 3-9.5z" fill="#F2B705" />
-      <path d="M32 16l9 5.5-7 2.5-5-4z" fill="#FBE7A1" />
-      <path d="M26 39.5l6-9 6 9z" fill="#D99E00" />
-    </svg>
-  );
-}
-
-type Variant = 'primary' | 'gold' | 'ghost' | 'danger' | 'soft';
+type Variant = 'primary' | 'secondary' | 'gold' | 'lime' | 'ghost' | 'soft' | 'danger';
 const variants: Record<Variant, string> = {
-  primary: 'bg-rio-700 text-white hover:bg-rio-800 shadow-float',
-  gold: 'bg-pepita-400 text-rio-900 hover:bg-pepita-500 shadow-pepita',
+  primary: 'bg-floresta-700 text-lima-400 hover:bg-floresta-800 shadow-float',
+  secondary: 'bg-surface text-floresta-700 border border-line hover:bg-surface-2 dark:text-creme',
+  gold: 'bg-ouro-400 text-floresta-900 hover:bg-ouro-500 shadow-ouro',
+  lime: 'bg-lima-400 text-floresta-900 hover:bg-lima-300 shadow-lima',
   ghost: 'bg-transparent text-ink hover:bg-surface-2 border border-line',
-  soft: 'bg-surface-2 text-ink hover:bg-rio-100',
-  danger: 'bg-barro-100 text-barro-700 hover:bg-barro-500 hover:text-white',
+  soft: 'bg-accent-soft text-ink hover:bg-floresta-100',
+  danger: 'bg-brasa-100 text-brasa-700 hover:bg-brasa-500 hover:text-white',
 };
-export function Button({ variant = 'primary', size = 'md', loading, disabled, className = '', children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md' | 'lg'; loading?: boolean }) {
-  const sz = size === 'sm' ? 'h-9 px-3 text-sm' : size === 'lg' ? 'h-14 px-6 text-lg' : 'h-12 px-5 text-base';
+export function Button({ variant = 'primary', size = 'md', loading, arrow, className = '', children, disabled, ...rest }:
+  ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md' | 'lg'; loading?: boolean; arrow?: boolean }) {
+  const sz = size === 'sm' ? 'h-9 px-3.5 text-sm' : size === 'lg' ? 'h-14 px-6 text-base' : 'h-12 px-5 text-[15px]';
   return (
-    <motion.button whileTap={{ scale: 0.96 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-      className={`inline-flex items-center justify-center gap-2 rounded-full font-display font-semibold tracking-wide disabled:opacity-50 disabled:pointer-events-none transition-colors ${sz} ${variants[variant]} ${className}`}
-      {...(rest as object)} disabled={loading || disabled}>
-      {loading ? <Spinner size={18} /> : children}
+    <motion.button whileTap={{ scale: 0.97 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+      className={`inline-flex items-center justify-center gap-2 rounded-full font-display font-bold tracking-tight disabled:opacity-50 disabled:pointer-events-none transition-colors ${sz} ${variants[variant]} ${className}`}
+      disabled={loading || disabled} {...(rest as object)}>
+      {loading ? <Spinner size={18} /> : <>{children}{arrow && <ArrowRight size={18} strokeWidth={2.5} className="ml-auto" />}</>}
     </motion.button>
   );
 }
@@ -49,40 +36,45 @@ export function Spinner({ size = 20, className = '' }: { size?: number; classNam
 export function Chip({ active, children, onClick, className = '' }: { active?: boolean; children: ReactNode; onClick?: () => void; className?: string }) {
   return (
     <button type="button" onClick={onClick}
-      className={`shrink-0 rounded-full px-3 h-8 text-sm font-semibold transition-colors ${active ? 'bg-rio-700 text-white' : 'bg-surface-2 text-ink-2 hover:bg-rio-100'} ${className}`}>
+      className={`shrink-0 rounded-full px-3.5 h-9 text-sm font-semibold transition-colors border ${active ? 'bg-lima-400 text-floresta-900 border-lima-400' : 'bg-surface text-ink-2 border-line hover:bg-surface-2'} ${className}`}>
       {children}
     </button>
   );
 }
 
-export function Avatar({ name, url, size = 36 }: { name: string; url?: string | null; size?: number }) {
+/** Rótulo de estado com forma + ícone + texto, nunca só cor (guia visual). */
+export function StatusChip({ tone, icon, children, className = '' }: { tone: 'ok' | 'wait' | 'warn' | 'sponsor' | 'muted'; icon?: ReactNode; children: ReactNode; className?: string }) {
+  const t = { ok: 'bg-esmeralda-100 text-esmeralda-800', wait: 'bg-surface-2 text-ink-2', warn: 'bg-ouro-100 text-ouro-700', sponsor: 'bg-floresta-700 text-lima-400', muted: 'bg-surface-2 text-ink-2' }[tone];
+  return <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 h-7 text-xs font-bold ${t} ${className}`}>{icon}{children}</span>;
+}
+
+export function Avatar({ name, url, size = 36, lime = false }: { name: string; url?: string | null; size?: number; lime?: boolean }) {
   const initials = name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('');
-  const hue = Array.from(name).reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 7);
   return url
     ? <img src={url} alt="" width={size} height={size} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} referrerPolicy="no-referrer" />
-    : <span className="rounded-full grid place-items-center font-display font-bold text-white shrink-0" style={{ width: size, height: size, fontSize: size * 0.4, background: `hsl(${hue} 45% 38%)` }} aria-hidden="true">{initials}</span>;
+    : <span className={`rounded-full grid place-items-center font-display font-extrabold shrink-0 ${lime ? 'bg-lima-400 text-floresta-900' : 'bg-floresta-700 text-lima-400'}`} style={{ width: size, height: size, fontSize: size * 0.38 }} aria-hidden="true">{initials}</span>;
 }
 
 export function Field({ label, hint, error, ...rest }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string }) {
   return (
     <label className="block">
-      <span className="block text-sm font-semibold text-ink-2 mb-1">{label}</span>
-      <input {...rest} className={`w-full h-12 rounded-2xl border bg-surface px-4 text-base outline-none focus:border-rio-400 ${error ? 'border-barro-500' : 'border-line'} ${rest.className ?? ''}`} />
-      {error ? <span className="block text-sm text-barro-ink mt-1">{error}</span> : hint ? <span className="block text-sm text-ink-2 mt-1">{hint}</span> : null}
+      <span className="block text-sm font-bold text-ink mb-1.5">{label}</span>
+      <input {...rest} className={`w-full h-13 rounded-2xl border bg-surface px-4 text-base font-semibold outline-none focus:border-esmeralda-600 ${error ? 'border-brasa-500' : 'border-line'} ${rest.className ?? ''}`} />
+      {error ? <span className="block text-sm text-brasa-ink mt-1">{error}</span> : hint ? <span className="block text-sm text-ink-2 mt-1">{hint}</span> : null}
     </label>
   );
 }
 export function TextArea({ label, hint, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; hint?: string }) {
   return (
     <label className="block">
-      <span className="block text-sm font-semibold text-ink-2 mb-1">{label}</span>
-      <textarea {...rest} className={`w-full min-h-24 rounded-2xl border border-line bg-surface px-4 py-3 text-base outline-none focus:border-rio-400 ${rest.className ?? ''}`} />
+      <span className="block text-sm font-bold text-ink mb-1.5">{label}</span>
+      <textarea {...rest} className={`w-full min-h-24 rounded-2xl border border-line bg-surface px-4 py-3 text-base outline-none focus:border-esmeralda-600 ${rest.className ?? ''}`} />
       {hint && <span className="block text-sm text-ink-2 mt-1">{hint}</span>}
     </label>
   );
 }
 
-/** Folha inferior: todo detalhe e ação secundária abre aqui, no alcance do polegar. */
+/** Folha inferior: detalhes e ações secundárias ficam ao alcance do polegar. */
 export function Sheet({ open, onClose, title, children, tall }: { open: boolean; onClose: () => void; title?: string; children: ReactNode; tall?: boolean }) {
   useEffect(() => {
     if (!open) return;
@@ -94,13 +86,13 @@ export function Sheet({ open, onClose, title, children, tall }: { open: boolean;
     <AnimatePresence>
       {open && (
         <>
-          <motion.div className="fixed inset-0 z-40 bg-rio-900/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div className="fixed inset-0 z-40 bg-floresta-900/55" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div role="dialog" aria-modal="true" aria-label={title}
-            className={`fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-sheet bg-surface shadow-float overflow-y-auto safe-bottom ${tall ? 'max-h-[92dvh]' : 'max-h-[80dvh]'}`}
+            className={`fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-sheet bg-surface shadow-float overflow-y-auto safe-bottom ${tall ? 'max-h-[92dvh]' : 'max-h-[82dvh]'}`}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', stiffness: 380, damping: 36 }}>
             <div className="sticky top-0 bg-surface/95 backdrop-blur pt-2 pb-1 px-5 flex items-center gap-3">
-              <span className="mx-auto h-1.5 w-10 rounded-full bg-line absolute left-1/2 -translate-x-1/2 top-2" />
-              {title && <h2 className="font-display text-xl mt-3 flex-1">{title}</h2>}
+              <span className="h-1.5 w-10 rounded-full bg-line absolute left-1/2 -translate-x-1/2 top-2" />
+              {title && <h2 className="font-display font-extrabold text-xl mt-3 flex-1">{title}</h2>}
               <button type="button" onClick={onClose} aria-label="Fechar" className="mt-3 ml-auto h-9 w-9 grid place-items-center rounded-full hover:bg-surface-2"><X size={20} /></button>
             </div>
             <div className="px-5 pb-6">{children}</div>
@@ -111,12 +103,12 @@ export function Sheet({ open, onClose, title, children, tall }: { open: boolean;
   );
 }
 
-/** Carimbo: aparece com um "baque" quando algo é aceito ou confirmado. */
-export function Stamp({ children, tone = 'gold', className = '' }: { children: ReactNode; tone?: 'gold' | 'green' | 'barro' | 'ink'; className?: string }) {
-  const color = { gold: 'text-gold-ink', green: 'text-green-ink', barro: 'text-barro-ink', ink: 'text-ink-2' }[tone];
+/** Selo que "cai" sobre o cartão quando algo é confirmado ou aceito. */
+export function Stamp({ children, tone = 'gold', className = '' }: { children: ReactNode; tone?: 'gold' | 'green' | 'brasa' | 'ink'; className?: string }) {
+  const color = { gold: 'text-gold-ink', green: 'text-green-ink', brasa: 'text-brasa-ink', ink: 'text-ink-2' }[tone];
   return (
-    <motion.span initial={{ scale: 1.8, opacity: 0, rotate: -20 }} animate={{ scale: 1, opacity: 1, rotate: -8 }} transition={{ type: 'spring', stiffness: 400, damping: 18 }}
-      className={`stamp inline-block text-sm ${color} ${className}`}>{children}</motion.span>
+    <motion.span initial={{ scale: 1.6, opacity: 0, rotate: -14 }} animate={{ scale: 1, opacity: 1, rotate: -4 }} transition={{ type: 'spring', stiffness: 420, damping: 18 }}
+      className={`stamp inline-block ${color} ${className}`}>{children}</motion.span>
   );
 }
 
@@ -128,15 +120,23 @@ export function AnimatedNumber({ value, className = '' }: { value: number; class
     prev.current = value;
     return () => controls.stop();
   }, [value]);
-  return <span className={className}>{display.toLocaleString('pt-BR')}</span>;
+  return <span className={`tabular ${className}`}>{display.toLocaleString('pt-BR')}</span>;
 }
 
 export function PepitaPill({ value, pending, size = 'md' }: { value: number; pending?: number; size?: 'sm' | 'md' }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full bg-pepita-200/70 text-pepita-700 font-display font-bold ${size === 'sm' ? 'h-7 px-2 text-sm' : 'h-9 px-3 text-base'}`} title={pending ? `${pending} em carência` : undefined}>
-      <PepitaIcon size={size === 'sm' ? 14 : 18} />
+    <span className={`inline-flex items-center gap-1.5 rounded-full bg-ouro-100 text-ouro-700 font-display font-extrabold ${size === 'sm' ? 'h-7 px-2 text-sm' : 'h-9 px-3 text-base'}`} title={pending ? `${pending} em carência` : undefined}>
+      <NuggetIcon size={size === 'sm' ? 14 : 18} />
       <AnimatedNumber value={value} />
-      {pending ? <span className="text-xs font-semibold opacity-70">+{pending}</span> : null}
+      {pending ? <span className="text-xs font-bold opacity-70">+{pending}</span> : null}
+    </span>
+  );
+}
+
+export function XpChip({ xp, size = 'md' }: { xp: number; size?: 'sm' | 'md' }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full bg-surface border border-line font-display font-extrabold text-floresta-700 dark:text-creme ${size === 'sm' ? 'h-8 px-2.5 text-sm' : 'h-10 px-3.5 text-base'}`}>
+      <XpStar size={size === 'sm' ? 16 : 20} /><AnimatedNumber value={xp} /><span className="text-[11px] font-bold text-ink-2">XP</span>
     </span>
   );
 }
@@ -148,33 +148,66 @@ export function LevelRing({ progress, level, size = 72, children }: { progress: 
     <div className="relative grid place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90 absolute inset-0" aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--line)" strokeWidth="6" fill="none" />
-        <motion.circle cx={size / 2} cy={size / 2} r={r} stroke="#F2B705" strokeWidth="6" fill="none" strokeLinecap="round"
+        <motion.circle cx={size / 2} cy={size / 2} r={r} stroke="#D7F46A" strokeWidth="6" fill="none" strokeLinecap="round"
           strokeDasharray={c} initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: c * (1 - Math.max(0.02, progress)) }} transition={{ duration: 1.1, ease: 'easeOut' }} />
       </svg>
-      {children ?? <span className="font-display font-bold text-xl">{level}</span>}
+      {children ?? <span className="font-display font-extrabold text-xl">{level}</span>}
     </div>
   );
 }
 
-export function EmptyState({ icon, title, text, action }: { icon?: ReactNode; title: string; text?: string; action?: ReactNode }) {
+/** Barra de XP no estilo "Progresso de XP" do guia: fundo Floresta, barra Lima. */
+export function XpProgress({ xp, level }: { xp: number; level: { name: string; next: { name: string; xp: number } | null; progress: number; toNext: number; xp: number } }) {
   return (
-    <div className="text-center px-6 py-10">
-      {icon && <div className="mx-auto mb-3 w-14 h-14 grid place-items-center rounded-full bg-surface-2 text-accent">{icon}</div>}
-      <h3 className="font-display text-xl">{title}</h3>
+    <div className="rounded-card bg-floresta-700 text-creme p-4">
+      <p className="text-sm text-sage-200">Seu próximo nível</p>
+      <div className="flex items-end justify-between gap-3">
+        <p className="font-display font-extrabold text-2xl leading-tight">{level.next?.name ?? level.name}</p>
+        <p className="text-sm font-bold text-lima-400 tabular">{level.next ? `${xp.toLocaleString('pt-BR')} / ${level.next.xp.toLocaleString('pt-BR')} XP` : `${xp.toLocaleString('pt-BR')} XP`}</p>
+      </div>
+      <div className="h-2.5 rounded-full bg-floresta-900/60 mt-3 overflow-hidden"><motion.div className="h-full bg-lima-400 rounded-full" initial={{ width: 0 }} animate={{ width: `${Math.max(3, level.progress * 100)}%` }} transition={{ duration: 1 }} /></div>
+      <p className="text-xs text-sage-200 mt-2">{level.next ? `Faltam ${level.toNext.toLocaleString('pt-BR')} XP. Cada ajuda conta.` : 'Nível máximo. Obrigado por guiar a cidade.'}</p>
+    </div>
+  );
+}
+
+export function EmptyState({ art, icon, title, text, action }: { art?: 'no-results' | 'offline' | 'pending'; icon?: ReactNode; title: string; text?: string; action?: ReactNode }) {
+  return (
+    <div className="text-center px-6 py-8">
+      {art ? <StateArt kind={art} className="mb-2" /> : icon ? <div className="mx-auto mb-3 w-14 h-14 grid place-items-center rounded-2xl bg-accent-soft text-accent">{icon}</div> : null}
+      <h3 className="font-display font-extrabold text-xl">{title}</h3>
       {text && <p className="text-ink-2 mt-1 text-balance">{text}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }
 
-export function Section({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
+export function Section({ title, right, children, className = '' }: { title: string; right?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className="mt-6">
-      <div className="flex items-baseline justify-between mb-2">
-        <h2 className="font-display text-lg">{title}</h2>
+    <section className={`mt-7 ${className}`}>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="font-display font-extrabold text-xl">{title}</h2>
         {right}
       </div>
       {children}
     </section>
   );
+}
+
+/** Título de página no padrão das telas: eyebrow verde + manchete pesada. */
+export function Headline({ eyebrow, title, right, className = '' }: { eyebrow?: string; title: ReactNode; right?: ReactNode; className?: string }) {
+  return (
+    <div className={`flex items-start gap-3 ${className}`}>
+      <div className="flex-1 min-w-0">
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+        <h1 className="font-display font-extrabold text-[1.9rem] leading-[1.08] text-balance mt-0.5">{title}</h1>
+      </div>
+      {right}
+    </div>
+  );
+}
+
+export function Card({ children, className = '', tone = 'surface' }: { children: ReactNode; className?: string; tone?: 'surface' | 'soft' | 'forest' | 'gold' }) {
+  const t = { surface: 'bg-surface border border-line', soft: 'bg-surface-2', forest: 'bg-floresta-700 text-creme', gold: 'bg-ouro-100 text-ouro-700 border border-ouro-200' }[tone];
+  return <div className={`rounded-card ${t} ${className}`}>{children}</div>;
 }

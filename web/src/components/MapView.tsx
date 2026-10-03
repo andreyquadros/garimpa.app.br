@@ -6,9 +6,16 @@ import type { Geo } from '@/lib/hooks';
 
 export type Tiles = { url: string; fallbackUrl: string; minZoom: number; maxZoom: number };
 
-const findIcon = (count: number, hi: boolean, partner: boolean) =>
-  L.divIcon({ className: '', html: `<div class="pin ${hi ? 'pin-hi' : ''} ${partner ? 'pin-partner' : ''}"><span>${count}</span></div>`, iconSize: [36, 44], iconAnchor: [18, 44] });
-const openIcon = L.divIcon({ className: '', html: '<div class="pin pin-open"><span>?</span></div>', iconSize: [36, 44], iconAnchor: [18, 44] });
+const STALE_DAYS = 30;
+/** Pino do pacote visual por estado: confirmado, revalidar (achado antigo), em análise (missão aberta) e patrocinado. */
+const findIcon = (f: Find, hi: boolean) => {
+  const stale = f.lastFindAt && (Date.now() - new Date(f.lastFindAt).getTime()) / 86400000 > STALE_DAYS;
+  const kind = f.partnerTier ? 'pin-sponsored' : stale ? 'pin-stale' : 'pin-confirmed';
+  const count = f.finds > 1 ? `<span class="pin-count">${f.finds}</span>` : '';
+  const ring = hi ? '<span class="pin-ring"></span>' : '';
+  return L.divIcon({ className: '', html: `<div class="pin ${kind} ${hi ? 'pin-hi' : ''}">${count}${ring}</div>`, iconSize: [44, 49], iconAnchor: [22, 47] });
+};
+const openIcon = L.divIcon({ className: '', html: '<div class="pin pin-pending"></div>', iconSize: [44, 49], iconAnchor: [22, 47] });
 const meIcon = L.divIcon({ className: '', html: '<div class="me-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
 
 function Events({ onBounds, onMove }: { onBounds?: (bbox: string) => void; onMove?: (c: [number, number]) => void }) {
@@ -50,7 +57,7 @@ export function MapView(props: {
 }) {
   const { center, zoom = 14, tiles, finds = [], open = [], highlight, me, interactive = true } = props;
   return (
-    <MapContainer center={center} zoom={zoom} zoomControl={false} attributionControl className={props.className ?? 'h-full w-full'}
+    <MapContainer center={center} zoom={zoom} zoomControl={false} attributionControl className={props.className ?? 'h-full w-full isolate'}
       dragging={interactive} scrollWheelZoom={interactive} doubleClickZoom={interactive} touchZoom={interactive} keyboard={interactive}>
       <Tiles tiles={tiles} />
       <Events onBounds={props.onBounds} onMove={props.onMove} />
@@ -59,7 +66,7 @@ export function MapView(props: {
         <Marker key={q.id} position={[q.lat, q.lng]} icon={openIcon} eventHandlers={{ click: () => props.onOpen?.(q) }} />
       ))}
       {finds.map((f) => (
-        <Marker key={f.placeId} position={[f.lat, f.lng]} icon={findIcon(f.finds, highlight === f.placeId, !!f.partnerTier)} zIndexOffset={highlight === f.placeId ? 1000 : 0}
+        <Marker key={f.placeId} position={[f.lat, f.lng]} icon={findIcon(f, highlight === f.placeId)} zIndexOffset={highlight === f.placeId ? 1000 : 0}
           eventHandlers={{ click: () => props.onFind?.(f) }} />
       ))}
       {me && <Marker position={[me.lat, me.lng]} icon={meIcon} interactive={false} />}

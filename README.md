@@ -1,43 +1,45 @@
-# Garimpa
+# Pepita Social
 
-<p align="center"><img src="web/public/icons/og.png" alt="Garimpa — Onde encontro isso em Ariquemes?" width="600"></p>
+<p align="center"><img src="web/public/icons/og.png" alt="Pepita Social — O que você procura está mais perto." width="600"></p>
 
 **Onde encontro isso em Ariquemes?** Pergunte. Quem já viu o produto numa loja responde com foto no local. O mapa guarda a resposta para a próxima pessoa. Quem ajuda ganha pepitas.
 
 PWA colaborativa e gamificada, piloto em Ariquemes-RO, da Incubadora de Software do IFRO. Sem loja de aplicativos: um link, login com Google, instala na tela inicial. Repositório próprio: `andreyquadros/garimpa.app.br`.
 
-| Mapa com busca | Pergunta resolvida | Enviar prova | Perfil |
+| Boas-vindas | Explorar | Missões | Missão |
 |---|---|---|---|
-| ![Mapa](docs/screenshots/01-mapa-busca.png) | ![Pergunta](docs/screenshots/03-pergunta.png) | ![Prova](docs/screenshots/05-prova.png) | ![Perfil](docs/screenshots/06-perfil.png) |
+| ![Boas-vindas](docs/screenshots/demo-00-boas-vindas.png) | ![Explorar](docs/screenshots/demo-01-explorar.png) | ![Missões](docs/screenshots/demo-02-missoes.png) | ![Missão](docs/screenshots/demo-03-missao.png) |
 
-| Garimpos | Perguntar (dedupe) | Ranking | Entrar |
+| Evidência | Conquista | Nova missão (reuso) | Missão encontrada |
 |---|---|---|---|
-| ![Garimpos](docs/screenshots/02-garimpos.png) | ![Perguntar](docs/screenshots/04-perguntar.png) | ![Ranking](docs/screenshots/07-ranking.png) | ![Entrar](docs/screenshots/08-entrar.png) |
+| ![Evidência](docs/screenshots/demo-04-evidencia.png) | ![Conquista](docs/screenshots/demo-05-conquista.png) | ![Nova missão](docs/screenshots/demo-10-nova-missao.png) | ![Encontrada](docs/screenshots/demo-06-missao-encontrada.png) |
 
-| Demo: mapa | Demo: pista aceita e gorjeta | Demo: carência no perfil |
-|---|---|---|
-| ![Demo mapa](docs/screenshots/demo-01-mapa.png) | ![Demo aceite](docs/screenshots/demo-02-pergunta-aceita.png) | ![Demo perfil](docs/screenshots/demo-03-perfil-carencia.png) |
+| Carteira (carência) | Busca e reuso | Jornada | Missões (escuro) |
+|---|---|---|---|
+| ![Carteira](docs/screenshots/demo-07-carteira-carencia.png) | ![Busca](docs/screenshots/demo-12-busca.png) | ![Jornada](docs/screenshots/demo-09-jornada.png) | ![Escuro](docs/screenshots/demo-11-missoes-escuro.png) |
+
+Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (pacote de assets aplicado em `web/public/brand`).
 
 ## Testar agora
 
-- **Demonstração no celular, sem instalar nada**: <https://andreyquadros.github.io/garimpa.app.br/>. Roda inteira no navegador com uma API simulada e dados de exemplo; entre como `marina`, `joao`, `tais`, `lucas` ou `dona neide` (ou qualquer nome novo) e percorra o fluxo completo: buscar, perguntar, responder com foto, confirmar, aceitar, gorjeta, ranking e perfil. O selo "Demonstração" tem "Simular 7 dias" (libera as pepitas em carência) e "Reiniciar". Os dados ficam só no seu aparelho.
+- **Demonstração no celular, sem instalar nada**: <https://andreyquadros.github.io/garimpa.app.br/>. Roda inteira no navegador com uma API simulada e dados de exemplo; entre como `marina`, `joao`, `tais`, `lucas` ou `dona neide` (ou qualquer nome novo) e percorra o fluxo completo: explorar, abrir uma missão, enviar evidência com foto, confirmar, aceitar, agradecer com pepitas, jornada e carteira. O selo "Demonstração" tem "Simular 7 dias" (libera as pepitas em carência) e "Reiniciar". Os dados ficam só no seu aparelho.
 - **Versão real, local**: seção "Rodar" abaixo (Postgres + API + PWA em dois comandos).
 - Para quem mantém o repositório: o link do demo é publicado pelo workflow "Demo no GitHub Pages" a cada push em `main`; na primeira vez é preciso ativar o Pages em Settings → Pages → Source: GitHub Actions.
 - **Versão real no KVM 8**: [docs/06-arquitetura-e-deploy.md](docs/06-arquitetura-e-deploy.md), seção Dokploy.
 
 ## Como funciona
 
-1. **Buscar** no mapa (campo no centro). Se já tem achado, aparecem os pinos dourados e "como chegar". Se já perguntaram, dá para marcar "também quero". Se ninguém garimpou, perguntar leva três passos.
-2. **Responder com prova**: foto do produto na prateleira (GPS da foto e a sua localização contam), nota ou recibo. Um checklist animado mostra na hora a força da prova.
-3. **Confirmar**: duas pessoas confirmando no local validam a pista; quem perguntou aceita a que resolveu, com confete, e distribui gorjetas.
-4. **Pepitas e XP**: XP mede reputação (níveis de Peneira a Guardião do mapa) e nunca vira dinheiro; pepitas nascem só de achados aceitos ou confirmados, ficam 7 dias em carência e, na fase 2, viram reais pelo Cofre das lojas parceiras.
+1. **Explorar** no mapa (busca no centro). Pinos **Confirmado**, **Reconfirmar** (evidência com mais de 30 dias) e **Patrocinado** mostram onde já encontraram; a folha "Já encontraram por aqui" reaproveita descobertas. Se já existe uma missão parecida, dá para marcar "também preciso" em vez de abrir outra.
+2. **Colaborar com evidência**: foto do produto na loja (GPS da foto e a sua localização contam), nota ou recibo, e a loja no mapa. Um checklist animado mostra na hora a força da evidência; o Pepi comemora quando ela entra.
+3. **Confirmar**: duas pessoas confirmando no local validam a descoberta; quem abriu a missão aceita a que resolveu ("Foi aqui que encontrei"), com confete, e agradece com pepitas.
+4. **Pepitas e XP**: XP mede a jornada (patentes Explorador, Garimpeiro, Guia local, Guardião e Lenda local) e nunca vira dinheiro; pepitas nascem só de descobertas aceitas ou confirmadas, ficam 7 dias em carência e, na fase 2, viram reais pelo fundo de recompensas das lojas parceiras.
 
 ## Documentação
 
 | Documento | Conteúdo |
 |---|---|
 | [docs/00-visao-do-produto.md](docs/00-visao-do-produto.md) | problema, aposta, personas, métricas do piloto, riscos |
-| [docs/01-dominios.md](docs/01-dominios.md) | nome **Garimpa**, domínios candidatos e verificados, como registrar |
+| [docs/01-dominios.md](docs/01-dominios.md) | histórico do nome (Garimpa → Pepita Social), domínios candidatos e verificados, como registrar |
 | [docs/02-adr-banco-de-dados.md](docs/02-adr-banco-de-dados.md) | por que **PostgreSQL 16** auto-hospedado (e não Supabase, Firestore ou PocketBase) |
 | [docs/03-gamificacao-arvore-de-pontos.md](docs/03-gamificacao-arvore-de-pontos.md) | XP × pepitas, tabela de eventos, níveis, conquistas, por que não onera cedo |
 | [docs/04-antiplagio-e-confianca.md](docs/04-antiplagio-e-confianca.md) | primeiro achado, hash perceptual, EXIF, texto copiado, conluio, denúncias, carência |

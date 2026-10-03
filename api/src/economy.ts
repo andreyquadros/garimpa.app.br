@@ -1,15 +1,13 @@
 import type { JSONValue } from 'postgres';
 import type { Sql, Tx } from './db.js';
 
-/** Níveis de garimpeiro por XP acumulado (XP nunca vira dinheiro; só pepitas). */
+/** Patentes por XP acumulado (XP nunca vira dinheiro; só pepitas). Cinco níveis, como no guia visual. */
 export const LEVELS = [
-  { level: 1, name: 'Peneira', xp: 0, perk: 'Pode perguntar, responder e confirmar.' },
-  { level: 2, name: 'Bateia', xp: 100, perk: 'Confirmações valem mais e gorjetas liberadas.' },
-  { level: 3, name: 'Garimpeiro', xp: 300, perk: 'Cadastra lugares novos no mapa sem revisão.' },
-  { level: 4, name: 'Faiscador', xp: 800, perk: 'Carência das pepitas cai para 3 dias.' },
-  { level: 5, name: 'Mestre do garimpo', xp: 2000, perk: 'Pode revisar denúncias da comunidade.' },
-  { level: 6, name: 'Lenda da jazida', xp: 5000, perk: 'Missões de lojas parceiras em primeira mão.' },
-  { level: 7, name: 'Guardião do mapa', xp: 12000, perk: 'Nome no mapa de Ariquemes.' },
+  { level: 1, name: 'Explorador', xp: 0, perk: 'Abre missões, envia evidências e confirma achados.', motto: 'O primeiro passo é descobrir.' },
+  { level: 2, name: 'Garimpeiro', xp: 100, perk: 'Confirmações valem mais e agradecimentos saem do próprio saldo.', motto: 'Você já sabe seguir boas pistas.' },
+  { level: 3, name: 'Guia local', xp: 350, perk: 'Cadastra lugares novos sem revisão e leva o título no ranking.', motto: 'Sua experiência orienta a cidade.' },
+  { level: 4, name: 'Guardião', xp: 900, perk: 'Carência das pepitas cai para 3 dias e revisa denúncias.', motto: 'Ajude a manter pistas confiáveis.' },
+  { level: 5, name: 'Lenda local', xp: 1800, perk: 'Missões de parceiros em primeira mão e nome no mapa.', motto: 'Uma referência para a comunidade.' },
 ] as const;
 
 export function levelFor(xp: number) {
@@ -35,8 +33,8 @@ export const DEFAULT_ECONOMY = {
   limites_dia: { perguntas: 10, respostas: 20, confirmacoes: 30, gorjetas_orcamento: 30, pepitas_cunhadas: 300, uploads: 40, tambem_quero: 10, lugares: 15 },
   carencia_dias: 7,
   carencia_dias_baixa_confianca: 14,
-  /** A partir deste XP (nível Faiscador) a carência cai para `carencia_dias_veterano`. */
-  xp_carencia_curta: 800,
+  /** A partir deste XP (patente Guardião) a carência cai para `carencia_dias_veterano`. */
+  xp_carencia_curta: 900,
   carencia_dias_veterano: 3,
   confianca_baixa: 0.4,
   confirmacoes_para_validar: 2,

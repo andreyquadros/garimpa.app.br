@@ -2,7 +2,7 @@
 
 ## Fase 1 — hábito (meses 0–6): custo ≈ zero, receita zero
 
-Objetivo único: Ariquemes passar a perguntar "onde tem?" no Garimpa antes de perguntar no WhatsApp.
+Objetivo único: Ariquemes passar a perguntar "onde tem?" no Pepita Social antes de perguntar no WhatsApp.
 
 - **Distribuição**: link compartilhável + PWA. Mutirão de fundadores da Incubadora e do IFRO; cartaz com QR nos pontos de ônibus (o app No Ponto já está lá) e nos balcões que aceitarem.
 - **Semente de conteúdo**: 200 perguntas reais coletadas com alunos e servidores na primeira semana; 10 "garimpeiros fundadores" com meta de 5 pistas/dia nas duas primeiras semanas.
@@ -12,7 +12,7 @@ Objetivo único: Ariquemes passar a perguntar "onde tem?" no Garimpa antes de pe
 
 ## Fase 2 — lojas parceiras (a partir do mês 6): receita em R$, parte vira pepita
 
-O Garimpa junta o que o lojista mais quer e não tem: **demanda declarada e georreferenciada** ("23 pessoas procuraram fonte USB-C 65 W no Setor 02 este mês") e **prova social** (fotos de clientes na loja dele).
+O Pepita Social junta o que o lojista mais quer e não tem: **demanda declarada e georreferenciada** ("23 pessoas procuraram fonte USB-C 65 W no Setor 02 este mês") e **prova social** (fotos de clientes na loja dele).
 
 | Plano | Preço/mês | O que inclui |
 |---|---|---|
@@ -48,8 +48,8 @@ Em ambos os cenários o Cofre cobre o passivo; o excedente do Cofre acumula para
 
 ## Benchmark e posicionamento
 
-- **ondetem.app** lista produtos a partir de fabricantes/distribuidores: visão de cima para baixo, sem prova de prateleira, sem comunidade. O Garimpa é de baixo para cima: a prova vem de quem está na loja.
-- **Grupos de WhatsApp "onde encontro"**: a resposta existe, mas não é buscável nem georreferenciada, e ninguém é recompensado. O Garimpa é a memória desses grupos.
+- **ondetem.app** lista produtos a partir de fabricantes/distribuidores: visão de cima para baixo, sem prova de prateleira, sem comunidade. O Pepita Social é de baixo para cima: a prova vem de quem está na loja.
+- **Grupos de WhatsApp "onde encontro"**: a resposta existe, mas não é buscável nem georreferenciada, e ninguém é recompensado. O Pepita Social é a memória desses grupos.
 - **Google Maps / guias comerciais (Achaaí)**: cadastram lojas, não produtos; não respondem "onde tem X".
 
 ## Jurídico e LGPD (checklist do piloto)

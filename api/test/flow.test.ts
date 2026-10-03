@@ -395,7 +395,7 @@ describe('gorjeta do saldo', () => {
     await sql`select fn_award(${giver.user.id}::uuid, 'ajuste', 0, 30, null, null, '{}'::jsonb, 0)`; // saldo disponível
     const lvl1 = await api(app, 'POST', `/api/answers/${ans.json.answerId}/tip`, { session: giver, body: { amount: 5, source: 'saldo' } });
     expect(lvl1.status).toBe(403);
-    await sql`update users set xp = 150 where id = ${giver.user.id}::uuid`; // nível 2 (Bateia)
+    await sql`update users set xp = 150 where id = ${giver.user.id}::uuid`; // nível 2 (Garimpeiro)
     const tooSmall = await api(app, 'POST', `/api/answers/${ans.json.answerId}/tip`, { session: giver, body: { amount: 1, source: 'saldo' } });
     expect(tooSmall.status).toBe(400);
     const ok = await api(app, 'POST', `/api/answers/${ans.json.answerId}/tip`, { session: giver, body: { amount: 7, source: 'saldo' } });

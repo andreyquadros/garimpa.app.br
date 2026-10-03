@@ -5,8 +5,10 @@ import { motion } from 'motion/react';
 import { api } from '@/lib/api';
 import { useConfig, useToast } from '@/lib/hooks';
 import { GoogleButton } from '@/components/GoogleButton';
-import { Button, Field, Logo, PepitaIcon } from '@/components/ui';
+import { Button, Field } from '@/components/ui';
+import { asset, Wordmark } from '@/components/brand';
 
+/** Boas-vindas: ilustração do comércio local, uma frase e o botão do Google. */
 export function Login() {
   const { data: cfg } = useConfig();
   const [params] = useSearchParams();
@@ -24,7 +26,7 @@ export function Login() {
     nav(next, { replace: true });
   }, [qc, nav, next]);
   const onGoogle = useCallback(async (credential: string) => {
-    try { await api.loginGoogle(credential); toast.push({ text: 'Bem-vindo ao garimpo.' }); await done(); }
+    try { await api.loginGoogle(credential); toast.push({ text: 'Bem-vindo ao Pepita Social.' }); await done(); }
     catch (e) { toast.push({ text: (e as Error).message, tone: 'erro' }); }
   }, [done, toast]);
   async function dev() {
@@ -34,37 +36,38 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-dvh flex flex-col px-6 pb-8 safe-top bg-rio-800 text-white">
+    <div className="min-h-dvh flex flex-col px-5 pb-8 safe-top bg-bg">
+      <header className="h-16 flex items-center justify-between">
+        <Wordmark size={26} />
+        <span className="h-9 px-4 rounded-full bg-lima-400 text-floresta-900 text-xs font-extrabold uppercase tracking-wider grid place-items-center">{cfg?.city?.name ?? 'Ariquemes'}</span>
+      </header>
+
       <div className="flex-1 flex flex-col justify-center">
-        <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center gap-3">
-          <Logo size={56} />
-          <div><h1 className="font-display text-4xl leading-none">Garimpa</h1><p className="text-rio-200 text-sm mt-1">achados de Ariquemes</p></div>
+        <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="relative mx-auto w-full max-w-[340px] aspect-square">
+          <span className="absolute inset-[6%] rounded-full bg-lima-100 dark:bg-floresta-600" aria-hidden="true" />
+          <motion.img src={asset('ilustracoes/comercio-local.webp')} alt="Ilustração de lojas de bairro com um marcador de mapa" draggable={false}
+            className="relative w-full h-full object-contain" animate={{ y: [0, -6, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} />
         </motion.div>
-        <h2 className="font-display text-2xl mt-8 leading-tight text-balance">Onde encontro isso na cidade? Alguém sabe. E ganha por contar.</h2>
-        <ul className="mt-6 space-y-3 text-rio-100">
-          {[
-            ['⛏️', 'Pergunte o que você não acha. Se já perguntaram, o mapa mostra na hora.'],
-            ['📸', 'Quem sabe onde tem responde com foto no local, nota ou recibo.'],
-            ['🪙', 'Pepitas para quem acha, gorjetas de quem pediu. Na fase 2, viram dinheiro de verdade.'],
-          ].map(([e, t]) => <li key={t} className="flex gap-3"><span className="text-xl">{e}</span><span className="text-[15px] leading-snug">{t}</span></li>)}
-        </ul>
+        <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="mt-6">
+          <h1 className="font-display font-extrabold text-[2.2rem] leading-[1.08] text-balance">O que você procura está mais perto.</h1>
+          <p className="text-ink-2 text-lg mt-3 leading-snug">Encontre produtos na sua cidade. Ajude pessoas. Receba pepitas.</p>
+        </motion.div>
       </div>
-      <div className="rounded-3xl bg-surface text-ink p-5 shadow-float">
+
+      <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }} className="mt-6">
         {cfg?.googleClientId ? (
-          <>
-            <p className="text-sm text-ink-2 mb-3 text-center">Sem senha, sem cadastro: entre com a conta do Google.</p>
-            <GoogleButton clientId={cfg.googleClientId} onCredential={onGoogle} />
-          </>
+          <GoogleButton clientId={cfg.googleClientId} onCredential={onGoogle} />
         ) : cfg?.devLogin ? (
           <form onSubmit={(e) => { e.preventDefault(); dev(); }} className="space-y-3">
-            <p className="text-xs font-bold text-pepita-700 bg-pepita-200 rounded-full px-3 h-7 inline-flex items-center">Ambiente de desenvolvimento</p>
+            <p className="text-xs font-extrabold text-gold-ink bg-ouro-100 rounded-full px-3 h-7 inline-flex items-center uppercase tracking-wider">{import.meta.env.VITE_DEMO === '1' ? 'Demonstração' : 'Ambiente de desenvolvimento'}</p>
             <Field label="Seu nome" value={name} onChange={(e) => setName(e.target.value)} placeholder="Marina Castro" autoFocus />
-            <Button type="submit" variant="gold" size="lg" className="w-full" loading={busy} disabled={name.trim().length < 2}><PepitaIcon size={20} />Entrar e garimpar</Button>
-            <p className="text-xs text-ink-2">Em produção este formulário some e só o botão do Google aparece (GOOGLE_CLIENT_ID).</p>
+            <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy} disabled={name.trim().length < 2} arrow>Continuar</Button>
+            <p className="text-xs text-ink-2">Em produção este formulário some e só o botão do Google aparece.</p>
           </form>
-        ) : <p className="text-sm text-ink-2 text-center">Login indisponível no momento.</p>}
-        <Link to="/" className="block text-center text-sm font-semibold text-accent mt-4">Só olhar o mapa por enquanto</Link>
-      </div>
+        ) : cfg ? <p className="text-sm text-ink-2 text-center">Login indisponível no momento.</p> : <div className="h-14" />}
+        <Link to="/" className="block text-center font-display font-extrabold text-accent mt-5">Explorar primeiro</Link>
+        <p className="text-center text-xs text-ink-2 mt-4">Sem senha e sem cadastro. Piloto em {cfg?.city?.name ?? 'Ariquemes'}.</p>
+      </motion.div>
     </div>
   );
 }

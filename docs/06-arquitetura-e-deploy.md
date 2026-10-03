@@ -60,7 +60,7 @@ Origens JavaScript autorizadas: `https://garimpa.incubadora.cloud`, `https://gar
 
 ### Tiles
 
-Por padrão o mapa usa o OpenStreetMap (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`, zoom 12–18, com a atribuição exigida). O Garimpa não depende da infraestrutura de nenhum outro aplicativo. A política de uso do OSM tolera o volume de um piloto; para produção com mais tráfego, hospede tiles próprios (ex.: `tiles.garimpa.app.br`) e aponte `TILES_URL`; `TILES_FALLBACK_URL` é a reserva que o `MapView` adota depois de 4 erros de tile.
+Por padrão o mapa usa o OpenStreetMap (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`, zoom 12–18, com a atribuição exigida). O Pepita Social não depende da infraestrutura de nenhum outro aplicativo. A política de uso do OSM tolera o volume de um piloto; para produção com mais tráfego, hospede tiles próprios (ex.: `tiles.garimpa.app.br`) e aponte `TILES_URL`; `TILES_FALLBACK_URL` é a reserva que o `MapView` adota depois de 4 erros de tile.
 
 ## Segurança
 

@@ -1,4 +1,4 @@
-# Garimpa — visão do produto
+# Pepita Social — visão do produto
 
 **Uma frase.** Alguém em Ariquemes digita "onde encontro garrafa com tampa hermética?"; quem já viu o produto numa loja responde com foto no local; a cidade ganha um mapa vivo de onde as coisas estão, e quem ajuda ganha pepitas que, com lojas parceiras, viram dinheiro.
 
@@ -10,7 +10,7 @@
 
 ## A aposta
 
-1. **Pergunta curta, resposta com prova.** Uma resposta só vale se vier com evidência: foto do produto na prateleira (de preferência com GPS), nota fiscal, recibo ou foto da fachada. Prova é o que separa o Garimpa de um grupo de WhatsApp.
+1. **Pergunta curta, resposta com prova.** Uma resposta só vale se vier com evidência: foto do produto na prateleira (de preferência com GPS), nota fiscal, recibo ou foto da fachada. Prova é o que separa o Pepita Social de um grupo de WhatsApp.
 2. **Nunca perguntar duas vezes.** Antes de abrir uma pergunta, o app mostra perguntas parecidas e os lugares já confirmados. O mapa com busca é a página inicial; a pergunta é o último recurso.
 3. **Jogo com regras claras.** XP e níveis medem reputação (nunca viram dinheiro); pepitas medem valor entregue e só nascem de eventos validados por outra pessoa. Carência de 7 dias, limites diários e antiplágio mantêm a economia honesta.
 4. **Zero atrito para entrar.** Link compartilhável, PWA instalável, login com Google. Nada de loja de aplicativos no piloto.
@@ -18,7 +18,7 @@
 
 ## Para quem
 
-| Persona | Momento | O que o Garimpa dá |
+| Persona | Momento | O que o Pepita Social dá |
 |---|---|---|
 | **Quem precisa agora** (mãe com criança doente, pedreiro no meio da obra, estudante na véspera) | "Preciso disso hoje e não sei onde tem" | Resposta com foto e endereço em horas; o mapa já pode ter a resposta pronta |
 | **Quem anda a cidade** (motoboy, entregador, vendedor externo, aposentado que passeia no centro) | Está na loja, viu o produto, tem 30 segundos | Pepitas por foto, ranking, níveis; na fase 2, dinheiro via Pix |

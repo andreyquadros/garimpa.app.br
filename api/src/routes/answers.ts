@@ -263,8 +263,8 @@ answerRoutes.post('/answers/:id/tip', async (c) => {
       minted = !col.strong;
       if (minted && !(await takeMintCap(tx, a.authorId, eco, body.amount))) { minted = false; meta['teto_diario'] = true; }
     } else {
-      // Gorjeta do próprio saldo: perk do nível 2 (Bateia) e no mínimo 5 pepitas, para não picar em 1 e multiplicar XP.
-      if (levelFor(u.xp).level < 2) throw new HTTPException(403, { message: 'Gorjeta do próprio saldo abre no nível 2 (Bateia, 100 XP).' });
+      // Agradecer com o próprio saldo: perk do nível 2 (Garimpeiro) e no mínimo 5 pepitas, para não picar em 1 e multiplicar XP.
+      if (levelFor(u.xp).level < 2) throw new HTTPException(403, { message: 'Agradecer com o próprio saldo abre no nível 2 (Garimpeiro, 100 XP).' });
       if (body.amount < 5) throw new HTTPException(400, { message: 'Gorjeta do saldo: no mínimo 5 pepitas.' });
       await award(tx, u.id, 'gorjeta_enviada', 0, -body.amount, { type: 'resposta', id }, {}, 0);
     }

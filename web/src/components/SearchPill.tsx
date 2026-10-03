@@ -1,18 +1,31 @@
-import { Search, X } from 'lucide-react';
+import { ArrowRight, Search, X } from 'lucide-react';
 import { Spinner } from './ui';
 
-export function SearchPill({ value, onChange, onSubmit, loading, autoFocus, placeholder = 'O que você tá procurando?' }:
-  { value: string; onChange: (v: string) => void; onSubmit?: () => void; loading?: boolean; autoFocus?: boolean; placeholder?: string }) {
+/** Busca central das telas de referência: eyebrow, manchete e campo com botão Lima. */
+export function SearchHero({ value, onChange, onSubmit, loading, autoFocus, compact = false }:
+  { value: string; onChange: (v: string) => void; onSubmit?: () => void; loading?: boolean; autoFocus?: boolean; compact?: boolean }) {
   return (
-    <form role="search" onSubmit={(e) => { e.preventDefault(); onSubmit?.(); }}
-      className="flex items-center gap-2 h-13 rounded-full bg-surface shadow-float border border-line pl-4 pr-2">
-      <Search size={20} className="text-accent shrink-0" aria-hidden="true" />
-      <input value={value} onChange={(e) => onChange(e.target.value)} autoFocus={autoFocus} enterKeyHint="search" autoComplete="off"
-        aria-label="Buscar produto em Ariquemes" placeholder={placeholder}
-        className="flex-1 min-w-0 h-12 bg-transparent outline-none text-base placeholder:text-ink-2" />
-      {loading ? <Spinner size={18} className="text-accent mr-2" /> : value ? (
-        <button type="button" onClick={() => onChange('')} aria-label="Limpar busca" className="h-9 w-9 grid place-items-center rounded-full hover:bg-surface-2"><X size={18} /></button>
-      ) : null}
+    <form role="search" onSubmit={(e) => { e.preventDefault(); onSubmit?.(); }} className="w-full">
+      {!compact && (
+        <div className="px-1 mb-3 text-center">
+          <p className="eyebrow">Tem algum tesouro por perto?</p>
+          <h1 className="font-display font-extrabold text-[2rem] leading-[1.05] text-floresta-700 dark:text-creme mt-1 text-balance">O que você precisa encontrar?</h1>
+        </div>
+      )}
+      <div className="flex items-center gap-2 h-14 rounded-full bg-surface shadow-float border border-line pl-4 pr-1.5">
+        <Search size={20} className="text-esmeralda-600 shrink-0" aria-hidden="true" />
+        <input value={value} onChange={(e) => onChange(e.target.value)} autoFocus={autoFocus} enterKeyHint="search" autoComplete="off"
+          aria-label="Buscar produto em Ariquemes" placeholder="Garrafa com tampa hermética"
+          className="flex-1 min-w-0 h-12 bg-transparent outline-none text-base font-semibold placeholder:text-ink-2/70" />
+        {loading ? <Spinner size={18} className="text-esmeralda-600 mr-3" /> : value ? (
+          <button type="button" onClick={() => onChange('')} aria-label="Limpar busca" className="h-10 w-10 grid place-items-center rounded-full hover:bg-surface-2"><X size={18} /></button>
+        ) : null}
+        <button type="submit" aria-label="Buscar" className="h-11 w-11 shrink-0 rounded-full bg-lima-400 text-floresta-900 grid place-items-center shadow-lima"><ArrowRight size={20} strokeWidth={2.5} /></button>
+      </div>
     </form>
   );
+}
+
+export function SearchPill(props: { value: string; onChange: (v: string) => void; onSubmit?: () => void; loading?: boolean; autoFocus?: boolean }) {
+  return <SearchHero {...props} compact />;
 }

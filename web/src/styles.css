@@ -1,92 +1,106 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/fredoka';
-@import '@fontsource-variable/nunito';
+@import '@fontsource-variable/manrope';
 @import 'leaflet/dist/leaflet.css';
 
-/* Tokens do Garimpa. Rio (verde-água profundo) é a base; a pepita (ouro) é o único acento forte;
-   barro é a terra de Rondônia e marca o que ainda está em aberto. */
+/* Pepita Social · tokens da identidade (guia visual): Floresta é a base e o CTA, Lima é o acento ativo,
+   Ouro é só das pepitas, Creme é o papel. Manrope em dois pesos. */
 @theme {
-  --font-display: 'Fredoka Variable', 'Nunito Variable', ui-rounded, system-ui, sans-serif;
-  --font-sans: 'Nunito Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --color-rio-50: #EEF6F3;
-  --color-rio-100: #D5E9E2;
-  --color-rio-200: #A9D1C6;
-  --color-rio-400: #3D8C80;
-  --color-rio-600: #1E6160;
-  --color-rio-700: #0F4C4C;
-  --color-rio-800: #0C3A3A;
-  --color-rio-900: #0B2424;
+  --color-floresta-50: #EEF4EF;
+  --color-floresta-100: #DDE9E0;
+  --color-floresta-600: #15503F;
+  --color-floresta-700: #103D32;
+  --color-floresta-800: #0C2E26;
+  --color-floresta-900: #08211B;
 
-  --color-pepita-200: #FBE7A1;
-  --color-pepita-400: #F2B705;
-  --color-pepita-500: #D99E00;
-  --color-pepita-700: #8A6200;
+  --color-esmeralda-100: #DDEFE4;
+  --color-esmeralda-400: #2E9A6E;
+  --color-esmeralda-600: #187B56;
+  --color-esmeralda-800: #0F5B3F;
 
-  --color-barro-100: #F6DCD3;
-  --color-barro-500: #B3401F;
-  --color-barro-700: #7F2B13;
+  --color-lima-100: #F1FBC9;
+  --color-lima-300: #E7F99A;
+  --color-lima-400: #D7F46A;
+  --color-lima-600: #A9C73A;
 
-  --color-mata-100: #D7F0E3;
-  --color-mata-500: #1E7A52;
-  --color-mata-700: #145A3B;
+  --color-ouro-100: #FFF0C7;
+  --color-ouro-200: #FCE5A4;
+  --color-ouro-400: #F3B749;
+  --color-ouro-500: #E7AA38;
+  --color-ouro-700: #9A6A12;
 
-  --color-papel: #F5F8F3;
-  --color-tinta: #0B2E2E;
+  --color-sage-100: #E7EFE5;
+  --color-sage-200: #D8E4DB;
+  --color-sage-500: #59776C;
 
-  --radius-sheet: 1.5rem;
-  --radius-ticket: 0.9rem;
+  --color-brasa-100: #FCE4DC;
+  --color-brasa-500: #C2553A;
+  --color-brasa-700: #8E3A26;
 
-  --shadow-float: 0 10px 30px -12px rgb(11 46 46 / 0.35);
-  --shadow-pepita: 0 6px 20px -6px rgb(217 158 0 / 0.55);
+  --color-creme: #F6F5EE;
+  --color-tinta: #183D34;
+
+  --radius-sheet: 1.75rem;
+  --radius-card: 1.25rem;
+  --radius-ticket: 1rem;
+
+  --shadow-float: 0 12px 32px -14px rgb(16 61 50 / 0.35);
+  --shadow-card: 0 1px 2px rgb(16 61 50 / 0.06), 0 8px 24px -16px rgb(16 61 50 / 0.18);
+  --shadow-ouro: 0 10px 24px -10px rgb(243 183 73 / 0.6);
+  --shadow-lima: 0 8px 20px -8px rgb(215 244 106 / 0.7);
 
   --animate-pop: pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
-  --animate-shine: shine 2.4s ease-in-out infinite;
   --animate-float: floaty 3s ease-in-out infinite;
+  --animate-pulse-ring: pulsering 1.8s ease-out infinite;
 
   @keyframes pop { 0% { transform: scale(0.6); opacity: 0 } 100% { transform: scale(1); opacity: 1 } }
-  @keyframes shine { 0%, 100% { filter: brightness(1) } 50% { filter: brightness(1.18) } }
-  @keyframes floaty { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+  @keyframes floaty { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+  @keyframes pulsering { 0% { transform: scale(0.6); opacity: 0.7 } 100% { transform: scale(1.8); opacity: 0 } }
 }
 
 :root {
-  --bg: var(--color-papel);
+  --bg: #F6F5EE;
   --surface: #FFFFFF;
-  --surface-2: var(--color-rio-50);
-  --text: var(--color-tinta);
-  --text-2: #3F6260;
-  --line: #D9E6E1;
-  --accent: #0F4C4C;
-  --gold-ink: #8A6200;
-  --green-ink: #145A3B;
-  --barro-ink: #7F2B13;
+  --surface-2: #EDF1E5;
+  --text: #183D34;
+  --text-2: #59776C;
+  --line: #D8E4DB;
+  --accent: #187B56;
+  --accent-soft: #DDEFE4;
+  --gold-ink: #9A6A12;
+  --green-ink: #0F5B3F;
+  --brasa-ink: #8E3A26;
   color-scheme: light;
 }
 :root[data-theme='dark'] {
-  --bg: var(--color-rio-900);
-  --surface: #113030;
-  --surface-2: #0E2A2A;
-  --text: #E8F1EC;
-  --text-2: #9FBDB5;
-  --line: #1F4544;
-  --accent: #A9D1C6;
-  --gold-ink: #F2B705;
-  --green-ink: #7FD1AE;
-  --barro-ink: #F0A58C;
+  --bg: #08211B;
+  --surface: #103D32;
+  --surface-2: #0D3029;
+  --text: #F6F5EE;
+  --text-2: #A9C2B5;
+  --line: #22574A;
+  --accent: #D7F46A;
+  --accent-soft: #15503F;
+  --gold-ink: #F3B749;
+  --green-ink: #8FE0B5;
+  --brasa-ink: #F0A58C;
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: var(--color-rio-900);
-    --surface: #113030;
-    --surface-2: #0E2A2A;
-    --text: #E8F1EC;
-    --text-2: #9FBDB5;
-    --line: #1F4544;
-    --accent: #A9D1C6;
-    --gold-ink: #F2B705;
-    --green-ink: #7FD1AE;
-    --barro-ink: #F0A58C;
+    --bg: #08211B;
+    --surface: #103D32;
+    --surface-2: #0D3029;
+    --text: #F6F5EE;
+    --text-2: #A9C2B5;
+    --line: #22574A;
+    --accent: #D7F46A;
+    --accent-soft: #15503F;
+    --gold-ink: #F3B749;
+    --green-ink: #8FE0B5;
+    --brasa-ink: #F0A58C;
     color-scheme: dark;
   }
 }
@@ -99,9 +113,10 @@
   --color-ink-2: var(--text-2);
   --color-line: var(--line);
   --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
   --color-gold-ink: var(--gold-ink);
   --color-green-ink: var(--green-ink);
-  --color-barro-ink: var(--barro-ink);
+  --color-brasa-ink: var(--brasa-ink);
 }
 
 html, body, #root { height: 100%; }
@@ -110,68 +125,57 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
+  font-feature-settings: 'ss01', 'cv11';
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
 }
-.font-display { font-family: var(--font-display); }
+.font-display { font-family: var(--font-display); letter-spacing: -0.015em; }
+.eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
 .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
 .safe-top { padding-top: max(env(safe-area-inset-top), 0.5rem); }
+.tabular { font-variant-numeric: tabular-nums; }
 
-/* Ticket: a resposta com prova parece um comprovante. Borda picotada no topo e no pé. */
-.ticket {
-  background: var(--surface);
-  border-radius: var(--radius-ticket);
-  position: relative;
-  --notch: 10px;
-  mask:
-    radial-gradient(circle at 0 50%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)) 0 50% / 100% 100% no-repeat;
-}
-.ticket::before, .ticket::after {
-  content: '';
-  position: absolute; left: 0; right: 0; height: 0;
-  border-top: 2px dashed var(--line);
-}
-.ticket-cut { border-top: 2px dashed var(--line); margin: 0 1rem; }
+/* Cartão de evidência: borda fina, cantos grandes, sem sombra pesada (guia de componentes). */
+.ticket { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); position: relative; }
+.ticket-cut { border-top: 1px dashed var(--line); margin: 0 1rem; }
 
+/* Selo de estado: forma + rótulo, nunca só cor. */
 .stamp {
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  border: 3px solid currentColor;
-  border-radius: 0.5rem;
-  padding: 0.1rem 0.5rem;
-  transform: rotate(-8deg);
-  mix-blend-mode: multiply;
+  font-family: var(--font-display); font-weight: 800; letter-spacing: 0.06em; font-size: 0.68rem; text-transform: uppercase;
+  border: 2px solid currentColor; border-radius: 999px; padding: 0.15rem 0.6rem; transform: rotate(-4deg);
 }
-:root[data-theme='dark'] .stamp { mix-blend-mode: screen; }
 
 .leaflet-container {
   font-family: inherit;
-  background-color: var(--surface-2);
-  background-image: radial-gradient(var(--line) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-color: #E9EFE2;
+  background-image:
+    linear-gradient(rgb(216 228 219 / 0.6) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(216 228 219 / 0.6) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
-.pin { position: relative; width: 36px; height: 44px; filter: drop-shadow(0 4px 6px rgb(11 46 46 / 0.35)); transform-origin: 50% 100%; }
-.pin::before {
-  content: ''; position: absolute; inset: 0 0 8px 0; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
-  background: var(--color-pepita-400); border: 3px solid var(--color-rio-700);
-}
-.pin span {
-  position: absolute; left: 0; right: 0; top: 7px; text-align: center; font-family: var(--font-display); font-weight: 700;
-  font-size: 14px; color: var(--color-rio-800);
-}
-.pin-open::before { background: var(--color-barro-500); border-color: #fff; }
-.pin-open span { color: #fff; font-size: 16px; top: 5px; }
-.pin-hi { transform: scale(1.18); animation: floaty 1.6s ease-in-out infinite; }
-.pin-partner::before { border-color: var(--color-pepita-700); box-shadow: 0 0 0 3px rgb(242 183 5 / 0.35); }
-.me-dot { width: 16px; height: 16px; border-radius: 50%; background: #2563EB; border: 3px solid #fff; box-shadow: 0 0 0 6px rgb(37 99 235 / 0.25); }
-.leaflet-control-attribution { font-size: 10px; background: rgb(255 255 255 / 0.7) !important; }
+:root[data-theme='dark'] .leaflet-container { background-color: #0D3029; background-image: linear-gradient(rgb(34 87 74 / 0.5) 1px, transparent 1px), linear-gradient(90deg, rgb(34 87 74 / 0.5) 1px, transparent 1px); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .leaflet-container { background-color: #0D3029; background-image: linear-gradient(rgb(34 87 74 / 0.5) 1px, transparent 1px), linear-gradient(90deg, rgb(34 87 74 / 0.5) 1px, transparent 1px); } }
+.leaflet-control-attribution { font-size: 10px; background: rgb(246 245 238 / 0.8) !important; color: #59776C; }
 .leaflet-div-icon { background: transparent; border: 0; }
+
+/* Pinos do mapa: SVGs do pacote (confirmado, revalidar, em análise, patrocinado) + contador. */
+.pin { position: relative; width: 44px; height: 49px; background: no-repeat center / contain; transform-origin: 50% 100%; filter: drop-shadow(0 6px 8px rgb(16 61 50 / 0.25)); }
+.pin-confirmed { background-image: url('/brand/pins/pin-confirmed.svg'); }
+.pin-pending { background-image: url('/brand/pins/pin-pending.svg'); }
+.pin-stale { background-image: url('/brand/pins/pin-stale.svg'); }
+.pin-sponsored { background-image: url('/brand/pins/pin-sponsored.svg'); }
+.pin-count {
+  position: absolute; right: -6px; top: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+  background: #D7F46A; color: #103D32; font-weight: 800; font-size: 12px; line-height: 20px; text-align: center; border: 2px solid #F6F5EE;
+}
+.pin-hi { transform: scale(1.15); animation: floaty 1.6s ease-in-out infinite; }
+.pin-ring { position: absolute; left: 50%; bottom: 2px; width: 40px; height: 14px; margin-left: -20px; border-radius: 50%; border: 2px solid #187B56; animation: pulsering 1.8s ease-out infinite; }
+.me-dot { width: 16px; height: 16px; border-radius: 50%; background: #187B56; border: 3px solid #fff; box-shadow: 0 0 0 6px rgb(24 123 86 / 0.22); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
-:focus-visible { outline: 3px solid var(--color-pepita-400); outline-offset: 2px; border-radius: 0.5rem; }
+:focus-visible { outline: 3px solid var(--color-lima-400); outline-offset: 2px; border-radius: 0.5rem; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }

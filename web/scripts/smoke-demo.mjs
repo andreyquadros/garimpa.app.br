@@ -27,41 +27,43 @@ page.on('console', (m) => { if (m.type() === 'error' && !/tile|ERR_|net::|Failed
 
 const step = (msg) => console.log('·', msg);
 const shot = async (name) => { await page.waitForTimeout(700); await page.screenshot({ path: path.join(OUT, `${name}.png`) }); step(`captura ${name}`); };
+const credits = () => page.$eval('[data-testid=credits]', (el) => Number(el.textContent.replace(/\D/g, '')));
 
 async function loginAs(name) {
   await page.goto(`${BASE}/#/entrar`);
   await page.waitForSelector('input[placeholder="Marina Castro"]');
   await page.fill('input[placeholder="Marina Castro"]', name);
-  await page.click('button:has-text("Entrar e garimpar")');
+  await page.click('button[type=submit]:has-text("Continuar")');
   await page.waitForURL((u) => !u.hash.startsWith('#/entrar'));
   step(`entrou como ${name}`);
 }
 
-// 1. Lucas entra e abre uma pergunta aberta de outra pessoa
+// 1. Lucas entra e abre uma missão aberta de outra pessoa
 await page.goto(`${BASE}/#/entrar`);
-await page.waitForSelector('text=Garimpa');
+await page.waitForSelector('text=O que você procura está mais perto.');
+await shot('demo-00-boas-vindas');
 await loginAs('lucas');
 await page.waitForSelector('button[aria-label="Modo demonstração: saiba mais"]');
-await page.waitForSelector('text=Demonstração');
-await shot('demo-01-mapa');
+await page.waitForSelector('text=Já encontraram por aqui.');
+await shot('demo-01-explorar');
 
-await page.goto(`${BASE}/#/garimpos`);
-await page.waitForSelector('a[href^="#/g/"]');
-await page.click('a[href^="#/g/"]:has-text("Guarda-chuva")');
+await page.goto(`${BASE}/#/?q=garrafa`);
+await page.waitForSelector('text=Perto. E já encontrado.');
+await page.waitForSelector('text=/pistas? para sua busca/');
+await shot('demo-12-busca');
+
+await page.goto(`${BASE}/#/missoes`);
+await page.waitForSelector('a[href^="#/m/"]');
+await shot('demo-02-missoes');
+await page.click('a[href^="#/m/"]:has-text("Guarda-chuva")');
 await page.waitForSelector('button:has-text("Eu sei onde tem!")');
-const qid = new URL(page.url()).hash.replace('#/g/', '');
-step(`pergunta ${qid}`);
+const qid = new URL(page.url()).hash.replace('#/m/', '');
+step(`missão ${qid}`);
+await shot('demo-03-missao');
 await page.click('button:has-text("Eu sei onde tem!")');
-await page.waitForSelector('text=Em qual lugar você viu?');
+await page.waitForSelector('text=Uma foto sua vale uma boa pista.');
 
-// 2. Escolhe um lugar da lista
-await page.waitForSelector('li button');
-const placeName = await page.$eval('li button span span', (el) => el.textContent);
-await page.click('li button');
-await page.waitForSelector('text=Mostre a prova');
-step(`lugar: ${placeName}`);
-
-// 3. Envia uma imagem PNG gerada (buffer)
+// 2. Envia uma imagem PNG gerada (buffer) e declara autoria
 const dataUrl = await page.evaluate(() => {
   const c = document.createElement('canvas'); c.width = 640; c.height = 480;
   const x = c.getContext('2d');
@@ -76,42 +78,52 @@ const png = Buffer.from(dataUrl.split(',')[1], 'base64');
 await page.setInputFiles('input[type=file]', { name: 'prova.png', mimeType: 'image/png', buffer: png });
 await page.waitForSelector('text=Foto enviada e limpa de dados pessoais');
 await page.waitForSelector('text=Enviada com a sua localização');
-step('prova enviada com checklist');
+step('evidência enviada com checklist');
+await page.click('text=Esta evidência é minha');
+await shot('demo-04-evidencia');
 await page.click('button:has-text("Continuar")');
+
+// 3. Escolhe um lugar da lista e detalha
+await page.waitForSelector('text=Qual loja tem o produto?');
+await page.waitForSelector('li button');
+const placeName = await page.$eval('li button span span', (el) => el.textContent);
+await page.click('li button');
 await page.waitForSelector('text=Ajude quem vai lá');
+step(`lugar: ${placeName}`);
 await page.fill('textarea', 'Fica no corredor dos guarda-sóis, perto do caixa. Tem transparente e com borda colorida.');
 await page.fill('input[placeholder="24,90"]', '39,90');
-await page.click('button:has-text("Enviar pista")');
-await page.waitForSelector('text=Pista enviada');
+await page.click('button:has-text("Enviar para validação")');
+await page.waitForSelector('text=/Boa! /');
 await page.waitForSelector('text=+5 XP');
-step('pista enviada (+5 XP)');
+step('evidência enviada (+5 XP)');
+await shot('demo-05-conquista');
 
-// 4. Marina (autora) aceita e dá gorjeta
+// 4. Marina (autora) aceita e agradece
 await loginAs('marina');
-await page.goto(`${BASE}/#/g/${qid}`);
-await page.waitForSelector('button:has-text("Foi aqui que achei")');
-await page.click('button:has-text("Foi aqui que achei")');
-await page.waitForSelector('text=Dar gorjeta');
+await page.goto(`${BASE}/#/m/${qid}`);
+await page.waitForSelector('button:has-text("Foi aqui que encontrei")');
+await page.click('button:has-text("Foi aqui que encontrei")');
+await page.waitForSelector('text=Agradecer com pepitas');
 const toast = await page.waitForSelector('text=/ganhou [0-9]+ pepitas/'); const toastText = await toast.textContent(); if (!/ganhou 55 pepitas/.test(toastText)) throw new Error('toast inesperado: ' + toastText);
-step('resposta aceita: ' + toastText.trim());
+step('evidência aceita: ' + toastText.trim());
 await page.click('[role=dialog] button:has-text("10")');
-await page.waitForSelector('text=Gorjeta de 10 pepitas enviada.');
-step('gorjeta de 10 enviada');
+await page.waitForSelector('text=Agradecimento de 10 pepitas enviado.');
+step('agradecimento de 10 enviado');
 await page.waitForSelector('[role=dialog]', { state: 'detached' });
-await page.waitForSelector('text=Achado');
-await shot('demo-02-pergunta-aceita');
+await page.waitForSelector('text=Encontrado');
+await shot('demo-06-missao-encontrada');
 
 // 5. Lucas vê as pepitas em carência e simula 7 dias
 await loginAs('lucas');
-await page.goto(`${BASE}/#/perfil`);
+await page.goto(`${BASE}/#/carteira`);
 await page.waitForSelector('text=em carência');
 const pendingText = await page.$eval('text=em carência', (el) => el.textContent);
-step(`perfil: ${pendingText.trim()}`);
+step(`carteira: ${pendingText.trim()}`);
 if (!/\+75 em carência/.test(pendingText)) throw new Error(`esperava +75 em carência, veio: ${pendingText}`);
-const creditsBefore = Number((await page.$eval('section:has-text("Minhas pepitas") span.text-4xl span', (el) => el.textContent)).replace(/\D/g, ''));
+const creditsBefore = await credits();
 step(`pepitas disponíveis antes: ${creditsBefore}`);
-await page.waitForSelector('text=Gorjeta de 10 pepitas enviada.', { state: 'detached', timeout: 8000 }).catch(() => {});
-await shot('demo-03-perfil-carencia');
+await page.waitForSelector('text=Agradecimento de 10 pepitas enviado.', { state: 'detached', timeout: 8000 }).catch(() => {});
+await shot('demo-07-carteira-carencia');
 
 await page.click('button[aria-label="Modo demonstração: saiba mais"]');
 await page.waitForSelector('button:has-text("Simular 7 dias")');
@@ -119,38 +131,52 @@ await page.click('button:has-text("Simular 7 dias")');
 await page.waitForSelector('text=Sete dias depois');
 await page.waitForSelector('text=em carência', { state: 'detached' });
 await page.waitForFunction((before) => {
-  const el = document.querySelector('section span.text-4xl span');
+  const el = document.querySelector('[data-testid=credits]');
   return el && Number(el.textContent.replace(/\D/g, '')) === before + 75;
 }, creditsBefore);
-const creditsAfter = Number((await page.$eval('section:has-text("Minhas pepitas") span.text-4xl span', (el) => el.textContent)).replace(/\D/g, ''));
+const creditsAfter = await credits();
 step(`pepitas disponíveis depois: ${creditsAfter}`);
 if (creditsAfter !== creditsBefore + 75) throw new Error(`esperava ${creditsBefore + 75}, veio ${creditsAfter}`);
-// A sequência de 7 dias (XP de streak + Maratonista) faz Lucas subir de nível: a cerimônia abre e precisa ser fechada.
-const levelUp = await page.waitForSelector('text=Você subiu de nível', { timeout: 5000 }).catch(() => null);
+// A sequência de 7 dias (XP de streak + Maratonista) faz Lucas subir de patente: a cerimônia abre e precisa ser fechada.
+const levelUp = await page.waitForSelector('text=Nova patente', { timeout: 5000 }).catch(() => null);
 if (levelUp) {
   const name = await page.$eval('[role=dialog] h2', (el) => el.textContent);
-  await page.click('button:has-text("Bora garimpar")');
+  await shot('demo-08-nova-patente');
+  await page.click('button:has-text("Continuar ajudando")');
   await page.waitForSelector('[role=dialog]', { state: 'detached' });
-  step(`subiu de nível: ${name}`);
+  step(`subiu de patente: ${name}`);
 }
-const streak = await page.$eval('text=/dias seguidos garimpando/', (el) => el.textContent).catch(() => null);
-step(`sequência: ${streak ?? 'não exibida'}`);
 
-// 6. Deduplicação, ranking e persistência após recarregar
-await page.goto(`${BASE}/#/perguntar?title=garrafa%20hermetica`);
-await page.waitForSelector('text=Já garimparam isso');
-step('dedupe: "Já garimparam isso" aparece');
-await page.goto(`${BASE}/#/ranking`);
-await page.waitForSelector('text=Esta semana');
+// 6. Jornada: patente, árvore de níveis e ranking
+await page.goto(`${BASE}/#/jornada`);
+await page.waitForSelector('text=Sua árvore de conquistas');
+const streak = await page.$eval('text=/dias seguidos ajudando/', (el) => el.textContent).catch(() => null);
+step(`sequência: ${streak ?? 'não exibida'}`);
+await page.waitForSelector('text=Quem mais ajudou');
 await page.waitForSelector('.grid-cols-3 .font-display');
-await page.click('button:has-text("Desde o início")');
-await page.waitForSelector('text=Lucas');
+await page.click('button:has-text("Geral")');
+await page.waitForSelector('.grid-cols-3 .font-display');
 step('ranking carregou (semana e geral)');
+await shot('demo-09-jornada');
+
+// 7. Deduplicação e persistência após recarregar
+await page.goto(`${BASE}/#/missoes/nova?title=garrafa%20hermetica`);
+await page.waitForSelector('text=/Encontramos (uma|\\d+) miss/');
+step('dedupe: missão parecida aparece antes de publicar');
+await shot('demo-10-nova-missao');
 await page.reload();
-await page.goto(`${BASE}/#/g/${qid}`);
-await page.waitForSelector('text=Achado');
+await page.goto(`${BASE}/#/m/${qid}`);
+await page.waitForSelector('text=Encontrado');
 await page.waitForSelector('text=Lucas Ferreira');
-step('estado persistiu após recarregar (resposta aceita continua lá)');
+step('estado persistiu após recarregar (evidência aceita continua lá)');
+
+const dark = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, colorScheme: 'dark', locale: 'pt-BR' });
+const dp = await dark.newPage();
+await dp.goto(`${BASE}/#/missoes`);
+await dp.waitForSelector('a[href^="#/m/"]');
+await dp.waitForTimeout(800);
+await dp.screenshot({ path: path.join(OUT, 'demo-11-missoes-escuro.png') });
+step('captura demo-11-missoes-escuro');
 
 await browser.close();
 if (errors.length) { console.log('ERROS DE PÁGINA:'); for (const e of errors) console.log('  ', e); process.exit(1); }

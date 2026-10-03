@@ -21,7 +21,7 @@ miscRoutes.get('/config', async (c) => {
     levels: LEVELS,
     economy: { xp: eco.xp, pepitas: eco.pepitas, limites_dia: eco.limites_dia, carencia_dias: eco.carencia_dias, conversao: eco.conversao, evidencia_forte: eco.evidencia_forte },
     tiles: {
-      // Padrão: OpenStreetMap (o Garimpa não depende da infraestrutura de outros apps). Servidor próprio via TILES_URL.
+      // Padrão: OpenStreetMap (o Pepita Social não depende da infraestrutura de outros apps). Servidor próprio via TILES_URL.
       url: process.env.TILES_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       fallbackUrl: process.env.TILES_FALLBACK_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       minZoom: 12, maxZoom: 18,

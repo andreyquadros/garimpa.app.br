@@ -1,5 +1,7 @@
 # Domínios e nome
 
+> **Atualização (3/10/2026):** o produto passou a se chamar **Pepita Social** (identidade visual do pacote Pepitaz, mascote Pepi). O repositório, os pacotes e o domínio técnico continuam `garimpa.app.br` até a decisão final de domínio; candidatos verificados para o novo nome: **`pepita.social`** (principal) e **`pepita.app.br`** (reserva), ver seção "Plano B" abaixo. O texto a seguir é o histórico da decisão original.
+
 | | |
 |---|---|
 | **Decisão** | Nome **Garimpa**. Domínio principal **`garimpa.app.br`** (Registro.br, R$ 40/ano), disponível em 1º/10/2026 segundo consulta do autor no Registro.br. O piloto segue em `garimpa.incubadora.cloud` até o apontamento. |

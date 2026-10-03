@@ -35,19 +35,18 @@ Valores vivem em `settings.economia` no banco (editáveis sem deploy) e são esp
 
 Tudo que cunha pepitas tem **carência de 7 dias** (14 para contas com confiança < 0,4 ou quando quem paga e quem recebe usaram a mesma rede; 3 a partir de 800 XP). Durante a carência a pepita aparece como "+N em carência" e pode ser estornada por denúncia procedente. Teto de **300 pepitas cunhadas por pessoa por dia** (`fn_cap_take('pepitas_cunhadas')`, cobrado de quem recebe em aceite, confirmação e gorjeta do orçamento): ao estourar, a ação acontece e o XP é pago, mas o lançamento sai com 0 pepitas e `teto_diario: true`. Se um estorno chegar depois de a pepita ter sido gasta, o saldo fica negativo (dívida) e a conta só volta a gastar depois de cobri-la.
 
-## Níveis
+## Níveis (patentes)
 
-| Nível | Nome | XP | O que desbloqueia |
-|---|---|---|---|
-| 1 | Peneira | 0 | perguntar, responder, confirmar |
-| 2 | Bateia | 100 | gorjetas do próprio saldo |
-| 3 | Garimpeiro | 300 | título de Garimpeiro no perfil e no ranking |
-| 4 | Faiscador | 800 | carência das pepitas cai para 3 dias |
-| 5 | Mestre do garimpo | 2 000 | revisa denúncias da comunidade |
-| 6 | Lenda da jazida | 5 000 | missões de lojas parceiras em primeira mão |
-| 7 | Guardião do mapa | 12 000 | nome no mapa de Ariquemes |
+| Nível | Patente | XP | Lema | O que desbloqueia |
+|---|---|---|---|---|
+| 1 | Explorador | 0 | O primeiro passo é descobrir. | abrir missões, enviar evidências, confirmar |
+| 2 | Garimpeiro | 100 | Você já sabe seguir boas pistas. | confirmações com mais peso; agradecer com o próprio saldo |
+| 3 | Guia local | 350 | Sua experiência orienta a cidade. | cadastra lugares sem revisão; título no ranking |
+| 4 | Guardião | 900 | Ajude a manter pistas confiáveis. | carência das pepitas cai para 3 dias; revisa denúncias |
+| 5 | Lenda local | 1 800 | Uma referência para a comunidade. | missões de parceiros em primeira mão; nome no mapa |
 
-Progressão calibrada para um usuário ativo (3 pistas aceitas por semana) chegar a Garimpeiro em um mês e a Mestre em um semestre.
+
+Progressão calibrada para um usuário ativo (3 evidências aceitas por semana) chegar a Garimpeiro na primeira semana, Guia local em um mês e Guardião em um semestre.
 
 ## Conquistas
 

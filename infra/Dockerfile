@@ -1,4 +1,4 @@
-# Garimpa · uma imagem com API + build do PWA (a API serve o front e as fotos)
+# Pepita Social · uma imagem com API + build do PWA (a API serve o front e as fotos)
 FROM node:22-bookworm-slim AS build
 RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 WORKDIR /app

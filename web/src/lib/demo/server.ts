@@ -351,7 +351,7 @@ async function route(req: Request, url: URL): Promise<Out> {
     const force = body['force'] === true;
     if (!force) {
       const similar = similarQuestions(s, title, 5);
-      if (similar.some((x) => x.sim >= 0.5 || x.wsim >= 0.75)) return ok({ error: 'parecida', message: 'Já garimparam isso. Veja se serve antes de perguntar de novo.', similar }, 409);
+      if (similar.some((x) => x.sim >= 0.5 || x.wsim >= 0.75)) return ok({ error: 'parecida', message: 'Já existe uma missão parecida. Veja se serve antes de abrir outra.', similar }, 409);
     }
     if (!takeCap(s, u.id, 'perguntas', eco.limites_dia.perguntas)) throw new HttpError(429, 'Você já perguntou bastante hoje. Volte amanhã.');
     const ev = photoEvidenceId ? s.evidences.find((e) => e.id === photoEvidenceId && e.uploaderId === u.id && e.answerId == null) : undefined;

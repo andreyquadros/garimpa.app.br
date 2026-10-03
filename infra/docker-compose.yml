@@ -1,4 +1,4 @@
-# Garimpa no KVM 8 via Dokploy (Compose). Caddy/Traefik do Dokploy termina o TLS e aponta o domínio para garimpa:8787.
+# Pepita Social no KVM 8 via Dokploy (Compose). Caddy/Traefik do Dokploy termina o TLS e aponta o domínio para garimpa:8787.
 # Variáveis: defina no painel do Dokploy (ou .env ao lado deste arquivo) as mesmas de ../.env.example.
 services:
   garimpa-db:

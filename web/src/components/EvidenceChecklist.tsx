@@ -16,12 +16,12 @@ export function checksFromUpload(u: { flags: string[]; exif: { hasGps: boolean; 
 
 export function EvidenceChecklist({ checks, score }: { checks: Check[]; score?: number }) {
   return (
-    <div className="rounded-2xl bg-surface-2 p-3">
+    <div className="rounded-card bg-surface-2 p-3.5">
       <ul className="space-y-2">
         {checks.map((c, i) => (
           <motion.li key={c.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.12 }} className="flex gap-2.5 items-start">
             <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: i * 0.12 + 0.1, type: 'spring', stiffness: 500, damping: 18 }}
-              className={`mt-0.5 h-5 w-5 rounded-full grid place-items-center shrink-0 ${c.ok ? 'bg-mata-500 text-white' : c.ok === null ? 'bg-line' : 'bg-pepita-200 text-pepita-700'}`}>
+              className={`mt-0.5 h-5 w-5 rounded-full grid place-items-center shrink-0 ${c.ok ? 'bg-esmeralda-600 text-white' : c.ok === null ? 'bg-line' : 'bg-ouro-100 text-ouro-700'}`}>
               {c.ok ? <Check size={13} strokeWidth={3} /> : c.ok === null ? <Camera size={12} /> : <AlertTriangle size={12} strokeWidth={2.5} />}
             </motion.span>
             <span className="text-sm leading-snug">
@@ -35,7 +35,7 @@ export function EvidenceChecklist({ checks, score }: { checks: Check[]; score?: 
         <div className="mt-3">
           <div className="flex justify-between text-xs font-semibold text-ink-2"><span>Força da prova</span><span>{score}/100</span></div>
           <div className="h-2 rounded-full bg-line mt-1 overflow-hidden">
-            <motion.div className={`h-full rounded-full ${score >= 60 ? 'bg-mata-500' : 'bg-pepita-400'}`} initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
+            <motion.div className={`h-full rounded-full ${score >= 60 ? 'bg-lima-400' : 'bg-ouro-400'}`} initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
           </div>
           <p className="text-xs text-ink-2 mt-1">{score >= 60 ? 'Prova forte: rende XP já e pepitas assim que for aceita ou confirmada.' : 'Prova fraca: vale XP menor e precisa de confirmação de outras pessoas para render pepitas.'}</p>
         </div>

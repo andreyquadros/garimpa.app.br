@@ -24,80 +24,77 @@ const loginAs = async (name) => {
   await page.goto(`${BASE}/entrar`);
   await page.keyboard.press('Escape');
   await page.fill('input[placeholder="Marina Castro"]', name);
-  await page.click('button:has-text("Entrar e garimpar")');
+  await page.click('button[type=submit]:has-text("Continuar")');
   await page.waitForURL(`${BASE}/`);
 };
 
 await page.goto(`${BASE}/entrar`);
-await page.waitForSelector('text=Garimpa');
-await shot('08-entrar');
+await page.waitForSelector('text=O que você procura está mais perto.');
+await shot('00-boas-vindas');
 await loginAs('marina');
 
+await page.waitForSelector('text=Já encontraram por aqui.');
+await shot('01-explorar');
+
 await page.goto(`${BASE}/?q=garrafa`);
-await page.waitForSelector('text=Tem em');
-await shot('01-mapa-busca');
+await page.waitForSelector('text=Perto. E já encontrado.');
+await page.waitForSelector('text=/pistas? para sua busca/');
+await shot('02-busca');
 
-await page.goto(`${BASE}/garimpos`);
-await page.waitForSelector('text=Garimpos');
-await page.waitForSelector('a[href^="/g/"]');
-await shot('02-garimpos');
+await page.goto(`${BASE}/missoes`);
+await page.waitForSelector('text=O que a cidade procura agora.');
+await page.waitForSelector('a[href^="/m/"]');
+await shot('03-missoes');
 
-const resolved = await page.$eval('a[href^="/g/"]', (a) => a.getAttribute('href'));
-await page.goto(`${BASE}/garimpos`);
-await page.click('button:has-text("Achados")');
-await page.waitForSelector('a[href^="/g/"]');
-const achado = await page.$eval('a[href^="/g/"]', (a) => a.getAttribute('href'));
-await page.goto(`${BASE}${achado}`);
+await page.goto(`${BASE}/missoes?tab=resolvida`);
+await page.waitForSelector('a[href^="/m/"]');
+const found = await page.$eval('a[href^="/m/"]', (a) => a.getAttribute('href'));
+await page.goto(`${BASE}${found}`);
 await page.waitForSelector('text=pista');
-await shot('03-pergunta');
+await shot('04-missao');
 
-await page.goto(`${BASE}/perguntar?title=garrafa%20hermetica`);
-await page.waitForSelector('text=Já garimparam isso');
-await shot('04-perguntar');
+await page.goto(`${BASE}/missoes/nova?title=garrafa%20hermetica`);
+await page.waitForSelector('text=/Encontramos (uma|\\d+) miss/');
+await shot('05-nova-missao');
 
-// Fluxo de resposta: pergunta aberta de outra pessoa (Taís entra para responder)
+// Fluxo de evidência: missão aberta de outra pessoa (Lucas entra para colaborar)
 await loginAs('lucas');
-await page.goto(`${BASE}/garimpos`);
+await page.goto(`${BASE}/missoes`);
 await page.click('button:has-text("Procurando")');
-await page.waitForSelector('a[href^="/g/"]');
-const links = await page.$$eval('a[href^="/g/"]', (as) => as.map((a) => a.getAttribute('href')));
+await page.waitForSelector('a[href^="/m/"]');
+const links = await page.$$eval('a[href^="/m/"]', (as) => as.map((a) => a.getAttribute('href')));
 let answered = false;
 for (const l of links) {
-  await page.goto(`${BASE}${l}/responder`);
+  await page.goto(`${BASE}${l}/evidencia`);
   if (page.url().includes('/entrar')) break;
-  const ok = await page.waitForSelector('text=Em qual lugar você viu?', { timeout: 5000 }).catch(() => null);
+  const ok = await page.waitForSelector('text=Uma foto sua vale uma boa pista.', { timeout: 5000 }).catch(() => null);
   if (!ok) continue;
-  await page.waitForSelector('li button', { timeout: 8000 }).catch(() => null);
-  const btn = await page.$('li button');
-  if (!btn) continue;
-  await btn.click();
-  await page.waitForSelector('text=Mostre a prova');
   const png = await fs.readFile(path.join(OUT, '..', '..', 'web', 'public', 'icons', 'og.png'));
   await page.setInputFiles('input[type=file]', { name: 'prova.png', mimeType: 'image/png', buffer: png });
   await page.waitForSelector('text=Foto enviada', { timeout: 20000 }).catch(() => null);
-  await shot('05-prova');
+  await page.click('text=Esta evidência é minha');
+  await shot('06-evidencia');
   answered = true;
   break;
 }
-if (!answered) console.warn('fluxo de prova não capturado');
+if (!answered) console.warn('fluxo de evidência não capturado');
 
 await loginAs('tais');
-await page.goto(`${BASE}/perfil`);
+await page.goto(`${BASE}/jornada`);
 await page.keyboard.press('Escape');
-await page.waitForSelector('text=Minhas pepitas');
-await shot('06-perfil');
+await page.waitForSelector('text=Sua árvore de conquistas');
+await page.waitForSelector('.grid-cols-3 .font-display');
+await shot('07-jornada');
 
-await page.goto(`${BASE}/ranking?period=geral`);
-await page.waitForSelector('text=Ranking');
-await page.click('button:has-text("Desde o início")');
-await page.waitForTimeout(1200);
-await shot('07-ranking');
+await page.goto(`${BASE}/carteira`);
+await page.waitForSelector('text=Pepitas de agradecimento');
+await shot('08-carteira');
 
 const dark = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, colorScheme: 'dark', locale: 'pt-BR' });
 const dp = await dark.newPage();
-await dp.goto(`${BASE}/garimpos`);
-await dp.waitForSelector('a[href^="/g/"]');
+await dp.goto(`${BASE}/missoes`);
+await dp.waitForSelector('a[href^="/m/"]');
 await dp.waitForTimeout(800);
-await dp.screenshot({ path: path.join(OUT, '09-garimpos-escuro.png') });
-console.log('ok 09-garimpos-escuro');
+await dp.screenshot({ path: path.join(OUT, '09-missoes-escuro.png') });
+console.log('ok 09-missoes-escuro');
 await browser.close();

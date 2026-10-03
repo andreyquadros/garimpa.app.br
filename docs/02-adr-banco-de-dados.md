@@ -1,4 +1,4 @@
-# ADR-001 — Banco de dados do Garimpa
+# ADR-001 — Banco de dados do Pepita Social
 
 | | |
 |---|---|

@@ -9,11 +9,11 @@ beforeAll(async () => { ({ app, sql, close } = await makeApp()); });
 afterAll(async () => { await close(); });
 
 describe('níveis', () => {
-  it('sobe de Peneira a Lenda com progresso entre 0 e 1', () => {
-    expect(levelFor(0).name).toBe('Peneira');
-    expect(levelFor(150).name).toBe('Bateia');
-    expect(levelFor(150).progress).toBeCloseTo(0.25);
-    expect(levelFor(99999).name).toBe('Guardião do mapa');
+  it('sobe de Explorador a Lenda local com progresso entre 0 e 1', () => {
+    expect(levelFor(0).name).toBe('Explorador');
+    expect(levelFor(150).name).toBe('Garimpeiro');
+    expect(levelFor(150).progress).toBeCloseTo(0.2);
+    expect(levelFor(99999).name).toBe('Lenda local');
     expect(levelFor(99999).next).toBeNull();
   });
 });
