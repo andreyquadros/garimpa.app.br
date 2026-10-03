@@ -23,7 +23,7 @@ const clusterIcon = (n: number, kind: 'find' | 'open') => {
 };
 
 /** Raio (px) dentro do qual pinos viram um agrupamento; acima deste zoom não agrupamos mais. */
-const CLUSTER_PX = 52;
+const CLUSTER_PX = 60;
 const CLUSTER_MAX_ZOOM = 17;
 
 type Pt = { lat: number; lng: number };
@@ -52,11 +52,25 @@ function clusterByProximity<T extends Pt>(map: L.Map, items: T[], keep?: (t: T) 
         if (x.p.distanceTo(y.p) <= CLUSTER_PX) { used.add(y.t); members.push(y.t); }
       }
     }
-    const lat = members.reduce((a, m) => a + m.lat, 0) / members.length;
-    const lng = members.reduce((a, m) => a + m.lng, 0) / members.length;
-    out.push({ items: members, lat, lng });
+    out.push(centroid(members));
+  }
+  // Segunda passada: grupos vizinhos cujo centro ainda cai dentro do raio viram um só (evita pino espiando atrás do grupo).
+  let merged = true;
+  while (merged) {
+    merged = false;
+    for (let i = 0; i < out.length && !merged; i++) for (let j = i + 1; j < out.length; j++) {
+      const a = out[i]!, b = out[j]!;
+      if (a.items.length === 1 && keep?.(a.items[0]!)) continue;
+      if (b.items.length === 1 && keep?.(b.items[0]!)) continue;
+      if (map.project([a.lat, a.lng], zoom).distanceTo(map.project([b.lat, b.lng], zoom)) <= CLUSTER_PX) {
+        out.splice(j, 1); out[i] = centroid([...a.items, ...b.items]); merged = true; break;
+      }
+    }
   }
   return out;
+}
+function centroid<T extends Pt>(members: T[]): Cluster<T> {
+  return { items: members, lat: members.reduce((a, m) => a + m.lat, 0) / members.length, lng: members.reduce((a, m) => a + m.lng, 0) / members.length };
 }
 
 type Item = ({ kind: 'find'; f: Find } | { kind: 'open'; q: OpenPin }) & Pt;
