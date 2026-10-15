@@ -133,7 +133,7 @@ function Pins({
     ],
     [finds, open],
   );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `tick` é o gatilho de zoom/movimento; o mapa do Leaflet é mutável e o agrupamento por proximidade depende do zoom atual, que o React não enxerga.
   const groups = useMemo(
     () => clusterByProximity(map, items, (i) => i.kind === 'find' && i.f.placeId === highlight),
     [map, items, highlight, tick],
@@ -196,8 +196,9 @@ function Events({ onBounds, onMove }: { onBounds?: (bbox: string) => void; onMov
     const c = map.getCenter();
     onMove?.([c.lat, c.lng]);
   };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: avisa os limites iniciais uma única vez, na montagem; depois quem avisa são os eventos do mapa (`emit` é recriada a cada render e re-executar o efeito repetiria a busca).
   useEffect(() => {
-    emit(); /* eslint-disable-next-line react-hooks/exhaustive-deps */
+    emit();
   }, []);
   return null;
 }
