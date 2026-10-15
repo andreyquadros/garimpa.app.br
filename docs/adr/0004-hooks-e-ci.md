@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Aceita (out/2026) · implementação pendente |
+| **Status** | Aceita (out/2026) · implementada |
 | **Decisão** | Hooks de Git com **lefthook** para as verificações rápidas e o **CI do GitHub Actions** para a verificação completa, que bloqueia o merge. |
 
 ## Contexto
@@ -30,3 +30,4 @@ As regras de qualidade (ADR-0003, ADR-0005) e de commits (ADR-0002) só valem se
 
 - Os testes completos continuam sendo responsabilidade de quem commita (TDD) e são garantidos pelo CI.
 - A proteção da `main` (exigir PR e CI verde) é configurada no GitHub pelo dono do repositório.
+- O `prepare` só roda `lefthook install` dentro de um repositório git (build em Docker não tem `.git`); o Biome cobre também `jsonc` e `html`, e `test:scripts` usa o glob `scripts/*.test.mjs`.

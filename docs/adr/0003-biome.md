@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Aceita (out/2026) · implementação pendente |
+| **Status** | Aceita (out/2026) · implementada |
 | **Decisão** | **Biome** como ferramenta única de lint e formatação para `api/` e `web/`, com um `biome.jsonc` na raiz. |
 
 ## Contexto

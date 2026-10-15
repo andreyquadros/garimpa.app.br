@@ -14,14 +14,17 @@ pnpm install
 scripts/local-postgres.sh start                       # Postgres 18 local (binários instalados ou Docker)
 pnpm db:migrate && pnpm db:seed                       # esquema + dados de demonstração
 pnpm dev                                              # web em :5173, API em :8787 (login dev: "marina")
+pnpm check                                            # Biome: formata e corrige (use antes de commitar)
+pnpm lint                                             # Biome: só o lint
 pnpm typecheck                                        # tipos de api e web
+pnpm test:scripts                                     # testes dos scripts (validador de mensagens de commit)
 pnpm --filter garimpa-api test                        # testes da API (precisa do Postgres em :54329)
 pnpm --filter garimpa-web test                        # testes do web
 pnpm --filter garimpa-web build                       # build do PWA
 ```
 
-Biome, lefthook e o teste de ponta a ponta estão decididos (ADRs 0003 a 0005) mas ainda não implantados; quando
-entrarem, os comandos vêm para cá.
+Os hooks do lefthook (pre-commit e commit-msg) se instalam no `pnpm install`; o `pnpm` precisa estar no `PATH`
+do shell que roda o `git commit`. O teste de ponta a ponta (Playwright, ADR-0005) ainda está pendente.
 
 ## Git (ADR-0002)
 
@@ -47,7 +50,7 @@ entrarem, os comandos vêm para cá.
 - **Interface:** Testing Library + `user-event`, testando comportamento (o que a pessoa vê e faz), sem snapshots.
   Lógica pura em `web/src/lib/` com teste unitário. Aspecto visual se verifica rodando o app; o PR diz como.
 - **Bug:** primeiro o teste que reproduz e falha, depois a correção.
-- **Estilo:** 2 espaços, aspas simples, ponto e vírgula, linha de até 120 caracteres (Biome, quando implantado).
+- **Estilo:** 2 espaços, aspas simples, ponto e vírgula, linha de até 120 caracteres (Biome: `pnpm check`).
 - Nunca dizer que algo funciona sem ter rodado a verificação e visto o resultado.
 
 ## Idioma e comentários
