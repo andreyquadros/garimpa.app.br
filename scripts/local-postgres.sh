@@ -3,12 +3,12 @@
 # Usa os binários instalados (/usr/lib/postgresql, /usr/pgsql-* ou pg_ctl no PATH); sem eles, usa Docker.
 # Uso: scripts/local-postgres.sh start|stop|status|psql
 # Variáveis: PGLOCAL_DIR (padrão garimpa/.pglocal, só no modo binários), PGLOCAL_PORT (padrão 54329),
-#            PGLOCAL_IMAGE (padrão postgres:18-alpine) e PGLOCAL_CONTAINER (padrão garimpa-pg18), só no modo Docker
+#            PGLOCAL_IMAGE (padrão postgis/postgis:18-3.6-alpine) e PGLOCAL_CONTAINER (padrão garimpa-pg18), só no modo Docker
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 DIR="${PGLOCAL_DIR:-$HERE/.pglocal}"
 PORT="${PGLOCAL_PORT:-54329}"
-IMAGE="${PGLOCAL_IMAGE:-postgres:18-alpine}"
+IMAGE="${PGLOCAL_IMAGE:-postgis/postgis:18-3.6-alpine}"
 CONTAINER="${PGLOCAL_CONTAINER:-garimpa-pg18}"
 URL="postgres://postgres@127.0.0.1:$PORT/garimpa (testes: /garimpa_test)"
 
