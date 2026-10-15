@@ -3,8 +3,9 @@ import { E2E_DATABASE_URL } from './db-url.ts';
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
 
+// DESTRUTIVO: apaga todo o schema do banco de ponta a ponta. Chamado só por `prepare-db.ts`.
 // Banco próprio dos testes de ponta a ponta: recriado do zero a cada execução, sem tocar no banco de desenvolvimento.
-export default async function setup(): Promise<void> {
+export default async function resetDb(): Promise<void> {
   const url = new URL(E2E_DATABASE_URL);
   const name = decodeURIComponent(url.pathname.slice(1));
 

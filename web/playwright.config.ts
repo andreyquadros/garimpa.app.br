@@ -1,13 +1,13 @@
-import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { defineConfig } from '@playwright/test';
 import { E2E_DATABASE_URL } from './e2e/db-url.ts';
 
-// Fotos enviadas nos testes vão para uma pasta temporária, nunca para a `uploads/` de desenvolvimento.
+// Fotos enviadas nos testes vão para uma pasta temporária fixa (recriada em `e2e/prepare-db.ts`), nunca para a
+// `uploads/` de desenvolvimento.
 const webDir = import.meta.dirname;
 const apiDir = path.resolve(webDir, '../api');
-const uploadDir = mkdtempSync(path.join(tmpdir(), 'garimpa-e2e-'));
+const uploadDir = path.join(tmpdir(), 'garimpa-e2e-uploads');
 
 // Portas próprias (8788/5174) e `reuseExistingServer: false`: um servidor de desenvolvimento aberto (8787/5173, com o
 // banco de dev) jamais é reaproveitado pelos testes.
@@ -39,7 +39,7 @@ export default defineConfig({
       command: 'node_modules/.bin/vite --port 5174 --strictPort',
       cwd: webDir,
       url: 'http://localhost:5174',
-      env: { VITE_API_PROXY: 'http://localhost:8788' },
+      env: { GARIMPA_API_PROXY: 'http://localhost:8788' },
       reuseExistingServer: false,
     },
   ],

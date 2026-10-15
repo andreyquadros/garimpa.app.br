@@ -8,7 +8,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 const demo = process.env.VITE_DEMO === '1';
 
 // Os testes de ponta a ponta apontam o proxy para a API deles (porta 8788).
-const apiProxy = process.env.VITE_API_PROXY ?? 'http://localhost:8787';
+const apiProxy = process.env.GARIMPA_API_PROXY ?? 'http://localhost:8787';
 
 export default defineConfig({
   base: process.env.VITE_BASE ?? '/',
