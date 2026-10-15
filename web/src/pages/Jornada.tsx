@@ -239,6 +239,7 @@ export function Jornada() {
                     </div>
                   </motion.div>
                 ) : (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: o pódio tem 3 vagas fixas (2º, 1º, 3º) e o índice é a vaga vazia; a lista nunca reordena.
                   <div key={i} />
                 ),
               )}
