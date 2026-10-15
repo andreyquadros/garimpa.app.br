@@ -3,7 +3,7 @@ pre-commit:
   parallel: true
   jobs:
     - name: biome
-      glob: "*.{ts,tsx,mjs,js,json,css}"
+      glob: "*.{ts,tsx,mjs,js,json,jsonc,css,html}"
       run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
     - name: typecheck-api

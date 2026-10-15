@@ -15,7 +15,7 @@
     "check": "biome check --write .",
     "check:ci": "biome ci .",
     "test:scripts": "node --test scripts/*.test.mjs",
-    "prepare": "lefthook install"
+    "prepare": "git rev-parse --git-dir >/dev/null 2>&1 || exit 0; lefthook install"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
