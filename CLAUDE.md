@@ -11,9 +11,7 @@ Monorepo pnpm: `api/` (Node 22, Hono, Postgres.js, zod), `web/` (React 19, Vite,
 
 ```bash
 pnpm install
-docker run -d --name garimpa-pg18 -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=garimpa_test \
-  -p 127.0.0.1:54329:5432 postgres:18-alpine        # Postgres 18 local (depois: docker start garimpa-pg18)
-docker exec garimpa-pg18 createdb -U postgres garimpa  # só na primeira vez
+scripts/local-postgres.sh start                       # Postgres 18 local (binários instalados ou Docker)
 pnpm db:migrate && pnpm db:seed                       # esquema + dados de demonstração
 pnpm dev                                              # web em :5173, API em :8787 (login dev: "marina")
 pnpm typecheck                                        # tipos de api e web
