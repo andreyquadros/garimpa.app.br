@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
 import { Wordmark } from './brand';
 import { Button, Spinner } from './ui';
 

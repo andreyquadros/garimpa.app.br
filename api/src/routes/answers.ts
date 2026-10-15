@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { HTTPException } from 'hono/http-exception';
-import { type AppEnv, type Collusion, requireUser, recordSignal, collusionBetween } from '../auth.js';
+import { z } from 'zod';
+import { type AppEnv, type Collusion, collusionBetween, recordSignal, requireUser } from '../auth.js';
 import type { Sql, Tx } from '../db.js';
-import { award, takeCap, takeMintCap, loadEconomy, grantBadge, levelFor } from '../economy.js';
-import { scoreEvidence, SIMILAR_HAMMING } from '../evidence.js';
+import { award, grantBadge, levelFor, loadEconomy, takeCap, takeMintCap } from '../economy.js';
+import { SIMILAR_HAMMING, scoreEvidence } from '../evidence.js';
 import { getOrCreatePlace, newPlaceSchema } from './places.js';
 
 export const answerRoutes = new Hono<AppEnv>();

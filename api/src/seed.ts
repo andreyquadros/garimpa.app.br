@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 import type { Sql } from './db.js';
-import { award, loadEconomy, grantBadge } from './economy.js';
-import { processImage, storeImage, scoreEvidence } from './evidence.js';
+import { award, grantBadge, loadEconomy } from './economy.js';
+import { processImage, scoreEvidence, storeImage } from './evidence.js';
 
 /**
  * Dados de demonstração para o piloto (marcados como source='seed'; apague com `delete from users where handle like 'demo-%'`).

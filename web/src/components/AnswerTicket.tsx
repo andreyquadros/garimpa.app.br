@@ -1,11 +1,11 @@
+import { Check, Clock, Flag, MapPin, Navigation, RefreshCw, Store, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { motion } from 'motion/react';
-import { Check, Clock, Flag, MapPin, Navigation, RefreshCw, Store, ThumbsDown, ThumbsUp } from 'lucide-react';
-import type { Answer } from '@/lib/types';
 import { brl, dist, FLAG_LABEL, KINDS, timeAgo } from '@/lib/format';
-import { Avatar, Button, Stamp, StatusChip } from './ui';
+import type { Answer } from '@/lib/types';
 import { NuggetIcon } from './brand';
+import { Avatar, Button, Stamp, StatusChip } from './ui';
 
 const STALE_DAYS = 30;
 

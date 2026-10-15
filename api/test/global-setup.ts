@@ -1,4 +1,4 @@
-import { createDb, migrate, ensureCity } from '../src/db.js';
+import { createDb, ensureCity, migrate } from '../src/db.js';
 
 export default async function setup() {
   const url = process.env.DATABASE_URL_TEST ?? 'postgres://postgres@127.0.0.1:54329/garimpa_test';

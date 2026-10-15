@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { makeApp, login, uniq } from './helpers.js';
-import { award, levelFor, takeCap } from '../src/economy.js';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { App } from '../src/app.js';
 import type { Sql } from '../src/db.js';
+import { award, levelFor, takeCap } from '../src/economy.js';
+import { login, makeApp, uniq } from './helpers.js';
 
 let app: App;
 let sql: Sql;

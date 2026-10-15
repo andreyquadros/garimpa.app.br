@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import sharp from 'sharp';
+import { describe, expect, it } from 'vitest';
 import { dhashOf, hamming, processImage, scoreEvidence } from '../src/evidence.js';
 import { testImage } from './helpers.js';
 

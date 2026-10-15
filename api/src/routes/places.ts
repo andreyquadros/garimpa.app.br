@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { HTTPException } from 'hono/http-exception';
-import { type AppEnv, requireUser, recordSignal } from '../auth.js';
+import { z } from 'zod';
+import { type AppEnv, recordSignal, requireUser } from '../auth.js';
 import type { Sql, Tx } from '../db.js';
-import { grantBadge, award, takeCap, loadEconomy, type Economy } from '../economy.js';
+import { award, type Economy, grantBadge, loadEconomy, takeCap } from '../economy.js';
 
 export const placeRoutes = new Hono<AppEnv>();
 

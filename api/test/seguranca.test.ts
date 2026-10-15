@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { makeApp, login, api, upload, testImage, uniq } from './helpers.js';
-import { loadConfig } from '../src/config.js';
-import { upsertGoogleUser } from '../src/routes/auth.js';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { App } from '../src/app.js';
-import type { Sql } from '../src/db.js';
 import type { Config } from '../src/config.js';
+import { loadConfig } from '../src/config.js';
+import type { Sql } from '../src/db.js';
+import { upsertGoogleUser } from '../src/routes/auth.js';
+import { api, login, makeApp, testImage, uniq, upload } from './helpers.js';
 
 let app: App;
 let sql: Sql;

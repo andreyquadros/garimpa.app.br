@@ -1,11 +1,11 @@
-import { Link, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, BadgeCheck, Clock, MapPin, Navigation, Store } from 'lucide-react';
-import { api } from '@/lib/api';
-import { useConfig } from '@/lib/hooks';
-import { brl, KINDS, timeAgo } from '@/lib/format';
+import { Link, useNavigate, useParams } from 'react-router';
 import { MapView } from '@/components/MapView';
 import { Button, EmptyState, Spinner, StatusChip } from '@/components/ui';
+import { api } from '@/lib/api';
+import { brl, KINDS, timeAgo } from '@/lib/format';
+import { useConfig } from '@/lib/hooks';
 
 /** Lugar: onde fica e tudo que já foi encontrado ali. */
 export function PlacePage() {

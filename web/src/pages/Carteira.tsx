@@ -1,13 +1,13 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Clock, Heart, HelpCircle, Info, Lock, LogOut, Moon, Share2, Sun } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'motion/react';
-import { Clock, Heart, HelpCircle, Info, Lock, LogOut, Moon, Share2, Sun } from 'lucide-react';
-import { api } from '@/lib/api';
-import { useConfig, useMe, useShare, useTheme, useToast } from '@/lib/hooks';
-import { KIND_LABEL, timeAgo } from '@/lib/format';
-import { Avatar, Button, Headline, Sheet, Spinner } from '@/components/ui';
 import { asset, NuggetIcon, Pepi, XpStar } from '@/components/brand';
+import { Avatar, Button, Headline, Sheet, Spinner } from '@/components/ui';
+import { api } from '@/lib/api';
+import { KIND_LABEL, timeAgo } from '@/lib/format';
+import { useConfig, useMe, useShare, useTheme, useToast } from '@/lib/hooks';
 
 /** Carteira: pepitas de agradecimento, fundo de recompensas e histórico. */
 export function Carteira() {

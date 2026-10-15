@@ -1,14 +1,14 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { Compass, Flag, FlaskConical, Sparkles, Wallet } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'motion/react';
-import { Compass, Flag, FlaskConical, Sparkles, Wallet } from 'lucide-react';
-import { useMe, useToast } from '@/lib/hooks';
-import { Sheet, Button, Avatar, XpChip, StreakChip } from './ui';
 import { badgeBySlug } from '@/lib/badges';
+import { useMe, useToast } from '@/lib/hooks';
+import { celebrate } from '@/lib/reward';
 import type { Badge } from '@/lib/types';
 import { Anim, Pepi, RankBadge, Wordmark } from './brand';
-import { celebrate } from '@/lib/reward';
+import { Avatar, Button, Sheet, StreakChip, XpChip } from './ui';
 
 const tabs = [
   { to: '/', label: 'Explorar', icon: Compass, end: true },

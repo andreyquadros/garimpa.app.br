@@ -1,7 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'motion/react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -17,16 +14,19 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
-import { api } from '@/lib/api';
-import { useConfig, useDebounced, useGeo, useInvalidate, useMe, useToast } from '@/lib/hooks';
-import type { PlaceLite, UploadResult } from '@/lib/types';
-import { dist, KINDS, parseBrlToCents } from '@/lib/format';
-import { MapView } from '@/components/MapView';
-import { checksFromUpload, EvidenceChecklist } from '@/components/EvidenceChecklist';
-import { Button, Chip, Field, Spinner, TextArea } from '@/components/ui';
+import { AnimatePresence, motion } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { Anim, NuggetIcon, Pepi } from '@/components/brand';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { checksFromUpload, EvidenceChecklist } from '@/components/EvidenceChecklist';
+import { MapView } from '@/components/MapView';
+import { Button, Chip, Field, Spinner, TextArea } from '@/components/ui';
+import { api } from '@/lib/api';
+import { dist, KINDS, parseBrlToCents } from '@/lib/format';
+import { useConfig, useDebounced, useGeo, useInvalidate, useMe, useToast } from '@/lib/hooks';
 import { celebrate } from '@/lib/reward';
+import type { PlaceLite, UploadResult } from '@/lib/types';
 
 type Step = 'prova' | 'lugar' | 'detalhes' | 'pronto';
 

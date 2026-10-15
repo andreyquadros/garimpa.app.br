@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { ChevronDown, Flag } from 'lucide-react';
-import { api } from '@/lib/api';
-import { useGeo, useMe } from '@/lib/hooks';
-import { CATEGORIES } from '@/lib/format';
-import { QuestionCard } from '@/components/QuestionCard';
-import { Button, Chip, EmptyState, Reveal, RevealItem, Segmented, Spinner } from '@/components/ui';
+import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
 import { Pepi } from '@/components/brand';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { QuestionCard } from '@/components/QuestionCard';
+import { Button, Chip, EmptyState, Reveal, RevealItem, Segmented, Spinner } from '@/components/ui';
+import { api } from '@/lib/api';
+import { CATEGORIES } from '@/lib/format';
+import { useGeo, useMe } from '@/lib/hooks';
 
 const TABS = [
   { id: 'abertas', label: 'Procurando' },

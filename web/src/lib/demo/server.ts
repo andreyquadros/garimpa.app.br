@@ -1,12 +1,18 @@
 import { BADGES, LEVELS, levelFor } from '../economy';
-import { demoImageDataUrl, placeholderDataUrl, type Processed, processImage } from './image';
+import { demoImageDataUrl, type Processed, placeholderDataUrl, processImage } from './image';
 import {
-  CITY,
-  HttpError,
   award,
+  CITY,
+  type DemoAnswer,
+  type DemoEvidence,
+  type DemoPlace,
+  type DemoQuestion,
+  type DemoState,
+  type DemoUser,
   eco,
   getState,
   grantBadge,
+  HttpError,
   localDay,
   memImages,
   now,
@@ -19,19 +25,13 @@ import {
   userById,
   uuid,
   vestDue,
-  type DemoAnswer,
-  type DemoEvidence,
-  type DemoPlace,
-  type DemoQuestion,
-  type DemoState,
-  type DemoUser,
 } from './state';
 import {
   DUPLICATE_HAMMING,
-  SIMILAR_HAMMING,
   hamming,
   haversineM,
   normText,
+  SIMILAR_HAMMING,
   scoreEvidence,
   similarity,
   slugify,

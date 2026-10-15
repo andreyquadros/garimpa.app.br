@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, Camera, Check, Flag, MapPin, RefreshCw, ShieldCheck } from 'lucide-react';
-import { api, ApiError } from '@/lib/api';
-import { useConfig, useDebounced, useGeo, useInvalidate, useMe, useToast } from '@/lib/hooks';
-import { CATEGORIES } from '@/lib/format';
-import type { Similar } from '@/lib/types';
-import { SimilarCard } from '@/components/QuestionCard';
-import { Button, Chip, Sheet, TextArea } from '@/components/ui';
+import { AnimatePresence, motion } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { NuggetIcon } from '@/components/brand';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { SimilarCard } from '@/components/QuestionCard';
+import { Button, Chip, Sheet, TextArea } from '@/components/ui';
+import { ApiError, api } from '@/lib/api';
+import { CATEGORIES } from '@/lib/format';
+import { useConfig, useDebounced, useGeo, useInvalidate, useMe, useToast } from '@/lib/hooks';
+import type { Similar } from '@/lib/types';
 
 /** Nova missão: um formulário só, com reuso de missões parecidas antes de publicar. */
 export function Ask() {

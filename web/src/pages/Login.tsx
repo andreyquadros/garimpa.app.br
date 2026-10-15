@@ -1,12 +1,12 @@
-import { useCallback, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
-import { api } from '@/lib/api';
-import { useConfig, useToast } from '@/lib/hooks';
+import { useCallback, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { asset, Wordmark } from '@/components/brand';
 import { GoogleButton } from '@/components/GoogleButton';
 import { Button, Field } from '@/components/ui';
-import { asset, Wordmark } from '@/components/brand';
+import { api } from '@/lib/api';
+import { useConfig, useToast } from '@/lib/hooks';
 
 /** Boas-vindas: ilustração do comércio local, uma frase e o botão do Google. */
 export function Login() {

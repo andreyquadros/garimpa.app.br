@@ -1,17 +1,17 @@
+import { useQuery } from '@tanstack/react-query';
+import { BadgeCheck, ChevronRight, Clock, Flag, LocateFixed, RefreshCw, Store } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'motion/react';
-import { BadgeCheck, ChevronRight, Clock, Flag, LocateFixed, RefreshCw, Store } from 'lucide-react';
+import { Anim, Pepi } from '@/components/brand';
+import { MapView } from '@/components/MapView';
+import { SimilarCard } from '@/components/QuestionCard';
+import { SearchHero } from '@/components/SearchPill';
+import { Button, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
+import { timeAgo } from '@/lib/format';
 import { useConfig, useDebounced, useGeo, useToast } from '@/lib/hooks';
 import type { Find } from '@/lib/types';
-import { MapView } from '@/components/MapView';
-import { SearchHero } from '@/components/SearchPill';
-import { SimilarCard } from '@/components/QuestionCard';
-import { Button, Spinner } from '@/components/ui';
-import { Anim, Pepi } from '@/components/brand';
-import { timeAgo } from '@/lib/format';
 
 const STALE_DAYS = 30;
 const isStale = (f: Find) => Date.now() - new Date(f.lastFindAt).getTime() > STALE_DAYS * 86400000;

@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server';
-import { loadConfig } from './config.js';
-import { createDb, migrate, ensureCity } from './db.js';
 import { createApp } from './app.js';
+import { loadConfig } from './config.js';
+import { createDb, ensureCity, migrate } from './db.js';
 import { runTick } from './jobs.js';
 
 const config = loadConfig();

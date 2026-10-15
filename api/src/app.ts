@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { ZodError } from 'zod';
+import { type AppEnv, withUser } from './auth.js';
 import type { Config } from './config.js';
 import type { Sql } from './db.js';
-import { type AppEnv, withUser } from './auth.js';
+import { answerRoutes } from './routes/answers.js';
 import { authRoutes } from './routes/auth.js';
 import { miscRoutes } from './routes/misc.js';
-import { questionRoutes } from './routes/questions.js';
-import { answerRoutes } from './routes/answers.js';
 import { placeRoutes } from './routes/places.js';
+import { questionRoutes } from './routes/questions.js';
 import { serveUpload, serveWeb } from './static.js';
 
 export function createApp(deps: { sql: Sql; config: Config }) {

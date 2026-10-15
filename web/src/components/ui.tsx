@@ -1,16 +1,16 @@
+import { ArrowRight, Flame, X } from 'lucide-react';
+import { AnimatePresence, animate, motion, useReducedMotion } from 'motion/react';
 import {
-  useEffect,
-  useRef,
-  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
   type TextareaHTMLAttributes,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
-import { AnimatePresence, animate, motion, useReducedMotion } from 'motion/react';
-import { ArrowRight, Flame, X } from 'lucide-react';
-import { NuggetIcon, StateArt, BrandSymbol, XpStar } from './brand';
 import { haptic } from '@/lib/reward';
+import { BrandSymbol, NuggetIcon, StateArt, XpStar } from './brand';
 
 /** Compatibilidade: a pepita do pacote substitui o ícone desenhado à mão. */
 export function PepitaIcon({ size = 18, className = '' }: { size?: number; className?: string }) {

@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { HTTPException } from 'hono/http-exception';
+import { z } from 'zod';
 import {
   type AppEnv,
-  type GoogleProfile,
   clearSessionCookie,
+  type GoogleProfile,
   loadUser,
   recordSignal,
   requireUser,
@@ -13,8 +13,8 @@ import {
   uniqueHandle,
   verifyGoogleIdToken,
 } from '../auth.js';
-import { grantBadge } from '../economy.js';
 import type { Sql } from '../db.js';
+import { grantBadge } from '../economy.js';
 import { slugify } from '../text.js';
 
 export const authRoutes = new Hono<AppEnv>();

@@ -1,16 +1,15 @@
+import { useQuery } from '@tanstack/react-query';
+import { BadgeCheck, Camera, Check, Flame, Lock, Share2, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
-import { motion } from 'motion/react';
-import { BadgeCheck, Camera, Check, Flame, Lock, Share2, Sparkles } from 'lucide-react';
-import { BADGES } from '@/lib/badges';
-import type { LedgerItem } from '@/lib/types';
-import { api } from '@/lib/api';
-import { useMe, useShare, useToast } from '@/lib/hooks';
-import { LEVELS } from '@/lib/economy';
-import type { RankRow } from '@/lib/types';
-import { Avatar, Button, Card, EmptyState, Headline, Segmented, Spinner } from '@/components/ui';
 import { Pepi, RankBadge, XpStar } from '@/components/brand';
+import { Avatar, Button, Card, EmptyState, Headline, Segmented, Spinner } from '@/components/ui';
+import { api } from '@/lib/api';
+import { BADGES } from '@/lib/badges';
+import { LEVELS } from '@/lib/economy';
+import { useMe, useShare, useToast } from '@/lib/hooks';
+import type { LedgerItem, RankRow } from '@/lib/types';
 
 /** Jornada: patente, árvore de níveis, conquistas e quem mais ajudou a cidade. */
 export function Jornada() {

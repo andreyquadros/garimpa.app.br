@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import type { Find, OpenPin } from '@/lib/types';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import type { Geo } from '@/lib/hooks';
+import type { Find, OpenPin } from '@/lib/types';
 
 export type Tiles = { url: string; fallbackUrl: string; minZoom: number; maxZoom: number };
 

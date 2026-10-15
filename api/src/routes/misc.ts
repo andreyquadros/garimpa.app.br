@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
-import { HTTPException } from 'hono/http-exception';
 import { bodyLimit } from 'hono/body-limit';
-import { type AppEnv, requireUser, requireRole, recordSignal } from '../auth.js';
-import { LEVELS, levelFor, loadEconomy, touchStreak, takeCap } from '../economy.js';
-import { type Processed, processImage, storeImage, DUPLICATE_HAMMING, SIMILAR_HAMMING } from '../evidence.js';
-import { reverseAnswerAwards, restoreAnswerAwards, reopenQuestionIfAccepted } from './answers.js';
+import { HTTPException } from 'hono/http-exception';
+import { z } from 'zod';
+import { type AppEnv, recordSignal, requireRole, requireUser } from '../auth.js';
+import { LEVELS, levelFor, loadEconomy, takeCap, touchStreak } from '../economy.js';
+import { DUPLICATE_HAMMING, type Processed, processImage, SIMILAR_HAMMING, storeImage } from '../evidence.js';
+import { reopenQuestionIfAccepted, restoreAnswerAwards, reverseAnswerAwards } from './answers.js';
 
 export const miscRoutes = new Hono<AppEnv>();
 

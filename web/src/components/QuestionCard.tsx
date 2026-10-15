@@ -1,8 +1,8 @@
-import { Link } from 'react-router';
 import { MapPin } from 'lucide-react';
-import { CategoryIcon } from './CategoryIcon';
-import type { QuestionListItem, Similar } from '@/lib/types';
+import { Link } from 'react-router';
 import { dist, timeAgo } from '@/lib/format';
+import type { QuestionListItem, Similar } from '@/lib/types';
+import { CategoryIcon } from './CategoryIcon';
 import { PepitaPill, StatusChip } from './ui';
 
 const STATUS: Record<string, { label: string; tone: 'ok' | 'wait' | 'warn' | 'muted' }> = {

@@ -1,18 +1,18 @@
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Heart, Share2, Users } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
-import { motion } from 'motion/react';
-import { ArrowLeft, Heart, Share2, Users } from 'lucide-react';
-import { api } from '@/lib/api';
-import { useConfig, useGeo, useInvalidate, useMe, useShare, useToast } from '@/lib/hooks';
-import type { Answer, Find } from '@/lib/types';
-import { categoryOf, timeAgo } from '@/lib/format';
-import { MapView } from '@/components/MapView';
 import { AnswerTicket } from '@/components/AnswerTicket';
-import { Avatar, Button, EmptyState, PepitaPill, Sheet, Spinner, StatusChip } from '@/components/ui';
 import { NuggetIcon, Pepi } from '@/components/brand';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { MapView } from '@/components/MapView';
+import { Avatar, Button, EmptyState, PepitaPill, Sheet, Spinner, StatusChip } from '@/components/ui';
+import { api } from '@/lib/api';
+import { categoryOf, timeAgo } from '@/lib/format';
+import { useConfig, useGeo, useInvalidate, useMe, useShare, useToast } from '@/lib/hooks';
 import { celebrate } from '@/lib/reward';
+import type { Answer, Find } from '@/lib/types';
 
 const STATUS: Record<string, { label: string; tone: 'ok' | 'wait' | 'warn' | 'muted' }> = {
   aberta: { label: 'Procurando', tone: 'warn' },

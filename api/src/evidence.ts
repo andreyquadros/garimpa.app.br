@@ -1,8 +1,8 @@
-import sharp from 'sharp';
-import exifr from 'exifr';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import exifr from 'exifr';
+import sharp from 'sharp';
 import { haversineM } from './text.js';
 
 export const EXIF_NEAR_M = 300;

@@ -1,5 +1,5 @@
+import { AlertTriangle, Camera, Check as CheckIcon } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Check as CheckIcon, AlertTriangle, Camera } from 'lucide-react';
 
 export type Check = { ok: boolean | null; label: string; help?: string };
 

@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { HTTPException } from 'hono/http-exception';
-import { type AppEnv, requireUser, recordSignal, collusionBetween } from '../auth.js';
+import { z } from 'zod';
+import { type AppEnv, collusionBetween, recordSignal, requireUser } from '../auth.js';
 import type { Sql } from '../db.js';
-import { award, takeCap, takeMintCap, loadEconomy, grantBadge } from '../economy.js';
+import { award, grantBadge, loadEconomy, takeCap, takeMintCap } from '../economy.js';
 import { allEvidencesReused } from './answers.js';
 
 export const questionRoutes = new Hono<AppEnv>();

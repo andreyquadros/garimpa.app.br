@@ -1,10 +1,10 @@
+import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import fs from 'node:fs/promises';
 import sharp from 'sharp';
+import { type App, createApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
 import { createDb } from '../src/db.js';
-import { createApp, type App } from '../src/app.js';
 
 export const TEST_DB = process.env.DATABASE_URL_TEST ?? 'postgres://postgres@127.0.0.1:54329/garimpa_test';
 
