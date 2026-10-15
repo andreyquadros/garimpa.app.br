@@ -237,7 +237,7 @@ export function AnswerPage() {
         <br />
         Uma descoberta de todos.
       </h1>
-      <div className="mt-4 flex gap-2" aria-label={`Passo ${idx + 1} de 3`}>
+      <div className="mt-4 flex gap-2" role="img" aria-label={`Passo ${idx + 1} de 3`}>
         {order.map((s, i) => (
           <span key={s} className="flex-1 h-1.5 rounded-full bg-line overflow-hidden">
             <motion.span
@@ -359,6 +359,7 @@ export function AnswerPage() {
                     value={placeQuery}
                     onChange={(e) => setPlaceQuery(e.target.value)}
                     placeholder="Nome da loja ou mercado"
+                    // biome-ignore lint/a11y/noAutofocus: o campo aparece quando a pessoa toca em "escolher a loja"; focar é a continuação natural da ação.
                     autoFocus
                     className="flex-1 bg-transparent outline-none font-semibold"
                   />

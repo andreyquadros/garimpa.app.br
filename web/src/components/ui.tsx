@@ -141,6 +141,7 @@ export function Spinner({ size = 20, className = '' }: { size?: number; classNam
     <span
       className={`inline-block animate-spin rounded-full border-[3px] border-current border-t-transparent ${className}`}
       style={{ width: size, height: size }}
+      role="status"
       aria-label="carregando"
     />
   );

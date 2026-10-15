@@ -14,19 +14,25 @@ export function BrandSymbol({
   light?: boolean;
   className?: string;
 }) {
-  const common = { width: size, height: size, alt: '', 'aria-hidden': true as const, draggable: false };
+  const common = { width: size, height: size, 'aria-hidden': true as const, draggable: false };
   if (light !== undefined)
     return (
       <img
         src={asset(light ? 'id/symbol-light.svg' : 'id/symbol.svg')}
         {...common}
+        alt=""
         className={`shrink-0 ${className}`}
       />
     );
   return (
     <>
-      <img src={asset('id/symbol.svg')} {...common} className={`shrink-0 dark:hidden ${className}`} />
-      <img src={asset('id/symbol-light.svg')} {...common} className={`shrink-0 hidden dark:block ${className}`} />
+      <img src={asset('id/symbol.svg')} {...common} alt="" className={`shrink-0 dark:hidden ${className}`} />
+      <img
+        src={asset('id/symbol-light.svg')}
+        {...common}
+        alt=""
+        className={`shrink-0 hidden dark:block ${className}`}
+      />
     </>
   );
 }
@@ -44,7 +50,7 @@ export function Wordmark({
   const color = tone === 'light' ? 'text-creme' : 'text-brand-ink';
   const soft = tone === 'light' ? 'text-lima-400' : 'text-accent';
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`} aria-label="Pepita Social">
+    <span className={`inline-flex items-center gap-2 ${className}`} role="img" aria-label="Pepita Social">
       <BrandSymbol size={size * 1.15} light={tone === 'light' ? true : undefined} />
       <span
         className={`font-display font-extrabold leading-none ${color}`}

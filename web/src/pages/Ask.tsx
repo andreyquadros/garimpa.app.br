@@ -115,6 +115,7 @@ export function Ask() {
       <label className="block mt-6">
         <span className="block font-display font-bold mb-2">O que você está procurando?</span>
         <input
+          // biome-ignore lint/a11y/noAutofocus: a tela existe para escrever a missão; o único campo útil é este e o teclado precisa abrir direto.
           autoFocus
           value={title}
           onChange={(e) => {

@@ -20,6 +20,7 @@ export function SearchHero({
   placeholder?: string;
 }) {
   return (
+    // biome-ignore lint/a11y/useSemanticElements: <search> é recente (Safari 17+, Chrome 118+) e, desconhecido, renderiza inline e quebra o layout da pílula; o role em <form> tem o mesmo efeito para leitores de tela.
     <form
       role="search"
       onSubmit={(e) => {
@@ -40,6 +41,7 @@ export function SearchHero({
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          // biome-ignore lint/a11y/noAutofocus: a pílula só recebe foco quando quem chama pede (`autoFocus`), após a pessoa abrir a busca; é a ação esperada.
           autoFocus={autoFocus}
           enterKeyHint="search"
           autoComplete="off"
