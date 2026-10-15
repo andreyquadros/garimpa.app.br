@@ -353,6 +353,7 @@ body {
 }
 .leaflet-control-attribution {
   font-size: 10px;
+  /* biome-ignore lint/complexity/noImportantStyles: o Leaflet define o fundo com `.leaflet-container .leaflet-control-attribution` (especificidade maior); só `!important` sobrescreve. */
   background: rgb(246 245 238 / 0.8) !important;
   color: #59776c;
 }
@@ -456,7 +457,9 @@ body {
   *,
   *::before,
   *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduzir movimento precisa vencer qualquer animação, inclusive estilos inline do Framer Motion e de bibliotecas. */
     animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: idem, para as transições. */
     transition-duration: 0.01ms !important;
   }
 }
