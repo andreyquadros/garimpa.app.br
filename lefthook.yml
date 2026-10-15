@@ -1,17 +1,20 @@
 # Hooks locais (ADR-0004). O CI repete as mesmas verificações.
+# Chamam os binários locais, sem depender do pnpm no PATH. doublestar faz "api/**/*.ts" casar também api/x.ts.
+glob_matcher: doublestar
+
 pre-commit:
   parallel: true
   jobs:
     - name: biome
-      glob: "*.{ts,tsx,mjs,js,json,jsonc,css,html}"
-      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      glob: "**/*.{ts,tsx,mjs,js,json,jsonc,css,html}"
+      run: ./node_modules/.bin/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
     - name: typecheck-api
       glob: "api/**/*.ts"
-      run: pnpm --filter garimpa-api typecheck
+      run: ./api/node_modules/.bin/tsc -p api/tsconfig.json --noEmit
     - name: typecheck-web
       glob: "web/**/*.{ts,tsx}"
-      run: pnpm --filter garimpa-web typecheck
+      run: ./web/node_modules/.bin/tsc -p web/tsconfig.json --noEmit
 
 commit-msg:
   jobs:
