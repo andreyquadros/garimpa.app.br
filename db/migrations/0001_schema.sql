@@ -1,4 +1,4 @@
--- Garimpa · esquema inicial (PostgreSQL 16)
+-- Garimpa · esquema inicial (PostgreSQL 18)
 -- Geo: cube + earthdistance (distâncias em metros, índice GiST). Busca: pg_trgm + unaccent + tsvector 'portuguese'.
 create extension if not exists cube;
 create extension if not exists earthdistance;

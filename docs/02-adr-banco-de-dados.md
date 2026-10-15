@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Decidido (piloto) |
-| **Decisão** | **PostgreSQL 16** auto-hospedado no KVM 8 (Dokploy), com `earthdistance` para geolocalização, `pg_trgm` + `unaccent` + `tsvector('portuguese')` para busca e deduplicação, e o livro-razão de pontos em SQL transacional. PostGIS fica como atualização opcional. |
+| **Decisão** | **PostgreSQL 18** auto-hospedado no KVM 8 (Dokploy), com `earthdistance` para geolocalização, `pg_trgm` + `unaccent` + `tsvector('portuguese')` para busca e deduplicação, e o livro-razão de pontos em SQL transacional. PostGIS fica como atualização opcional. |
 | **Custo** | Zero marginal: roda ao lado do Postgres do Traccar na VPS já paga. Nada em dólar, nenhum serviço que pausa ou cobra por leitura. |
 
 ## O que o app exige do banco
@@ -30,8 +30,8 @@
 
 ## Decisão e consequências
 
-- **PostgreSQL 16 em contêiner próprio** (`garimpa-db`) no mesmo Docker Compose do Dokploy, volume persistente, backup diário com `pg_dump` para fora da VPS (mesma rotina do Traccar).
-- **`earthdistance` em vez de PostGIS no piloto.** Para um raio urbano de 15 km a diferença de precisão é irrelevante, a extensão vem no pacote padrão do Postgres e os testes rodam em qualquer Postgres (incluindo o do GitHub Actions) sem imagem especial. Quando houver polígonos (bairros, área de cobertura de loja), instalar PostGIS é `create extension postgis` na imagem `postgis/postgis:16`; as colunas `lat/lng` continuam valendo.
+- **PostgreSQL 18 em contêiner próprio** (`garimpa-db`) no mesmo Docker Compose do Dokploy, volume persistente, backup diário com `pg_dump` para fora da VPS (mesma rotina do Traccar).
+- **`earthdistance` em vez de PostGIS no piloto.** Para um raio urbano de 15 km a diferença de precisão é irrelevante, a extensão vem no pacote padrão do Postgres e os testes rodam em qualquer Postgres (incluindo o do GitHub Actions) sem imagem especial. Quando houver polígonos (bairros, área de cobertura de loja), instalar PostGIS é `create extension postgis` na imagem `postgis/postgis:18`; as colunas `lat/lng` continuam valendo.
 - **Busca e dedupe no próprio banco.** Coluna gerada `tsv` com dicionário português + `unaccent`, coluna `title_norm` com índice GIN de trigramas. Nenhum serviço externo de busca no piloto.
 - **Livro-razão (`ledger`) como fonte única de verdade** de XP e pepitas; `users.xp/credits` são caches mantidos pelas funções `fn_award`, `fn_vest_due`, `fn_reverse`. Toda cunhagem passa por uma função com `for update`.
 - **Hash perceptual (dHash) das fotos no banco** (`bit(64)`), comparação por distância de Hamming via `fn_hamming`. Varredura linear basta até algumas centenas de milhares de fotos; se passar disso, índice BK-tree em tabela auxiliar ou `pgvector`.
@@ -53,3 +53,10 @@
 | Fotos | 15 mil × ~250 KB = ~4 GB em disco |
 | Banco | < 1 GB |
 | Carga | < 5 req/s de pico; um contêiner de API e um de Postgres sobram |
+
+## Revisão 1 — PostgreSQL 16 → 18 (out/2026)
+
+- **Motivo:** a base é nova e ainda não há dados em produção, então a troca não custa migração. O 18 traz `uuidv7()` nativo (ids ordenados por tempo, índices menores em `ledger` e `evidences`), `RETURNING old.*/new.*`, I/O assíncrono e *skip scan* em índices compostos.
+- **Compatibilidade:** esquema, funções PL/pgSQL e extensões (`earthdistance`, `cube`, `pg_trgm`, `unaccent`) rodam sem mudança; os 41 testes da API passam no 18.6.
+- **Atenção no Docker:** a imagem `postgres:18` guarda os dados em `/var/lib/postgresql/18/docker` e declara o volume em `/var/lib/postgresql`. O compose monta o volume nesse diretório; montar em `/var/lib/postgresql/data`, como no 16, faz o banco subir vazio fora do volume.
+- **Adoção dos recursos novos** (`uuidv7()` como padrão das chaves, `RETURNING old/new` no lugar de `xmax = 0`) fica para migrações próprias.
