@@ -15,6 +15,8 @@
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
   "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "always" } },
+  // O web/src/styles.css usa diretivas do Tailwind 4 (`@theme`, `@custom-variant`).
+  "css": { "parser": { "tailwindDirectives": true } },
   "linter": {
     "enabled": true,
     "rules": {
