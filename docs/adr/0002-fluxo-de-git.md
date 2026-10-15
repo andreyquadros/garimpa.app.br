@@ -12,7 +12,7 @@ A base do piloto foi montada rápido e o histórico tem poucos commits grandes. 
 ## Decisão
 
 - **Branches:** sempre a partir da `main` atualizada, com nome `tipo/descricao-curta` (`feat/uuidv7`, `fix/device-id-sem-storage`). Nada é commitado direto na `main`.
-- **Commits:** `tipo: descrição` em português, no presente, primeira linha com até ~70 caracteres; corpo com o porquê quando não for óbvio. Tipos: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `infra`, `ci`, `chore`, `style`. Um assunto por commit; todo commit deixa lint, tipos e testes passando.
+- **Commits:** `tipo: descrição` em português, no presente, primeira linha com até 72 caracteres; corpo com o porquê quando não for óbvio. Tipos: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `infra`, `ci`, `chore`, `style`. Um assunto por commit; todo commit deixa lint, tipos e testes passando.
 - **Autoria:** commits só no nome de quem desenvolve, sem `Co-Authored-By` nem menção ao Claude.
 - **Pull requests:** um por branch, com o que mudou, por quê e como foi testado. PRs grandes são divididos em PRs encadeados. Merge só com o CI verde.
 - **Integração:** rebase and merge; a branch é apagada depois.

@@ -13,7 +13,7 @@ As regras de qualidade (ADR-0003, ADR-0005) e de commits (ADR-0002) só valem se
 
 - **pre-commit:** Biome nos arquivos em stage (aplica a formatação e devolve ao stage) e typecheck do pacote afetado (`api` ou `web`). Meta: poucos segundos.
 - **commit-msg:** valida o formato Conventional Commits da ADR-0002 e recusa trailers `Co-Authored-By` do Claude.
-- **CI no PR:** `biome ci`, typecheck, testes da API (Postgres 18) **e** do web, build do PWA e build da demo. Merge só com tudo verde.
+- **CI no PR:** validação das mensagens de commit do intervalo (`--range`, que também recusa `fixup!`/`squash!`), `biome ci`, `test:scripts`, typecheck, testes da API (Postgres 18) **e** do web, build do PWA e build da demo. Merge só com tudo verde.
 - O teste de ponta a ponta do fluxo principal (Playwright, ADR-0005) entra no CI quando for criado.
 
 ## Opções comparadas
@@ -30,4 +30,5 @@ As regras de qualidade (ADR-0003, ADR-0005) e de commits (ADR-0002) só valem se
 
 - Os testes completos continuam sendo responsabilidade de quem commita (TDD) e são garantidos pelo CI.
 - A proteção da `main` (exigir PR e CI verde) é configurada no GitHub pelo dono do repositório.
+- Os hooks chamam os binários locais (`node_modules/.bin/biome`, `tsc` de cada pacote), então não dependem do `pnpm` no `PATH`; o `lefthook.yml` usa `glob_matcher: doublestar` para que `api/**/*.ts` também case arquivos na raiz do pacote.
 - O `prepare` só roda `lefthook install` dentro de um repositório git (build em Docker não tem `.git`); o Biome cobre também `jsonc` e `html`, e `test:scripts` usa o glob `scripts/*.test.mjs`.

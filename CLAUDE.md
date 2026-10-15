@@ -23,15 +23,16 @@ pnpm --filter garimpa-web test                        # testes do web
 pnpm --filter garimpa-web build                       # build do PWA
 ```
 
-Os hooks do lefthook (pre-commit e commit-msg) se instalam no `pnpm install`; o `pnpm` precisa estar no `PATH`
-do shell que roda o `git commit`. O teste de ponta a ponta (Playwright, ADR-0005) ainda está pendente.
+Sem pnpm na máquina: `npm i -g pnpm@10.28.0` (pode pedir `sudo`, conforme o prefixo do npm) ou prefixe qualquer
+comando com `npx pnpm@10.28.0` (ex.: `npx pnpm@10.28.0 install`). Os hooks do lefthook (pre-commit e commit-msg)
+se instalam no `pnpm install` e chamam os binários locais, então não dependem do pnpm no `PATH` (só do `node`). O teste de ponta a ponta (Playwright, ADR-0005) ainda está pendente.
 
 ## Git (ADR-0002)
 
 - Uma branch por tarefa, a partir da `main` atualizada: `tipo/descricao-curta` (ex.: `feat/uuidv7`).
   Nunca commitar direto na `main`.
 - Commits pequenos, um assunto cada, no formato `tipo: descrição` em português, no presente, primeira linha com até
-  ~70 caracteres; corpo com o porquê quando não for óbvio. Tipos: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`,
+  72 caracteres; corpo com o porquê quando não for óbvio. Tipos: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`,
   `infra`, `ci`, `chore`, `style`.
 - Código, infra e documentação em commits separados quando forem mudanças distintas.
 - Todo commit deixa tipos, lint e testes passando. Teste e implementação vão juntos no mesmo commit.
