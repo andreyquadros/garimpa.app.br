@@ -14,6 +14,10 @@ const uploadDir = mkdtempSync(path.join(tmpdir(), 'garimpa-e2e-'));
 export default defineConfig({
   testDir: 'e2e',
   workers: 1,
+  forbidOnly: !!process.env.CI,
+  timeout: 60_000,
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? [['dot'], ['html', { open: 'never' }]] : 'list',
   use: { baseURL: 'http://localhost:5174', trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
   webServer: [

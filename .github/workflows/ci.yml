@@ -35,6 +35,7 @@ jobs:
       - run: pnpm --filter garimpa-web build:demo
   e2e:
     needs: test
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     services:
       postgres:
