@@ -56,7 +56,8 @@ async function req<T>(method: string, path: string, body?: unknown, form?: FormD
   }
   const res = await transport(path, { method, headers, body: payload, credentials: 'same-origin' });
   const text = await res.text();
-  let data: any = null;
+  // O corpo é JSON do servidor, mas pode vir texto puro (ex.: erro do proxy); por isso `raw`.
+  let data: { message?: string; raw?: string } | null = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
