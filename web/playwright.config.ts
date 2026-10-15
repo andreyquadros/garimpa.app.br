@@ -5,6 +5,8 @@ import { defineConfig } from '@playwright/test';
 import { E2E_DATABASE_URL } from './e2e/db-url.ts';
 
 // Fotos enviadas nos testes vão para uma pasta temporária, nunca para a `uploads/` de desenvolvimento.
+const webDir = import.meta.dirname;
+const apiDir = path.resolve(webDir, '../api');
 const uploadDir = mkdtempSync(path.join(tmpdir(), 'garimpa-e2e-'));
 
 // Portas próprias (8788/5174) e `reuseExistingServer: false`: um servidor de desenvolvimento aberto (8787/5173, com o
@@ -16,8 +18,9 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
   webServer: [
     {
-      command:
-        'pnpm --filter garimpa-api exec tsx ../web/e2e/prepare-db.ts && pnpm --filter garimpa-api exec tsx src/main.ts',
+      // Binários locais direto (sem `pnpm` no PATH, como em `npx pnpm@10.28.0 ... test:e2e`).
+      command: 'node_modules/.bin/tsx ../web/e2e/prepare-db.ts && node_modules/.bin/tsx src/main.ts',
+      cwd: apiDir,
       url: 'http://localhost:8788/api/health',
       env: {
         DATABASE_URL: E2E_DATABASE_URL,
@@ -29,7 +32,8 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: 'pnpm --filter garimpa-web exec vite --port 5174 --strictPort',
+      command: 'node_modules/.bin/vite --port 5174 --strictPort',
+      cwd: webDir,
       url: 'http://localhost:5174',
       env: { VITE_API_PROXY: 'http://localhost:8788' },
       reuseExistingServer: false,
