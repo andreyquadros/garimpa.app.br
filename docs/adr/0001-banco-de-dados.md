@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Decidido (piloto) |
-| **Decisão** | **PostgreSQL 18** auto-hospedado no KVM 8 (Dokploy), com `earthdistance` para geolocalização, `pg_trgm` + `unaccent` + `tsvector('portuguese')` para busca e deduplicação, e o livro-razão de pontos em SQL transacional. PostGIS fica como atualização opcional. |
+| **Decisão** | **PostgreSQL 18** auto-hospedado no KVM 8 (Dokploy), com **PostGIS** para geolocalização (Revisão 2; antes `earthdistance`), `pg_trgm` + `unaccent` + `tsvector('portuguese')` para busca e deduplicação, e o livro-razão de pontos em SQL transacional. |
 | **Custo** | Zero marginal: roda ao lado do Postgres do Traccar na VPS já paga. Nada em dólar, nenhum serviço que pausa ou cobra por leitura. |
 
 ## O que o app exige do banco
@@ -60,3 +60,16 @@
 - **Compatibilidade:** esquema, funções PL/pgSQL e extensões (`earthdistance`, `cube`, `pg_trgm`, `unaccent`) rodam sem mudança; os 41 testes da API passam no 18.6.
 - **Atenção no Docker:** a imagem `postgres:18` guarda os dados em `/var/lib/postgresql/18/docker` e declara o volume em `/var/lib/postgresql`. O compose monta o volume nesse diretório; montar em `/var/lib/postgresql/data`, como no 16, faz o banco subir vazio fora do volume.
 - **Adoção dos recursos novos** (`uuidv7()` como padrão das chaves, `RETURNING old/new` no lugar de `xmax = 0`) fica para migrações próprias.
+
+## Revisão 2 — `earthdistance` → PostGIS (out/2026)
+
+- **Motivo:** a troca nunca vai custar tão pouco: não há dados em produção, a stack está em revisão e o banco acabou de mudar de versão. Várias ideias em discussão dependem de PostGIS: importar lojas do OpenStreetMap, agrupar pinos no servidor, servir tiles vetoriais próprios (`ST_AsMVT`) e trocar a cidade "ponto + raio" por um polígono (bairros, várias cidades).
+- **O motivo original deixou de valer:** o `earthdistance` foi escolhido para rodar em qualquer imagem do Postgres, sem imagem especial no CI. Com o banco em contêiner no CI, no ambiente local e no deploy (ADR-0004), usar PostGIS é trocar a imagem.
+- **Problema encontrado no esquema atual:** o índice GiST `places_earth` não é usado por nenhuma consulta. Elas filtram com `earth_distance(...) <= raio` ou `lat between ... and lng between ...`, formas que não aproveitam o índice; `lat`/`lng` também não têm índice comum. Toda consulta de mapa percorre a tabela inteira.
+- **Decisão:**
+  - imagem `postgis/postgis:18-3.6-alpine` (existe no Docker Hub) no compose, no CI e no ambiente local;
+  - coluna `geog geography(Point, 4326)` gerada a partir de `lat`/`lng` em `places` e `questions`, com índice GiST; `lat`/`lng` continuam existindo para não reescrever a API de uma vez;
+  - consultas reescritas para `ST_DWithin` (raio), `&&` com `ST_MakeEnvelope` (área visível do mapa) e `<->` (mais perto primeiro), cada uma coberta por teste antes da troca (ADR-0005);
+  - `earthdistance` e `cube` saem do esquema;
+  - polígono de área em `cities` no lugar de `radius_m` fica para quando houver bairros ou uma segunda cidade.
+- **Consequências:** a imagem do banco fica algumas centenas de MB maior; a cada atualização de versão do Postgres, a versão do PostGIS precisa existir nos dois lados do `pg_upgrade`; em todo código geográfico, a ordem é **longitude, latitude** (`ST_MakePoint(lng, lat)`). A imagem do PostGIS deriva da oficial do Postgres, então vale o mesmo cuidado com o caminho do volume da Revisão 1 (conferir na implementação).
