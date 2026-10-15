@@ -9,7 +9,7 @@
    login: Google Identity Services ─────────┘           └─ /*       build do PWA (web/dist)
                                                              │
                                                       PostgreSQL 18 (garimpa-db)
-                                                      earthdistance · pg_trgm · unaccent · tsvector pt
+                                                      PostGIS · pg_trgm · unaccent · tsvector pt
    tiles: OpenStreetMap por padrão (configurável por TILES_URL; servidor próprio opcional)
 ```
 
@@ -101,4 +101,4 @@ Diferenças assumidas em relação à API real: o navegador não lê EXIF (a pro
 - Notificações push (Web Push, VAPID) quando a sua pergunta recebe pista.
 - Painel do parceiro (fase 2): reivindicar lugar, campanhas, relatório de demanda.
 - Resgate via Pix (fase 2): `payouts` + conciliação com o Cofre.
-- PostGIS quando houver polígonos de bairro ou área de cobertura.
+- Polígonos de bairro ou área de cobertura (o PostGIS já está no banco).

@@ -52,7 +52,7 @@ Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (p
 |---|---|
 | PWA | React 19, Vite 8, TypeScript, Tailwind 4, Motion, Leaflet (tiles próprios de Ariquemes), TanStack Query, vite-plugin-pwa |
 | API | Node 22, Hono, Postgres.js, jose (Google ID token), sharp + exifr (provas), zod |
-| Banco | PostgreSQL 18 com `earthdistance`, `pg_trgm`, `unaccent`, `tsvector('portuguese')`; livro-razão em PL/pgSQL |
+| Banco | PostgreSQL 18 com PostGIS, `pg_trgm`, `unaccent`, `tsvector('portuguese')`; livro-razão em PL/pgSQL |
 | Deploy | uma imagem Docker (API serve o PWA e as fotos) + Postgres + backup, via Dokploy no KVM 8 |
 
 ## Rodar

@@ -63,6 +63,7 @@
 
 ## Revisão 2 — `earthdistance` → PostGIS (out/2026)
 
+- **Status:** implementada (migrações 0005 e 0006).
 - **Motivo:** a troca nunca vai custar tão pouco: não há dados em produção, a stack está em revisão e o banco acabou de mudar de versão. Várias ideias em discussão dependem de PostGIS: importar lojas do OpenStreetMap, agrupar pinos no servidor, servir tiles vetoriais próprios (`ST_AsMVT`) e trocar a cidade "ponto + raio" por um polígono (bairros, várias cidades).
 - **O motivo original deixou de valer:** o `earthdistance` foi escolhido para rodar em qualquer imagem do Postgres, sem imagem especial no CI. Com o banco em contêiner no CI, no ambiente local e no deploy (ADR-0004), usar PostGIS é trocar a imagem.
 - **Problema encontrado no esquema atual:** o índice GiST `places_earth` não é usado por nenhuma consulta. Elas filtram com `earth_distance(...) <= raio` ou `lat between ... and lng between ...`, formas que não aproveitam o índice; `lat`/`lng` também não têm índice comum. Toda consulta de mapa percorre a tabela inteira.
