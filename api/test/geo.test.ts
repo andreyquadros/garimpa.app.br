@@ -167,6 +167,13 @@ describe('consultas geográficas', () => {
     expect(idx.map((i) => i.indexname).sort()).toEqual(['places_geog_idx', 'questions_geog_idx']);
   });
 
+  it('earthdistance e cube não estão mais instalados', async () => {
+    const exts = await sql`select extname from pg_extension`;
+    const names = exts.map((e) => e.extname);
+    expect(names).not.toContain('earthdistance');
+    expect(names).not.toContain('cube');
+  });
+
   it('consulta de área usa o índice', async () => {
     const plan = await sql.begin(async (tx) => {
       await tx`set local enable_seqscan = off`;
