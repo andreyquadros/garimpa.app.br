@@ -25,7 +25,7 @@ export async function seedDemo(sql: Sql, uploadDir: string, cityId: string) {
   for (const u of users) {
     const r = await sql<
       { id: string }[]
-    >`insert into users(name, handle, city_id, google_sub, created_at) values (${u.name}, ${u.handle}, ${cityId}, ${'seed:' + u.handle}, now() - interval '20 days') returning id`;
+    >`insert into users(name, handle, city_id, google_sub, created_at) values (${u.name}, ${u.handle}, ${cityId}, ${`seed:${u.handle}`}, now() - interval '20 days') returning id`;
     uid[u.handle] = r[0]!.id;
     await grantBadge(sql, r[0]!.id, 'fundador');
   }

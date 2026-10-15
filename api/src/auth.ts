@@ -146,12 +146,7 @@ export function signalsOf(c: Context<AppEnv>): { ipHash: string; deviceHash: str
   const device = c.req.header('x-garimpa-device') ?? '';
   // Sem IP ou sem id de dispositivo fica vazio: vazio nunca casa com vazio na detecção de conluio.
   const h = (v: string) =>
-    v
-      ? createHash('sha256')
-          .update(cfg.SESSION_SECRET + '|' + v)
-          .digest('hex')
-          .slice(0, 32)
-      : '';
+    v ? createHash('sha256').update(`${cfg.SESSION_SECRET}|${v}`).digest('hex').slice(0, 32) : '';
   return { ipHash: h(ip), deviceHash: h(device) };
 }
 

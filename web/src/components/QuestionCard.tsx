@@ -14,7 +14,7 @@ const STATUS: Record<string, { label: string; tone: 'ok' | 'wait' | 'warn' | 'mu
 
 /** Cartão de missão da comunidade. */
 export function QuestionCard({ q, hideStatus }: { q: QuestionListItem; hideStatus?: string }) {
-  const st = STATUS[q.status] ?? STATUS['aberta']!;
+  const st = STATUS[q.status] ?? STATUS.aberta!;
   const meta = [
     hideStatus === q.status ? null : st.label,
     timeAgo(q.createdAt),
@@ -47,7 +47,7 @@ export function QuestionCard({ q, hideStatus }: { q: QuestionListItem; hideStatu
 
 /** Missão parecida: aparece na busca e antes de abrir uma missão nova ("Já encontraram por aqui"). */
 export function SimilarCard({ s, onWant }: { s: Similar; onWant?: (id: string) => void }) {
-  const st = STATUS[s.status] ?? STATUS['aberta']!;
+  const st = STATUS[s.status] ?? STATUS.aberta!;
   return (
     <div className="rounded-card bg-surface border border-line p-3.5">
       <Link to={`/m/${s.id}`} className="block">

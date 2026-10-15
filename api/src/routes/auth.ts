@@ -67,7 +67,7 @@ authRoutes.post('/dev', async (c) => {
   const demo = (
     await sql<
       { id: string }[]
-    >`select id from users where handle = ${'demo-' + slugify(body.name)} and google_sub like 'seed:%' and banned_at is null`
+    >`select id from users where handle = ${`demo-${slugify(body.name)}`} and google_sub like 'seed:%' and banned_at is null`
   )[0];
   const sub = `dev:${body.name.toLowerCase()}`;
   const id =

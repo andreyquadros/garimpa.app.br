@@ -57,7 +57,7 @@ export function QuestionPage() {
     );
   const { question, answers, canAccept } = q.data;
   const cat = categoryOf(question.category);
-  const st = STATUS[question.status] ?? STATUS['aberta']!;
+  const st = STATUS[question.status] ?? STATUS.aberta!;
   const mine = me?.user.id === question.authorId;
   const pins: Find[] = answers
     .filter((a) => a.status !== 'rejeitada')

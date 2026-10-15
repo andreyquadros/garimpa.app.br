@@ -342,22 +342,22 @@ questionRoutes.post('/questions/:id/accept', async (c) => {
     if (col.strong) {
       credits = 0;
       primeiro = 0;
-      meta['conluio'] = 'mesmo_dispositivo';
+      meta.conluio = 'mesmo_dispositivo';
       motivo = 'mesmo_dispositivo';
     } else if (col.weak) {
       vestDays = eco.carencia_dias_baixa_confianca;
-      meta['conluio'] = 'mesma_rede';
+      meta.conluio = 'mesma_rede';
     }
     if (reused) {
       credits = 0;
       primeiro = 0;
-      meta['motivo'] = 'foto_reutilizada';
+      meta.motivo = 'foto_reutilizada';
       motivo ??= 'foto_reutilizada';
     }
     if (!(await takeMintCap(tx, a.authorId, eco, credits + primeiro))) {
       credits = 0;
       primeiro = 0;
-      meta['teto_diario'] = true;
+      meta.teto_diario = true;
       motivo ??= 'teto_diario';
     }
     await tx`update questions set status = 'resolvida', accepted_answer_id = ${a.id}::uuid, solved_at = now() where id = ${id}::uuid`;
@@ -405,7 +405,7 @@ questionRoutes.post('/questions/:id/accept', async (c) => {
       xp: eco.xp.resposta_aceita,
       collusion: col.strong ? 'forte' : col.weak ? 'fraco' : null,
       motivo,
-      tetoDiario: meta['teto_diario'] === true,
+      tetoDiario: meta.teto_diario === true,
     };
   });
   await recordSignal(c, u.id);

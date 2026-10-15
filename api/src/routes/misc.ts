@@ -137,20 +137,20 @@ miscRoutes.post('/uploads', uploadBodyLimit, async (c) => {
   if (used >= eco.limites_dia.uploads)
     throw new HTTPException(429, { message: 'Limite de envios de hoje atingido. Volte amanhã.' });
   const body = await c.req.parseBody();
-  const file = body['file'];
+  const file = body.file;
   if (!(file instanceof File)) throw new HTTPException(400, { message: 'Envie um arquivo de imagem no campo "file".' });
   if (file.size > cfg.MAX_UPLOAD_MB * 1024 * 1024)
     throw new HTTPException(413, { message: `Imagem acima de ${cfg.MAX_UPLOAD_MB} MB.` });
   const kind = z
     .enum(['foto_produto', 'foto_fachada', 'nota_fiscal', 'recibo', 'print', 'outro'])
     .catch('foto_produto')
-    .parse(body['kind']);
+    .parse(body.kind);
   const num = (v: unknown) => {
     const n = typeof v === 'string' ? Number(v) : NaN;
     return Number.isFinite(n) ? n : null;
   };
-  const deviceLat = num(body['lat']);
-  const deviceLng = num(body['lng']);
+  const deviceLat = num(body.lat);
+  const deviceLng = num(body.lng);
   const input = Buffer.from(await file.arrayBuffer());
   let processed;
   try {

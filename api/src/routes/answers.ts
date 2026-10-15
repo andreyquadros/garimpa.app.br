@@ -294,17 +294,17 @@ answerRoutes.post('/answers/:id/confirm', async (c) => {
       let credits = strong || reused ? 0 : Math.round(eco.pepitas.resposta_confirmada * fraction);
       const meta: Record<string, unknown> = { primeiro: a.isFirstForPlace };
       if (strong) {
-        meta['conluio'] = 'mesmo_dispositivo';
+        meta.conluio = 'mesmo_dispositivo';
         motivo = 'mesmo_dispositivo';
-      } else if (weak) meta['conluio'] = 'mesma_rede';
+      } else if (weak) meta.conluio = 'mesma_rede';
       if (reused) {
-        meta['motivo'] = 'foto_reutilizada';
+        meta.motivo = 'foto_reutilizada';
         motivo ??= 'foto_reutilizada';
       }
       const vestDays = weak ? eco.carencia_dias_baixa_confianca : undefined;
       if (!(await takeMintCap(tx, a.authorId, eco, credits))) {
         credits = 0;
-        meta['teto_diario'] = true;
+        meta.teto_diario = true;
         motivo ??= 'teto_diario';
       }
       collusion = strong ? 'forte' : weak ? 'fraco' : null;
@@ -328,7 +328,7 @@ answerRoutes.post('/answers/:id/confirm', async (c) => {
             : {};
         if (!(await takeMintCap(tx, v.userId, eco, vc))) {
           vc = 0;
-          vmeta['teto_diario'] = true;
+          vmeta.teto_diario = true;
         }
         await award(
           tx,
@@ -390,9 +390,9 @@ answerRoutes.post('/answers/:id/tip', async (c) => {
     const meta: Record<string, unknown> = { de: u.id, fonte: body.source };
     let minted = true;
     let vestDays: number | undefined;
-    if (col.strong) meta['conluio'] = 'mesmo_dispositivo';
+    if (col.strong) meta.conluio = 'mesmo_dispositivo';
     else if (col.weak) {
-      meta['conluio'] = 'mesma_rede';
+      meta.conluio = 'mesma_rede';
       vestDays = eco.carencia_dias_baixa_confianca;
     }
     if (body.source === 'orcamento') {
@@ -406,7 +406,7 @@ answerRoutes.post('/answers/:id/tip', async (c) => {
       minted = !col.strong;
       if (minted && !(await takeMintCap(tx, a.authorId, eco, body.amount))) {
         minted = false;
-        meta['teto_diario'] = true;
+        meta.teto_diario = true;
       }
     } else {
       // Agradecer com o próprio saldo: perk do nível 2 (Garimpeiro) e no mínimo 5 pepitas, para não picar em 1 e multiplicar XP.
@@ -440,7 +440,7 @@ answerRoutes.post('/answers/:id/tip', async (c) => {
       amount: body.amount,
       minted,
       budgetLeft: body.source === 'orcamento' ? a.budget - body.amount : a.budget,
-      tetoDiario: meta['teto_diario'] === true,
+      tetoDiario: meta.teto_diario === true,
       collusion: col.strong ? 'forte' : col.weak ? 'fraco' : null,
     };
   });

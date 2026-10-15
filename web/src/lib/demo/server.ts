@@ -373,7 +373,7 @@ function parseNewPlace(b: Body): NewPlace {
     address: str(b, 'address', { max: 200, optional: true }),
     lat: num(b, 'lat', { min: -90, max: 90 })!,
     lng: num(b, 'lng', { min: -180, max: 180 })!,
-    kind: oneOf(b['kind'], 'kind', PLACE_KINDS, 'loja'),
+    kind: oneOf(b.kind, 'kind', PLACE_KINDS, 'loja'),
     whatsapp: str(b, 'whatsapp', { max: 20, optional: true }),
   };
 }
@@ -659,11 +659,11 @@ async function route(req: Request, url: URL): Promise<Out> {
     const body = await readJson(req);
     const title = str(body, 'title', { min: 3, max: 140 })!;
     const details = str(body, 'details', { max: 1000, optional: true });
-    const category = oneOf(body['category'], 'category', CATEGORIES, 'outros');
+    const category = oneOf(body.category, 'category', CATEGORIES, 'outros');
     const lat = num(body, 'lat', { optional: true });
     const lng = num(body, 'lng', { optional: true });
     const photoEvidenceId = str(body, 'photoEvidenceId', { optional: true });
-    const force = body['force'] === true;
+    const force = body.force === true;
     if (!force) {
       const similar = similarQuestions(s, title, 5);
       if (similar.some((x) => x.sim >= 0.5 || x.wsim >= 0.75))
@@ -813,12 +813,12 @@ async function route(req: Request, url: URL): Promise<Out> {
     const body = await readJson(req);
     const placeId = str(body, 'placeId', { optional: true });
     const newPlace =
-      body['newPlace'] && typeof body['newPlace'] === 'object' ? parseNewPlace(body['newPlace'] as Body) : undefined;
+      body.newPlace && typeof body.newPlace === 'object' ? parseNewPlace(body.newPlace as Body) : undefined;
     const note = str(body, 'note', { max: 600, optional: true });
     const priceCents = num(body, 'priceCents', { int: true, min: 0, max: 100_000_000, optional: true });
     const seenOn = str(body, 'seenOn', { optional: true });
     if (seenOn && !/^\d{4}-\d{2}-\d{2}$/.test(seenOn)) throw invalid('seenOn', 'data inválida');
-    const evidenceIds = body['evidenceIds'];
+    const evidenceIds = body.evidenceIds;
     if (!Array.isArray(evidenceIds) || evidenceIds.length < 1)
       throw invalid('evidenceIds', 'Envie pelo menos uma prova.');
     if (evidenceIds.length > 4) throw invalid('evidenceIds', 'no máximo 4 provas');
@@ -939,7 +939,7 @@ async function route(req: Request, url: URL): Promise<Out> {
   if (is('POST', 'answers', null, 'confirm')) {
     const u = requireUser();
     const body = await readJson(req);
-    const vote = body['vote'];
+    const vote = body.vote;
     if (vote !== 1 && vote !== -1) throw invalid('vote', 'use 1 ou -1');
     const comment = str(body, 'comment', { max: 300, optional: true });
     const an = s.answers.find((x) => x.id === b);
@@ -1011,7 +1011,7 @@ async function route(req: Request, url: URL): Promise<Out> {
     const u = requireUser();
     const body = await readJson(req);
     const amount = num(body, 'amount', { int: true, min: 1, max: 500 })!;
-    const source = oneOf(body['source'], 'source', ['orcamento', 'saldo'] as const, 'orcamento');
+    const source = oneOf(body.source, 'source', ['orcamento', 'saldo'] as const, 'orcamento');
     const an = s.answers.find((x) => x.id === b);
     if (!an) throw new HttpError(404, 'Resposta não encontrada.');
     if (an.authorId === u.id) throw new HttpError(400, 'Gorjeta é para quem ajudou você.');
@@ -1054,7 +1054,7 @@ async function route(req: Request, url: URL): Promise<Out> {
   if (is('POST', 'flags')) {
     const u = requireUser();
     const body = await readJson(req);
-    const targetType = oneOf(body['targetType'], 'targetType', [
+    const targetType = oneOf(body.targetType, 'targetType', [
       'pergunta',
       'resposta',
       'evidencia',
@@ -1062,7 +1062,7 @@ async function route(req: Request, url: URL): Promise<Out> {
       'usuario',
     ] as const);
     const targetId = str(body, 'targetId')!;
-    const reason = oneOf(body['reason'], 'reason', [
+    const reason = oneOf(body.reason, 'reason', [
       'plagio',
       'foto_falsa',
       'lugar_errado',
