@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { AnimatePresence, animate, motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, Flame, X } from 'lucide-react';
-import { NuggetIcon, StateArt, Symbol, XpStar } from './brand';
+import { NuggetIcon, StateArt, BrandSymbol, XpStar } from './brand';
 import { haptic } from '@/lib/reward';
 
 /** Compatibilidade: a pepita do pacote substitui o ícone desenhado à mão. */
@@ -17,7 +17,7 @@ export function PepitaIcon({ size = 18, className = '' }: { size?: number; class
   return <NuggetIcon size={size} className={className} />;
 }
 export function Logo({ size = 28 }: { size?: number }) {
-  return <Symbol size={size} />;
+  return <BrandSymbol size={size} />;
 }
 
 type Variant = 'primary' | 'secondary' | 'gold' | 'lime' | 'ghost' | 'soft' | 'danger';

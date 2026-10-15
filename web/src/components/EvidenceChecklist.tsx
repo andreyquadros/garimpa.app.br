@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Check, AlertTriangle, Camera } from 'lucide-react';
+import { Check as CheckIcon, AlertTriangle, Camera } from 'lucide-react';
 
 export type Check = { ok: boolean | null; label: string; help?: string };
 
@@ -53,7 +53,7 @@ export function EvidenceChecklist({ checks, score }: { checks: Check[]; score?: 
               className={`mt-0.5 h-5 w-5 rounded-full grid place-items-center shrink-0 ${c.ok ? 'bg-esmeralda-600 text-white' : c.ok === null ? 'bg-line' : 'bg-ouro-100 text-ouro-700'}`}
             >
               {c.ok ? (
-                <Check size={13} strokeWidth={3} />
+                <CheckIcon size={13} strokeWidth={3} />
               ) : c.ok === null ? (
                 <Camera size={12} />
               ) : (

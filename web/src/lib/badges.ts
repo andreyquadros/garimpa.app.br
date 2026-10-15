@@ -1,4 +1,4 @@
-import { Camera, Disc, Eye, Flag, Flame, Gem, Hand, Map, Trophy } from 'lucide-react';
+import { Camera, Disc, Eye, Flag, Flame, Gem, Hand, Map as MapIcon, Trophy } from 'lucide-react';
 import { BADGES as DATA } from './economy';
 
 const ICON: Record<string, typeof Flag> = {
@@ -9,7 +9,7 @@ const ICON: Record<string, typeof Flag> = {
   bom_de_prova: Camera,
   maratonista: Flame,
   mao_aberta: Hand,
-  cartografo: Map,
+  cartografo: MapIcon,
   garimpeiro_semana: Trophy,
 };
 const NAME: Record<string, string> = {

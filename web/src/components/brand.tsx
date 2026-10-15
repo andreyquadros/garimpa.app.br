@@ -5,7 +5,15 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 export const asset = (p: string) => `${base}/brand/${p}`;
 
 /** Símbolo "p" na pepita de ouro (SVG do pacote de identidade). `light` força a versão clara; sem ele, acompanha o tema. */
-export function Symbol({ size = 32, light, className = '' }: { size?: number; light?: boolean; className?: string }) {
+export function BrandSymbol({
+  size = 32,
+  light,
+  className = '',
+}: {
+  size?: number;
+  light?: boolean;
+  className?: string;
+}) {
   const common = { width: size, height: size, alt: '', 'aria-hidden': true as const, draggable: false };
   if (light !== undefined)
     return (
@@ -37,7 +45,7 @@ export function Wordmark({
   const soft = tone === 'light' ? 'text-lima-400' : 'text-accent';
   return (
     <span className={`inline-flex items-center gap-2 ${className}`} aria-label="Pepita Social">
-      <Symbol size={size * 1.15} light={tone === 'light' ? true : undefined} />
+      <BrandSymbol size={size * 1.15} light={tone === 'light' ? true : undefined} />
       <span
         className={`font-display font-extrabold leading-none ${color}`}
         style={{ fontSize: size, letterSpacing: '-0.03em' }}
