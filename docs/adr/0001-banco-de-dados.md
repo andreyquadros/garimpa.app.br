@@ -73,4 +73,7 @@
   - consultas reescritas para `ST_DWithin` (raio), `&&` com `ST_MakeEnvelope` (área visível do mapa) e `<->` (mais perto primeiro), cada uma coberta por teste antes da troca (ADR-0005);
   - `earthdistance` e `cube` saem do esquema;
   - polígono de área em `cities` no lugar de `radius_m` fica para quando houver bairros ou uma segunda cidade.
-- **Consequências:** a imagem do banco fica algumas centenas de MB maior; a cada atualização de versão do Postgres, a versão do PostGIS precisa existir nos dois lados do `pg_upgrade`; em todo código geográfico, a ordem é **longitude, latitude** (`ST_MakePoint(lng, lat)`). A imagem do PostGIS deriva da oficial do Postgres, então vale o mesmo cuidado com o caminho do volume da Revisão 1 (conferir na implementação).
+- **Consequências:** a imagem do banco fica algumas centenas de MB maior; a cada atualização de versão do Postgres, a versão do PostGIS precisa existir nos dois lados do `pg_upgrade`; em todo código geográfico, a ordem é **longitude, latitude** (`ST_MakePoint(lng, lat)`). A imagem do PostGIS deriva da oficial do Postgres; o caminho do volume da Revisão 1 foi conferido (feito): ela herda o `PGDATA` de `postgres:18-alpine`.
+- **Volume novo × existente:** num volume **novo**, o script de inicialização da imagem (`10_postgis.sh`) também instala `postgis_topology`, `fuzzystrmatch` e `postgis_tiger_geocoder` (schemas extras); um volume existente só recebe o que a migração 0005 cria. Aceito.
+- **Superusuário:** `create extension postgis` exige superusuário; no compose isso é o caso, mas vale conferir em bancos gerenciados.
+- **Plano B (Supabase):** a frase "o esquema é Postgres puro e migra com `pg_dump`" é anterior a esta revisão. O Supabase continua servindo de plano B porque oferece PostGIS.
