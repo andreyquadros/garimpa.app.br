@@ -1,8 +1,8 @@
 import path from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 // VITE_DEMO=1: build estático com a API falsa no navegador (GitHub Pages). VITE_BASE=./ deixa os caminhos relativos.
 const demo = process.env.VITE_DEMO === '1';
@@ -67,4 +67,6 @@ export default defineConfig({
     proxy: { '/api': 'http://localhost:8787', '/u': 'http://localhost:8787' },
   },
   build: { sourcemap: false, target: 'es2022' },
+  // Os testes de ponta a ponta (Playwright) rodam com `test:e2e`, não no Vitest.
+  test: { exclude: [...configDefaults.exclude, 'e2e/**'] },
 });
