@@ -1,5 +1,5 @@
 import { BADGES, LEVELS, levelFor } from '../economy';
-import { demoImageDataUrl, placeholderDataUrl, processImage } from './image';
+import { demoImageDataUrl, placeholderDataUrl, type Processed, processImage } from './image';
 import {
   CITY,
   HttpError,
@@ -1129,7 +1129,7 @@ async function route(req: Request, url: URL): Promise<Out> {
     };
     const deviceLat = fnum(form.get('lat'));
     const deviceLng = fnum(form.get('lng'));
-    let processed;
+    let processed: Processed;
     try {
       processed = await processImage(file);
     } catch {

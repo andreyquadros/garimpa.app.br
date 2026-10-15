@@ -4,7 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import { bodyLimit } from 'hono/body-limit';
 import { type AppEnv, requireUser, requireRole, recordSignal } from '../auth.js';
 import { LEVELS, levelFor, loadEconomy, touchStreak, takeCap } from '../economy.js';
-import { processImage, storeImage, DUPLICATE_HAMMING, SIMILAR_HAMMING } from '../evidence.js';
+import { type Processed, processImage, storeImage, DUPLICATE_HAMMING, SIMILAR_HAMMING } from '../evidence.js';
 import { reverseAnswerAwards, restoreAnswerAwards, reopenQuestionIfAccepted } from './answers.js';
 
 export const miscRoutes = new Hono<AppEnv>();
@@ -152,7 +152,7 @@ miscRoutes.post('/uploads', uploadBodyLimit, async (c) => {
   const deviceLat = num(body.lat);
   const deviceLng = num(body.lng);
   const input = Buffer.from(await file.arrayBuffer());
-  let processed;
+  let processed: Processed;
   try {
     processed = await processImage(input);
   } catch {

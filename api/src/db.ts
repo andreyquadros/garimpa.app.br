@@ -4,7 +4,7 @@ import path from 'node:path';
 import { REPO_ROOT } from './config.js';
 
 export type Sql = ReturnType<typeof createDb>;
-export type Tx = TransactionSql<{}>;
+export type Tx = TransactionSql<Record<string, never>>;
 
 export function createDb(url: string) {
   return postgres(url, {
