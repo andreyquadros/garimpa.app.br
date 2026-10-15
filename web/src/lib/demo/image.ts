@@ -88,7 +88,7 @@ export function dhashOfCanvas(src: HTMLCanvasElement): string {
     ctx.drawImage(cur, 0, 0, canvas.width, canvas.height);
     cur = canvas;
   }
-  const { canvas, ctx } = canvasOf(9, 8);
+  const { ctx } = canvasOf(9, 8);
   ctx.drawImage(cur, 0, 0, 9, 8);
   const { data } = ctx.getImageData(0, 0, 9, 8);
   const grey = (i: number) => 0.299 * data[i * 4]! + 0.587 * data[i * 4 + 1]! + 0.114 * data[i * 4 + 2]!;

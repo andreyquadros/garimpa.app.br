@@ -23,7 +23,7 @@ const MIME: Record<string, string> = {
   '.wasm': 'application/wasm',
 };
 
-async function sendFile(c: Context, abs: string, cache: string): Promise<Response | null> {
+async function sendFile(abs: string, cache: string): Promise<Response | null> {
   let st: fs.Stats;
   try {
     st = await fsp.stat(abs);
@@ -53,7 +53,7 @@ async function sendFile(c: Context, abs: string, cache: string): Promise<Respons
 /** Fotos enviadas: só caminhos no formato ano/mes/<sha256>.jpg, nada de "..". */
 export async function serveUpload(c: Context, uploadDir: string, rel: string): Promise<Response> {
   if (!/^\d{4}\/\d{2}\/[a-f0-9]{64}\.jpg$/.test(rel)) return c.notFound();
-  const res = await sendFile(c, path.join(uploadDir, rel), 'public, max-age=31536000, immutable');
+  const res = await sendFile(path.join(uploadDir, rel), 'public, max-age=31536000, immutable');
   return res ?? c.notFound();
 }
 
@@ -63,8 +63,8 @@ export async function serveWeb(c: Context, webDir: string, urlPath: string): Pro
   const abs = path.join(webDir, clean);
   if (!abs.startsWith(webDir)) return c.notFound();
   const hashed = /\/assets\//.test(clean) || /\.[a-f0-9]{8,}\./.test(clean);
-  const res = await sendFile(c, abs, hashed ? 'public, max-age=31536000, immutable' : 'public, max-age=300');
+  const res = await sendFile(abs, hashed ? 'public, max-age=31536000, immutable' : 'public, max-age=300');
   if (res) return res;
-  const index = await sendFile(c, path.join(webDir, 'index.html'), 'no-cache');
+  const index = await sendFile(path.join(webDir, 'index.html'), 'no-cache');
   return index ?? c.notFound();
 }
