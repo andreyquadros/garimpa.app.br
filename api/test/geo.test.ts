@@ -118,6 +118,8 @@ describe('consultas geográficas', () => {
     expect(await ids(bbox(C.lng + 0.02, C.lat, C.lng + 0.04, C.lat + 0.01))).not.toContain(placeId);
     expect(await ids('')).toContain(placeId);
     expect(await ids('?bbox=abc')).toContain(placeId);
+    // Leaflet não limita a longitude: com zoom baixo a área passa de 180 graus e não pode excluir os pinos.
+    expect(await ids(bbox(-231, -60, 106, 60))).toContain(placeId);
   });
 
   it('missões abertas filtram pela área visível', async () => {
@@ -225,6 +227,14 @@ describe('parseBbox', () => {
   it('devolve null quando inválido', () => {
     for (const raw of [undefined, '', 'abc', '1,2,3', '1,2,3,x']) expect(parseBbox(raw)).toBeNull();
   });
+  it('ignora áreas que o geography interpretaria pelo caminho curto', () => {
+    for (const raw of ['-231,-60,106,60', '-200,-10,-60,-9', '10,0,5,1', '-180,-10,0,10']) {
+      expect(parseBbox(raw)).toBeNull();
+    }
+  });
+  it('limita a latitude a ±90', () => {
+    expect(parseBbox('-63.1,-95,-63,95')).toEqual([-63.1, -90, -63, 90]);
+  });
 });
 
 describe('fragmentos SQL', () => {
@@ -233,6 +243,8 @@ describe('fragmentos SQL', () => {
       select true as ok from places pl where true ${bboxSql(sql, 'pl.geog', null)} limit 1`;
     expect(ok).toBe(true);
     await sql`select 1 from places pl where true ${bboxSql(sql, 'pl.geog', [-63.1, -10, -63, -9.8])}`;
-    await sql`select ${pointSql(sql, -9.9, -63)} as p`;
+    const [{ x, y }] = await sql<{ x: number; y: number }[]>`
+      select ST_X(${pointSql(sql, -9.9, -63)}::geometry) as x, ST_Y(${pointSql(sql, -9.9, -63)}::geometry) as y`;
+    expect([x, y]).toEqual([-63, -9.9]);
   });
 });
