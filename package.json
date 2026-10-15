@@ -9,6 +9,13 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "db:migrate": "pnpm --filter garimpa-api db:migrate",
-    "db:seed": "pnpm --filter garimpa-api db:seed"
+    "db:seed": "pnpm --filter garimpa-api db:seed",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check --write .",
+    "check:ci": "biome ci ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15"
   }
 }
