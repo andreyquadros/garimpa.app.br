@@ -120,7 +120,8 @@ placeRoutes.get('/map/finds', async (c) => {
           and (q.title_norm % p.n or p.n <% q.title_norm or (p.tsq::text <> '' and q.tsv @@ p.tsq))
         group by pl.id order by finds desc limit 300`
     : await sql`
-        select * from v_place_finds where city_id = ${cfg.CITY_DEFAULT}
+        select place_id, city_id, name, kind, lat, lng, address, partner_tier, finds, last_find_at, titles
+        from v_place_finds where city_id = ${cfg.CITY_DEFAULT}
           and lat between ${s} and ${n} and lng between ${w} and ${e}
         order by finds desc limit 300`;
   return c.json({ items: rows });

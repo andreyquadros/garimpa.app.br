@@ -240,7 +240,7 @@ questionRoutes.get('/questions/:id', async (c) => {
     from answers a join places p on p.id = a.place_id join users u on u.id = a.author_id
     where a.question_id = ${id}::uuid and a.status not in ('oculta','rejeitada')
     order by (a.status = 'aceita') desc, (a.status = 'confirmada') desc, a.evidence_score desc, a.created_at asc`;
-  const { tsv: _tsv, titleNorm: _tn, ...pub } = question as Record<string, unknown>;
+  const { tsv: _tsv, titleNorm: _tn, geog: _geog, ...pub } = question as Record<string, unknown>;
   return c.json({
     question: pub,
     answers,

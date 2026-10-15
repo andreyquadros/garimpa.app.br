@@ -3,9 +3,10 @@ import type { App } from '../src/app.js';
 import { api, login, makeApp, type Session, testImage, uniq, upload } from './helpers.js';
 
 let app: App;
+let sql: Awaited<ReturnType<typeof makeApp>>['sql'];
 let close: () => Promise<void>;
 beforeAll(async () => {
-  ({ app, close } = await makeApp());
+  ({ app, sql, close } = await makeApp());
 });
 afterAll(async () => {
   await close();
@@ -153,5 +154,58 @@ describe('consultas geográficas', () => {
     }
     expect(found.map((i) => i.id)).toEqual([perto, longe, sem]);
     expect(found[2]!.distanceM).toBeNull();
+  });
+
+  it('places e questions têm coluna geog indexada', async () => {
+    const cols = await sql`
+      select table_name, udt_name from information_schema.columns
+      where column_name = 'geog' and table_name in ('places', 'questions')`;
+    expect(cols.map((c) => `${c.tableName}:${c.udtName}`).sort()).toEqual(['places:geography', 'questions:geography']);
+    const idx =
+      await sql`select indexname from pg_indexes where indexname in ('places_geog_idx', 'questions_geog_idx')`;
+    expect(idx.map((i) => i.indexname).sort()).toEqual(['places_geog_idx', 'questions_geog_idx']);
+  });
+
+  it('consulta de área usa o índice', async () => {
+    const plan = await sql.begin(async (tx) => {
+      await tx`set local enable_seqscan = off`;
+      const rows = await tx`
+        explain select id from places
+        where geog && ST_MakeEnvelope(-63.1, -10, -63, -9.8, 4326)::geography`;
+      return rows.map((r) => r['QUERY PLAN']).join('\n');
+    });
+    expect(plan).toContain('places_geog_idx');
+  });
+
+  it('as respostas da API não expõem geog', async () => {
+    const marina = await login(app, uniq('Marina'));
+    const joao = await login(app, uniq('Joao'));
+    const tag = uniq('semgeog');
+    const qid = await newQuestion(marina, `Fita isolante azul ${tag}`, { dlat: 0, dlng: 0 });
+    const place = await postPlace(joao, `Loja Sem Geog ${tag}`, 0.004, 0);
+    expect(place.status).toBe(201);
+    const placeId = place.json.place.id as string;
+    const up = await upload(app, joao, await testImage(84), { lat: String(C.lat + 0.004), lng: String(C.lng) });
+    expect(up.status).toBe(201);
+    const ans = await api(app, 'POST', `/api/questions/${qid}/answers`, {
+      session: joao,
+      body: { placeId, note: 'Prateleira de baixo, perto da porta.', priceCents: 990, evidenceIds: [up.json.id] },
+    });
+    expect(ans.status).toBe(201);
+    const acc = await api(app, 'POST', `/api/questions/${qid}/accept`, {
+      session: marina,
+      body: { answerId: ans.json.answerId },
+    });
+    expect(acc.status).toBe(200);
+
+    const finds = await api(app, 'GET', '/api/map/finds');
+    expect(finds.status).toBe(200);
+    const items = finds.json.items as Record<string, unknown>[];
+    expect(items.some((i) => i.placeId === placeId)).toBe(true);
+    for (const i of items) expect(i).not.toHaveProperty('geog');
+
+    const q = await api(app, 'GET', `/api/questions/${qid}`);
+    expect(q.status).toBe(200);
+    expect(q.json.question).not.toHaveProperty('geog');
   });
 });
