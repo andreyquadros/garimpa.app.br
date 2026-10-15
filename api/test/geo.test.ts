@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { App } from '../src/app.js';
+import { bboxSql, parseBbox, pointSql } from '../src/geo.js';
 import { api, login, makeApp, type Session, testImage, uniq, upload } from './helpers.js';
 
 let app: App;
@@ -207,5 +208,24 @@ describe('consultas geográficas', () => {
     const q = await api(app, 'GET', `/api/questions/${qid}`);
     expect(q.status).toBe(200);
     expect(q.json.question).not.toHaveProperty('geog');
+  });
+});
+
+describe('parseBbox', () => {
+  it('lê quatro números', () => {
+    expect(parseBbox('-63.1,-10,-63,-9.8')).toEqual([-63.1, -10, -63, -9.8]);
+  });
+  it('devolve null quando inválido', () => {
+    for (const raw of [undefined, '', 'abc', '1,2,3', '1,2,3,x']) expect(parseBbox(raw)).toBeNull();
+  });
+});
+
+describe('fragmentos SQL', () => {
+  it('bboxSql renderiza o identificador e sem caixa vira vazio', async () => {
+    const [{ ok }] = await sql<{ ok: boolean }[]>`
+      select true as ok from places pl where true ${bboxSql(sql, 'pl.geog', null)} limit 1`;
+    expect(ok).toBe(true);
+    await sql`select 1 from places pl where true ${bboxSql(sql, 'pl.geog', [-63.1, -10, -63, -9.8])}`;
+    await sql`select ${pointSql(sql, -9.9, -63)} as p`;
   });
 });

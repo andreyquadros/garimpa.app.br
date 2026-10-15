@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { type AppEnv, collusionBetween, recordSignal, requireUser } from '../auth.js';
 import type { Sql } from '../db.js';
 import { award, grantBadge, loadEconomy, takeCap, takeMintCap } from '../economy.js';
+import { pointSql } from '../geo.js';
 import { allEvidencesReused } from './answers.js';
 
 export const questionRoutes = new Hono<AppEnv>();
@@ -122,7 +123,7 @@ questionRoutes.get('/questions', async (c) => {
            (select p2.name from answers a join places p2 on p2.id = a.place_id
              where a.question_id = qu.id and a.status in ('aceita','confirmada')
              order by (a.status = 'aceita') desc, a.confirms desc limit 1) as top_place,
-           ${hasPos ? sql`case when qu.lat is null then null else earth_distance(ll_to_earth(qu.lat, qu.lng), ll_to_earth(${p.lat!}, ${p.lng!}))::int end` : sql`null::int`} as distance_m
+           ${hasPos ? sql`case when qu.geog is null then null else ST_Distance(qu.geog, ${pointSql(sql, p.lat!, p.lng!)})::int end` : sql`null::int`} as distance_m
     from questions qu join users u on u.id = qu.author_id
     where qu.city_id = ${cfg.CITY_DEFAULT}
       ${p.status === 'todas' ? sql`and qu.status <> 'fechada'` : p.status === 'abertas' ? sql`and qu.status in ('aberta','respondida')` : sql`and qu.status = ${p.status}`}
@@ -132,7 +133,7 @@ questionRoutes.get('/questions', async (c) => {
       p.sort === 'populares'
         ? sql`qu.bounty desc, qu.followers_count desc, qu.created_at desc`
         : p.sort === 'perto' && hasPos
-          ? sql`distance_m asc nulls last, qu.created_at desc`
+          ? sql`qu.geog <-> ${pointSql(sql, p.lat!, p.lng!)} nulls last, qu.created_at desc`
           : sql`qu.created_at desc`
     }
     limit 20 offset ${p.offset}`;

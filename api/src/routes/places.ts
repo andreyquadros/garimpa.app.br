@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { type AppEnv, recordSignal, requireUser } from '../auth.js';
 import type { Sql, Tx } from '../db.js';
 import { award, type Economy, grantBadge, loadEconomy, takeCap } from '../economy.js';
+import { bboxSql, parseBbox, pointSql } from '../geo.js';
 
 export const placeRoutes = new Hono<AppEnv>();
 
@@ -29,13 +30,15 @@ export async function getOrCreatePlace(
   userId: string,
   eco: Economy,
 ): Promise<{ id: string; created: boolean }> {
+  const point = pointSql(db, input.lat, input.lng);
   const inside = await db<{ ok: boolean }[]>`
-    select earth_distance(ll_to_earth(lat, lng), ll_to_earth(${input.lat}, ${input.lng})) <= radius_m as ok from cities where id = ${cityId}`;
+    select ST_DWithin(ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography, ${point}, radius_m) as ok
+    from cities where id = ${cityId}`;
   if (!inside[0]?.ok) throw new HTTPException(400, { message: 'Esse ponto fica fora da área do piloto (Ariquemes).' });
   const same = await db<{ id: string }[]>`
     select id from places
     where city_id = ${cityId} and name_norm = norm_text(${input.name})
-      and earth_distance(ll_to_earth(lat, lng), ll_to_earth(${input.lat}, ${input.lng})) <= 150
+      and ST_DWithin(geog, ${point}, 150)
     limit 1`;
   if (same[0]) return { id: same[0].id, created: false };
   if (!(await takeCap(db, userId, 'lugares', eco.limites_dia.lugares)))
@@ -60,7 +63,7 @@ placeRoutes.get('/places', async (c) => {
   const rows = await sql`
     select p.id, p.name, p.address, p.lat, p.lng, p.kind, p.partner_tier,
            (select count(*)::int from answers a where a.place_id = p.id and a.status in ('aceita','confirmada')) as finds,
-           ${hasPos ? sql`earth_distance(ll_to_earth(p.lat, p.lng), ll_to_earth(${lat}, ${lng}))::int` : sql`null::int`} as distance_m,
+           ${hasPos ? sql`ST_Distance(p.geog, ${pointSql(sql, lat, lng)})::int` : sql`null::int`} as distance_m,
            ${q ? sql`similarity(p.name_norm, norm_text(${q}))` : sql`0::real`} as sim
     from places p
     where p.city_id = ${cfg.CITY_DEFAULT}
@@ -104,10 +107,8 @@ placeRoutes.post('/places', async (c) => {
 placeRoutes.get('/map/finds', async (c) => {
   const sql = c.get('sql');
   const cfg = c.get('config');
-  const bbox = (c.req.query('bbox') ?? '').split(',').map(Number);
+  const box = parseBbox(c.req.query('bbox'));
   const q = (c.req.query('q') ?? '').trim();
-  const hasBox = bbox.length === 4 && bbox.every(Number.isFinite);
-  const [w, s, e, n] = hasBox ? (bbox as [number, number, number, number]) : [-180, -90, 180, 90];
   const rows = q
     ? await sql`
         with p as (select norm_text(${q}) as n, websearch_to_tsquery('portuguese', f_unaccent(${q})) as tsq)
@@ -116,13 +117,13 @@ placeRoutes.get('/map/finds', async (c) => {
                (array_agg(q.title order by a.created_at desc))[1:5] as titles
         from answers a join questions q on q.id = a.question_id join places pl on pl.id = a.place_id, p
         where a.status in ('aceita','confirmada') and q.city_id = ${cfg.CITY_DEFAULT}
-          and pl.lat between ${s} and ${n} and pl.lng between ${w} and ${e}
+          ${bboxSql(sql, 'pl.geog', box)}
           and (q.title_norm % p.n or p.n <% q.title_norm or (p.tsq::text <> '' and q.tsv @@ p.tsq))
         group by pl.id order by finds desc limit 300`
     : await sql`
         select place_id, city_id, name, kind, lat, lng, address, partner_tier, finds, last_find_at, titles
         from v_place_finds where city_id = ${cfg.CITY_DEFAULT}
-          and lat between ${s} and ${n} and lng between ${w} and ${e}
+          ${bboxSql(sql, 'geog', box)}
         order by finds desc limit 300`;
   return c.json({ items: rows });
 });
@@ -131,13 +132,11 @@ placeRoutes.get('/map/finds', async (c) => {
 placeRoutes.get('/map/open', async (c) => {
   const sql = c.get('sql');
   const cfg = c.get('config');
-  const bbox = (c.req.query('bbox') ?? '').split(',').map(Number);
-  const hasBox = bbox.length === 4 && bbox.every(Number.isFinite);
-  const [w, s, e, n] = hasBox ? (bbox as [number, number, number, number]) : [-180, -90, 180, 90];
+  const box = parseBbox(c.req.query('bbox'));
   const rows = await sql`
     select id, title, category, bounty, followers_count, lat, lng, created_at from questions
     where city_id = ${cfg.CITY_DEFAULT} and status in ('aberta','respondida') and lat is not null
-      and lat between ${s} and ${n} and lng between ${w} and ${e}
+      ${bboxSql(sql, 'geog', box)}
     order by bounty desc, created_at desc limit 200`;
   return c.json({ items: rows });
 });
