@@ -14,9 +14,11 @@
     "format": "biome format --write .",
     "check": "biome check --write .",
     "check:ci": "biome ci .",
-    "test:scripts": "node --test scripts/*.test.mjs"
+    "test:scripts": "node --test scripts/*.test.mjs",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15"
+    "@biomejs/biome": "2.5.15",
+    "lefthook": "2.1.15"
   }
 }
