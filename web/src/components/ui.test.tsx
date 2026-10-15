@@ -4,7 +4,11 @@ import { Button } from './ui';
 
 describe('Button', () => {
   it('fica desabilitado em loading mesmo com disabled={false} explícito', () => {
-    const html = renderToString(<Button loading disabled={false}>Entrar</Button>);
+    const html = renderToString(
+      <Button loading disabled={false}>
+        Entrar
+      </Button>,
+    );
     expect(html).toContain('disabled=""');
   });
   it('respeita disabled sem loading e fica livre quando nenhum dos dois', () => {

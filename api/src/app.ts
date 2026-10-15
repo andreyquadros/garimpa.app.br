@@ -22,9 +22,11 @@ export function createApp(deps: { sql: Sql; config: Config }) {
   // em fetch cross-origin, exige um preflight que a API não responde) e corpo JSON ou multipart. Fecha o login CSRF.
   app.use('/api/*', async (c, next) => {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) {
-      if (!c.req.header('x-garimpa-device')) throw new HTTPException(403, { message: 'Requisição não reconhecida. Use o aplicativo do Pepita Social.' });
+      if (!c.req.header('x-garimpa-device'))
+        throw new HTTPException(403, { message: 'Requisição não reconhecida. Use o aplicativo do Pepita Social.' });
       const ct = c.req.header('content-type') ?? '';
-      if (ct && !/^(application\/json|multipart\/form-data)/i.test(ct)) throw new HTTPException(415, { message: 'Formato de requisição não aceito.' });
+      if (ct && !/^(application\/json|multipart\/form-data)/i.test(ct))
+        throw new HTTPException(415, { message: 'Formato de requisição não aceito.' });
     }
     await next();
   });
@@ -34,10 +36,18 @@ export function createApp(deps: { sql: Sql; config: Config }) {
     if (err instanceof HTTPException) return c.json({ error: 'http', message: err.message }, err.status);
     if (err instanceof ZodError) {
       const first = err.issues[0];
-      return c.json({ error: 'validacao', message: first ? `${first.path.join('.') || 'dados'}: ${first.message}` : 'Dados inválidos.', issues: err.issues }, 400);
+      return c.json(
+        {
+          error: 'validacao',
+          message: first ? `${first.path.join('.') || 'dados'}: ${first.message}` : 'Dados inválidos.',
+          issues: err.issues,
+        },
+        400,
+      );
     }
     const code = (err as { code?: string }).code;
-    if (code === 'P0001') return c.json({ error: 'saldo', message: err.message.replace(/^.*?:\s*/, '') || 'Saldo insuficiente.' }, 400);
+    if (code === 'P0001')
+      return c.json({ error: 'saldo', message: err.message.replace(/^.*?:\s*/, '') || 'Saldo insuficiente.' }, 400);
     console.error(err);
     return c.json({ error: 'interno', message: 'Algo deu errado do nosso lado. Tente de novo.' }, 500);
   });

@@ -28,15 +28,28 @@ export function Shell() {
         <Outlet />
       </main>
       {!bare && (
-        <nav className="fixed bottom-0 inset-x-0 z-30 mx-auto max-w-lg bg-surface/95 backdrop-blur border-t border-line safe-bottom" aria-label="Principal">
+        <nav
+          className="fixed bottom-0 inset-x-0 z-30 mx-auto max-w-lg bg-surface/95 backdrop-blur border-t border-line safe-bottom"
+          aria-label="Principal"
+        >
           <div className="grid grid-cols-4 h-[4.25rem]">
-            {tabs.map((t) => <Tab key={t.to} {...t} />)}
+            {tabs.map((t) => (
+              <Tab key={t.to} {...t} />
+            ))}
           </div>
         </nav>
       )}
       <Toasts />
       {import.meta.env.VITE_DEMO === '1' && <DemoBadge />}
-      {me && <LevelUpWatcher xp={me.user.xp} level={me.level.level} name={me.level.name} perk={me.level.perk} userId={me.user.id} />}
+      {me && (
+        <LevelUpWatcher
+          xp={me.user.xp}
+          level={me.level.level}
+          name={me.level.name}
+          perk={me.level.perk}
+          userId={me.user.id}
+        />
+      )}
       {me && <BadgeWatcher badges={me.badges} userId={me.user.id} />}
     </div>
   );
@@ -48,18 +61,32 @@ function TopBar() {
   return (
     <header className="sticky top-0 z-30 bg-bg safe-top">
       <div className="h-14 px-4 flex items-center gap-2">
-        <Link to="/" aria-label="Pepita Social, início" className="mr-auto"><Wordmark size={24} /></Link>
+        <Link to="/" aria-label="Pepita Social, início" className="mr-auto">
+          <Wordmark size={24} />
+        </Link>
         {me ? (
           <>
-            <Link to="/jornada" aria-label="Sua sequência"><StreakChip days={me.user.streakDays} size="sm" /></Link>
-            <Link to="/jornada" aria-label="Sua jornada"><XpChip xp={me.user.xp} size="sm" /></Link>
+            <Link to="/jornada" aria-label="Sua sequência">
+              <StreakChip days={me.user.streakDays} size="sm" />
+            </Link>
+            <Link to="/jornada" aria-label="Sua jornada">
+              <XpChip xp={me.user.xp} size="sm" />
+            </Link>
             <Link to="/carteira" aria-label="Sua carteira" className="relative">
               <Avatar name={me.user.name} url={me.user.avatarUrl} size={38} />
-              <span className="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full bg-lima-400 border-2 border-bg" aria-hidden="true" />
+              <span
+                className="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full bg-lima-400 border-2 border-bg"
+                aria-hidden="true"
+              />
             </Link>
           </>
         ) : (
-          <Link to="/entrar" className="h-9 px-4 rounded-full bg-brand text-on-brand font-display font-bold text-sm grid place-items-center">Entrar</Link>
+          <Link
+            to="/entrar"
+            className="h-9 px-4 rounded-full bg-brand text-on-brand font-display font-bold text-sm grid place-items-center"
+          >
+            Entrar
+          </Link>
         )}
       </div>
     </header>
@@ -68,12 +95,27 @@ function TopBar() {
 
 function Tab({ to, label, icon: Icon, end }: { to: string; label: string; icon: typeof Compass; end?: boolean }) {
   return (
-    <NavLink to={to} end={end} className="relative grid place-items-center text-ink-2 aria-[current=page]:text-brand-ink">
+    <NavLink
+      to={to}
+      end={end}
+      className="relative grid place-items-center text-ink-2 aria-[current=page]:text-brand-ink"
+    >
       {({ isActive }) => (
         <span className="flex flex-col items-center gap-1 text-[12px] font-bold">
           <span className="relative h-9 w-14 grid place-items-center">
-            {isActive && <motion.span layoutId="tab-bg" className="absolute inset-0 rounded-full bg-lima-400" transition={{ type: 'spring', stiffness: 420, damping: 32 }} />}
-            <motion.span key={String(isActive)} animate={isActive ? { scale: [1, 1.28, 1], rotate: [0, -8, 0] } : { scale: 1 }} transition={{ duration: 0.38, ease: 'easeOut' }} className="relative grid place-items-center">
+            {isActive && (
+              <motion.span
+                layoutId="tab-bg"
+                className="absolute inset-0 rounded-full bg-lima-400"
+                transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+              />
+            )}
+            <motion.span
+              key={String(isActive)}
+              animate={isActive ? { scale: [1, 1.28, 1], rotate: [0, -8, 0] } : { scale: 1 }}
+              transition={{ duration: 0.38, ease: 'easeOut' }}
+              className="relative grid place-items-center"
+            >
               <Icon size={22} className={isActive ? 'text-floresta-900' : ''} strokeWidth={isActive ? 2.4 : 1.9} />
             </motion.span>
           </span>
@@ -90,12 +132,18 @@ function Toasts() {
     <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 w-[min(92vw,26rem)] flex flex-col gap-2 pointer-events-none">
       <AnimatePresence>
         {toasts.map((t) => (
-          <motion.button key={t.id} onClick={() => dismiss(t.id)} initial={{ y: 30, opacity: 0, scale: 0.92 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 10, opacity: 0, scale: 0.95 }}
+          <motion.button
+            key={t.id}
+            onClick={() => dismiss(t.id)}
+            initial={{ y: 30, opacity: 0, scale: 0.92 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 10, opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-            className={`pointer-events-auto text-left rounded-2xl pl-3 pr-4 py-2.5 shadow-float border flex items-center gap-3 ${t.tone === 'erro' ? 'bg-brasa-100 border-brasa-500/40 text-brasa-700' : 'bg-floresta-700 border-floresta-600 text-creme dark:bg-floresta-600 dark:border-line'}`}>
+            className={`pointer-events-auto text-left rounded-2xl pl-3 pr-4 py-2.5 shadow-float border flex items-center gap-3 ${t.tone === 'erro' ? 'bg-brasa-100 border-brasa-500/40 text-brasa-700' : 'bg-floresta-700 border-floresta-600 text-creme dark:bg-floresta-600 dark:border-line'}`}
+          >
             {t.pepitas ? <Anim name="gratitude-pop" size={44} /> : t.xp ? <Anim name="xp-rise" size={44} /> : null}
             <span className="flex-1 min-w-0">
-              {(t.xp || t.pepitas) ? (
+              {t.xp || t.pepitas ? (
                 <span className="flex items-center gap-2 font-display font-extrabold">
                   {t.pepitas ? <span className="text-ouro-400">+{t.pepitas} pepitas</span> : null}
                   {t.xp ? <span className="text-lima-400">+{t.xp} XP</span> : null}
@@ -111,12 +159,27 @@ function Toasts() {
 }
 
 /** Cerimônia de subida de patente: Pepi comemora, a insígnia nova aparece. Uma vez por nível, por usuário. */
-function LevelUpWatcher({ xp, level, name, perk, userId }: { xp: number; level: number; name: string; perk: string; userId: string }) {
+function LevelUpWatcher({
+  xp,
+  level,
+  name,
+  perk,
+  userId,
+}: {
+  xp: number;
+  level: number;
+  name: string;
+  perk: string;
+  userId: string;
+}) {
   const key = `garimpa.level.${userId}`;
   const [show, setShow] = useState(false);
   useEffect(() => {
     const prev = Number(localStorage.getItem(key) ?? '0');
-    if (prev && level > prev) { setShow(true); celebrate('nivel'); }
+    if (prev && level > prev) {
+      setShow(true);
+      celebrate('nivel');
+    }
     localStorage.setItem(key, String(level));
   }, [level, key]);
   return (
@@ -133,7 +196,9 @@ function LevelUpWatcher({ xp, level, name, perk, userId }: { xp: number; level: 
         </div>
         <p className="mt-3 text-balance">{perk}</p>
         <p className="text-sm text-ink-2 mt-1">{xp.toLocaleString('pt-BR')} XP acumulados</p>
-        <Button variant="primary" size="lg" className="mt-6 w-full" onClick={() => setShow(false)}>Continuar ajudando</Button>
+        <Button variant="primary" size="lg" className="mt-6 w-full" onClick={() => setShow(false)}>
+          Continuar ajudando
+        </Button>
       </div>
     </Sheet>
   );
@@ -146,10 +211,21 @@ function BadgeWatcher({ badges, userId }: { badges: Badge[]; userId: string }) {
   useEffect(() => {
     const slugs = badges.map((b) => b.slug);
     let prev: string[] | null = null;
-    try { prev = JSON.parse(localStorage.getItem(key) ?? 'null'); } catch { prev = null; }
+    try {
+      prev = JSON.parse(localStorage.getItem(key) ?? 'null');
+    } catch {
+      prev = null;
+    }
     if (prev) {
       const fresh = slugs.find((s) => !prev!.includes(s));
-      if (fresh) { const t = setTimeout(() => { setShow(badges.find((b) => b.slug === fresh) ?? null); celebrate(); }, 500); localStorage.setItem(key, JSON.stringify(slugs)); return () => clearTimeout(t); }
+      if (fresh) {
+        const t = setTimeout(() => {
+          setShow(badges.find((b) => b.slug === fresh) ?? null);
+          celebrate();
+        }, 500);
+        localStorage.setItem(key, JSON.stringify(slugs));
+        return () => clearTimeout(t);
+      }
     }
     localStorage.setItem(key, JSON.stringify(slugs));
   }, [badges, key]);
@@ -161,14 +237,24 @@ function BadgeWatcher({ badges, userId }: { badges: Badge[]; userId: string }) {
         <div className="text-center pt-2 pb-3">
           <div className="relative mx-auto w-fit">
             <Pepi pose="comemorando" size={150} celebrate />
-            <motion.span initial={{ scale: 0, rotate: -30, y: -40 }} animate={{ scale: 1, rotate: -8, y: 0 }} transition={{ delay: 0.35, type: 'spring', stiffness: 380, damping: 14 }}
-              className="absolute -right-6 bottom-2 h-20 w-20 rounded-full bg-ouro-400 text-floresta-900 grid place-items-center shadow-ouro border-4 border-bg">{Icon && <Icon size={36} />}</motion.span>
+            <motion.span
+              initial={{ scale: 0, rotate: -30, y: -40 }}
+              animate={{ scale: 1, rotate: -8, y: 0 }}
+              transition={{ delay: 0.35, type: 'spring', stiffness: 380, damping: 14 }}
+              className="absolute -right-6 bottom-2 h-20 w-20 rounded-full bg-ouro-400 text-floresta-900 grid place-items-center shadow-ouro border-4 border-bg"
+            >
+              {Icon && <Icon size={36} />}
+            </motion.span>
           </div>
           <p className="eyebrow mt-5">Nova conquista</p>
           <h2 className="display text-3xl mt-1">{show.name}</h2>
           <p className="mt-3 text-balance text-ink-2">{meta?.description ?? show.description}</p>
-          {meta?.xpBonus ? <p className="mt-2 font-display font-extrabold text-green-ink">+{meta.xpBonus} XP de bônus</p> : null}
-          <Button variant="lime" size="lg" className="mt-6 w-full" onClick={() => setShow(null)}>Continuar</Button>
+          {meta?.xpBonus ? (
+            <p className="mt-2 font-display font-extrabold text-green-ink">+{meta.xpBonus} XP de bônus</p>
+          ) : null}
+          <Button variant="lime" size="lg" className="mt-6 w-full" onClick={() => setShow(null)}>
+            Continuar
+          </Button>
         </div>
       )}
     </Sheet>
@@ -187,10 +273,19 @@ function DemoBadge() {
       const demo = await import('@/lib/demo/state');
       const r = demo.simulateDays(7);
       await qc.invalidateQueries();
-      toast.push({ text: r.vested > 0 ? `Sete dias depois: ${r.vested === 1 ? '1 lançamento saiu' : `${r.vested} lançamentos saíram`} da carência.` : 'Sete dias depois. Nada estava em carência.', tone: 'info' });
+      toast.push({
+        text:
+          r.vested > 0
+            ? `Sete dias depois: ${r.vested === 1 ? '1 lançamento saiu' : `${r.vested} lançamentos saíram`} da carência.`
+            : 'Sete dias depois. Nada estava em carência.',
+        tone: 'info',
+      });
       setOpen(false);
-    } catch (e) { toast.push({ text: (e as Error).message, tone: 'erro' }); }
-    finally { setBusy(false); }
+    } catch (e) {
+      toast.push({ text: (e as Error).message, tone: 'erro' });
+    } finally {
+      setBusy(false);
+    }
   }
   async function reset() {
     setBusy(true);
@@ -201,21 +296,42 @@ function DemoBadge() {
   }
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label="Modo demonstração: saiba mais"
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Modo demonstração: saiba mais"
         className="fixed left-1/2 -translate-x-1/2 z-[510] h-5 px-2.5 rounded-b-lg bg-ouro-400 text-floresta-900 text-[10px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1"
-        style={{ top: 'env(safe-area-inset-top, 0px)' }}>
-        <FlaskConical size={11} strokeWidth={2.75} />Demonstração
+        style={{ top: 'env(safe-area-inset-top, 0px)' }}
+      >
+        <FlaskConical size={11} strokeWidth={2.75} />
+        Demonstração
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Modo demonstração">
         <div className="text-sm space-y-3">
-          <p>Tudo aqui roda dentro do navegador: a API, o banco e as regras de pontos são uma cópia fiel do Pepita Social, mas <b>os dados ficam só neste aparelho</b> e somem se você limpar os dados do site.</p>
-          <p>Entre como <b>marina</b>, <b>joao</b>, <b>tais</b>, <b>rafael</b>, <b>lucas</b> ou <b>dona neide</b> para usar as contas de exemplo; qualquer outro nome cria uma conta nova. Como todas dividem este aparelho, a checagem de conluio fica desligada.</p>
-          <p className="text-ink-2">Fotos enviadas não saem do navegador e não são guardadas: ao recarregar, viram uma imagem de exemplo. Sem EXIF, a evidência pontua só pela sua localização.</p>
+          <p>
+            Tudo aqui roda dentro do navegador: a API, o banco e as regras de pontos são uma cópia fiel do Pepita
+            Social, mas <b>os dados ficam só neste aparelho</b> e somem se você limpar os dados do site.
+          </p>
+          <p>
+            Entre como <b>marina</b>, <b>joao</b>, <b>tais</b>, <b>rafael</b>, <b>lucas</b> ou <b>dona neide</b> para
+            usar as contas de exemplo; qualquer outro nome cria uma conta nova. Como todas dividem este aparelho, a
+            checagem de conluio fica desligada.
+          </p>
+          <p className="text-ink-2">
+            Fotos enviadas não saem do navegador e não são guardadas: ao recarregar, viram uma imagem de exemplo. Sem
+            EXIF, a evidência pontua só pela sua localização.
+          </p>
         </div>
         <div className="mt-5 grid gap-2">
-          <Button variant="gold" loading={busy} onClick={simulate}>Simular 7 dias</Button>
-          <Button variant="ghost" disabled={busy} onClick={reset}>Reiniciar demonstração</Button>
-          <p className="text-xs text-ink-2 text-center">Simular 7 dias libera as pepitas em carência e mantém a sua sequência de dias.</p>
+          <Button variant="gold" loading={busy} onClick={simulate}>
+            Simular 7 dias
+          </Button>
+          <Button variant="ghost" disabled={busy} onClick={reset}>
+            Reiniciar demonstração
+          </Button>
+          <p className="text-xs text-ink-2 text-center">
+            Simular 7 dias libera as pepitas em carência e mantém a sua sequência de dias.
+          </p>
         </div>
       </Sheet>
     </>

@@ -26,7 +26,13 @@ const STOPWORDS = new Set(['de', 'da', 'do', 'com', 'para', 'em', 'e', 'o', 'a',
 
 /** Palavras relevantes: normalizadas, sem palavras vazias (de/da/do/com/para/em/e/o/a/um/uma). */
 export function tokens(s: string): string[] {
-  return Array.from(new Set(normText(s).split(' ').filter((t) => t && !STOPWORDS.has(t))));
+  return Array.from(
+    new Set(
+      normText(s)
+        .split(' ')
+        .filter((t) => t && !STOPWORDS.has(t)),
+    ),
+  );
 }
 
 /** Duas palavras "batem" se iguais ou se uma é prefixo da outra (garrafa/garrafas, hermetica/hermetico). */
@@ -95,12 +101,23 @@ export const SIMILAR_HAMMING = 12;
 
 export type ScoreInput = {
   kind: string;
-  exifLat: number | null; exifLng: number | null; exifTakenAt: Date | null;
-  deviceLat: number | null; deviceLng: number | null;
-  placeLat: number; placeLng: number;
-  reusedBySameUser: boolean; similarToOther?: boolean; now?: Date;
+  exifLat: number | null;
+  exifLng: number | null;
+  exifTakenAt: Date | null;
+  deviceLat: number | null;
+  deviceLng: number | null;
+  placeLat: number;
+  placeLng: number;
+  reusedBySameUser: boolean;
+  similarToOther?: boolean;
+  now?: Date;
 };
-export type ScoreResult = { score: number; flags: string[]; distanceExifM: number | null; distanceDeviceM: number | null };
+export type ScoreResult = {
+  score: number;
+  flags: string[];
+  distanceExifM: number | null;
+  distanceDeviceM: number | null;
+};
 
 /** Mesma régua da API (api/src/evidence.ts). No navegador não lemos EXIF: conta só a localização do aparelho. */
 export function scoreEvidence(i: ScoreInput): ScoreResult {
@@ -113,7 +130,10 @@ export function scoreEvidence(i: ScoreInput): ScoreResult {
     distanceExifM = haversineM(i.exifLat, i.exifLng, i.placeLat, i.placeLng);
     if (distanceExifM <= EXIF_NEAR_M) score += 30;
     else if (distanceExifM <= EXIF_FAR_M) score += 10;
-    else { score -= 20; flags.push('longe_do_local'); }
+    else {
+      score -= 20;
+      flags.push('longe_do_local');
+    }
   } else {
     flags.push('sem_gps');
   }
@@ -132,11 +152,20 @@ export function scoreEvidence(i: ScoreInput): ScoreResult {
     distanceDeviceM = haversineM(i.deviceLat, i.deviceLng, i.placeLat, i.placeLng);
     if (distanceDeviceM <= DEVICE_NEAR_M) score += 20;
     else if (distanceDeviceM <= DEVICE_FAR_M) score += 5;
-    else { score -= 10; flags.push('enviada_de_longe'); }
+    else {
+      score -= 10;
+      flags.push('enviada_de_longe');
+    }
   }
 
-  if (i.reusedBySameUser) { score -= 30; flags.push('foto_reutilizada'); }
-  if (i.similarToOther) { score -= 20; flags.push('foto_parecida'); }
+  if (i.reusedBySameUser) {
+    score -= 30;
+    flags.push('foto_reutilizada');
+  }
+  if (i.similarToOther) {
+    score -= 20;
+    flags.push('foto_parecida');
+  }
 
   return { score: Math.max(0, Math.min(100, score)), flags, distanceExifM, distanceDeviceM };
 }
@@ -150,7 +179,10 @@ export function hamming(a: string, b: string): number {
 /** Hash de 32 bits de uma string (FNV-1a), base dos "aleatórios" determinísticos do seed. */
 export function hash32(s: string): number {
   let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
   return h >>> 0;
 }
 

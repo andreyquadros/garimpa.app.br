@@ -6,13 +6,22 @@ import type { App } from '../src/app.js';
 import type { Sql } from '../src/db.js';
 import type { Config } from '../src/config.js';
 
-let app: App; let sql: Sql; let config: Config; let close: () => Promise<void>;
-beforeAll(async () => { ({ app, sql, config, close } = await makeApp()); });
-afterAll(async () => { await close(); });
+let app: App;
+let sql: Sql;
+let config: Config;
+let close: () => Promise<void>;
+beforeAll(async () => {
+  ({ app, sql, config, close } = await makeApp());
+});
+afterAll(async () => {
+  await close();
+});
 
 describe('configuração', () => {
   it('produção recusa o SESSION_SECRET padrão; desenvolvimento usa o padrão', () => {
-    expect(() => loadConfig({ NODE_ENV: 'production', PUBLIC_URL: 'https://garimpa.app.br' })).toThrow(/SESSION_SECRET/);
+    expect(() => loadConfig({ NODE_ENV: 'production', PUBLIC_URL: 'https://garimpa.app.br' })).toThrow(
+      /SESSION_SECRET/,
+    );
     expect(loadConfig({ NODE_ENV: 'development' }).SESSION_SECRET).toMatch(/^garimpa-dev-secret/);
     expect(loadConfig({ NODE_ENV: 'production', SESSION_SECRET: 'x'.repeat(32) }).production).toBe(true);
   });
@@ -23,8 +32,12 @@ describe('login com Google', () => {
     const email = `${uniq('vitima')}@exemplo.com`;
     const sub1 = uniq('S1');
     const id1 = await upsertGoogleUser(sql, { sub: sub1, email, name: 'Vítima', picture: null }, 'ariquemes');
-    await expect(upsertGoogleUser(sql, { sub: uniq('S2'), email, name: 'Atacante', picture: null }, 'ariquemes')).rejects.toMatchObject({ status: 409 });
-    const row = (await sql<{ googleSub: string; name: string }[]>`select google_sub, name from users where id = ${id1}::uuid`)[0]!;
+    await expect(
+      upsertGoogleUser(sql, { sub: uniq('S2'), email, name: 'Atacante', picture: null }, 'ariquemes'),
+    ).rejects.toMatchObject({ status: 409 });
+    const row = (
+      await sql<{ googleSub: string; name: string }[]>`select google_sub, name from users where id = ${id1}::uuid`
+    )[0]!;
     expect(row).toEqual({ googleSub: sub1, name: 'Vítima' });
     expect(await upsertGoogleUser(sql, { sub: sub1, email, name: 'Vítima', picture: null }, 'ariquemes')).toBe(id1);
   });
@@ -32,10 +45,18 @@ describe('login com Google', () => {
 
 describe('escritas exigem o cabeçalho do app (anti-CSRF)', () => {
   it('formulário text/plain sem x-garimpa-device não faz login; com o cabeçalho mas text/plain é 415; leituras seguem livres', async () => {
-    const r1 = await app.request('/api/auth/dev', { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{"name":"atacante-z","x":"=\\"}' });
+    const r1 = await app.request('/api/auth/dev', {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: '{"name":"atacante-z","x":"=\\"}',
+    });
     expect(r1.status).toBe(403);
     expect(r1.headers.get('set-cookie')).toBeNull();
-    const r2 = await app.request('/api/auth/dev', { method: 'POST', headers: { 'content-type': 'text/plain', 'x-garimpa-device': 'd' }, body: '{"name":"atacante-z"}' });
+    const r2 = await app.request('/api/auth/dev', {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain', 'x-garimpa-device': 'd' },
+      body: '{"name":"atacante-z"}',
+    });
     expect(r2.status).toBe(415);
     const r3 = await app.request('/api/config');
     expect(r3.status).toBe(200);
@@ -47,9 +68,18 @@ describe('escritas exigem o cabeçalho do app (anti-CSRF)', () => {
 describe('upload', () => {
   it('corpo acima do limite e imagem ilegível são recusados sem gastar a cota do dia', async () => {
     const s = await login(app, uniq('Up'));
-    const used = async () => (await sql<{ n: number }[]>`select coalesce(sum(count), 0)::int as n from daily_caps where user_id = ${s.user.id}::uuid and kind = 'uploads'`)[0]!.n;
+    const used = async () =>
+      (
+        await sql<
+          { n: number }[]
+        >`select coalesce(sum(count), 0)::int as n from daily_caps where user_id = ${s.user.id}::uuid and kind = 'uploads'`
+      )[0]!.n;
     const big = new FormData();
-    big.set('file', new Blob([new Uint8Array(config.MAX_UPLOAD_MB * 1024 * 1024 + 80 * 1024)], { type: 'image/png' }), 'grande.png');
+    big.set(
+      'file',
+      new Blob([new Uint8Array(config.MAX_UPLOAD_MB * 1024 * 1024 + 80 * 1024)], { type: 'image/png' }),
+      'grande.png',
+    );
     const r1 = await api(app, 'POST', '/api/uploads', { session: s, form: big });
     expect(r1.status).toBe(413);
     expect(await used()).toBe(0);
@@ -67,8 +97,12 @@ describe('upload', () => {
 describe('posição de quem pergunta', () => {
   it('é guardada e devolvida só como região aproximada (3 casas)', async () => {
     const s = await login(app, uniq('Geo'));
-    const lat = -9.912345678; const lng = -63.043210987;
-    const q = await api(app, 'POST', '/api/questions', { session: s, body: { title: `Berço desmontável ${uniq('z')}`, category: 'bebe', lat, lng } });
+    const lat = -9.912345678;
+    const lng = -63.043210987;
+    const q = await api(app, 'POST', '/api/questions', {
+      session: s,
+      body: { title: `Berço desmontável ${uniq('z')}`, category: 'bebe', lat, lng },
+    });
     expect(q.status).toBe(201);
     const d = await api(app, 'GET', `/api/questions/${q.json.id}`);
     const decimals = (v: number) => (String(v).split('.')[1] ?? '').length;

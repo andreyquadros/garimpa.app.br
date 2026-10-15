@@ -11,7 +11,10 @@ import { Carteira } from './pages/Carteira';
 import { Login } from './pages/Login';
 import { PlacePage } from './pages/Place';
 
-function LegacyMission({ sub = '' }: { sub?: string }) { const { id } = useParams(); return <Navigate to={`/m/${id}${sub}`} replace />; }
+function LegacyMission({ sub = '' }: { sub?: string }) {
+  const { id } = useParams();
+  return <Navigate to={`/m/${id}${sub}`} replace />;
+}
 
 // Na demonstração (hospedagem estática, GitHub Pages) as rotas vivem no hash: /#/missoes.
 export const router = (DEMO ? createHashRouter : createBrowserRouter)([

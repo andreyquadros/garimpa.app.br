@@ -22,7 +22,13 @@ export type NewPlace = z.infer<typeof newPlaceSchema>;
  * O limite diário de lugares novos é cobrado aqui, só quando um lugar é de fato criado, para valer
  * tanto em POST /places quanto em respostas com `newPlace`.
  */
-export async function getOrCreatePlace(db: Sql | Tx, cityId: string, input: NewPlace, userId: string, eco: Economy): Promise<{ id: string; created: boolean }> {
+export async function getOrCreatePlace(
+  db: Sql | Tx,
+  cityId: string,
+  input: NewPlace,
+  userId: string,
+  eco: Economy,
+): Promise<{ id: string; created: boolean }> {
   const inside = await db<{ ok: boolean }[]>`
     select earth_distance(ll_to_earth(lat, lng), ll_to_earth(${input.lat}, ${input.lng})) <= radius_m as ok from cities where id = ${cityId}`;
   if (!inside[0]?.ok) throw new HTTPException(400, { message: 'Esse ponto fica fora da área do piloto (Ariquemes).' });
@@ -32,7 +38,8 @@ export async function getOrCreatePlace(db: Sql | Tx, cityId: string, input: NewP
       and earth_distance(ll_to_earth(lat, lng), ll_to_earth(${input.lat}, ${input.lng})) <= 150
     limit 1`;
   if (same[0]) return { id: same[0].id, created: false };
-  if (!(await takeCap(db, userId, 'lugares', eco.limites_dia.lugares))) throw new HTTPException(429, { message: 'Muitos lugares novos hoje. Volte amanhã.' });
+  if (!(await takeCap(db, userId, 'lugares', eco.limites_dia.lugares)))
+    throw new HTTPException(429, { message: 'Muitos lugares novos hoje. Volte amanhã.' });
   const row = await db<{ id: string }[]>`
     insert into places(city_id, name, address, lat, lng, kind, whatsapp, created_by)
     values (${cityId}, ${input.name}, ${input.address ?? null}, ${input.lat}, ${input.lng}, ${input.kind}, ${input.whatsapp ?? null}, ${userId}::uuid)
@@ -66,7 +73,9 @@ placeRoutes.get('/places', async (c) => {
 placeRoutes.get('/places/:id', async (c) => {
   const sql = c.get('sql');
   const id = c.req.param('id');
-  const place = (await sql`select id, name, address, lat, lng, kind, whatsapp, partner_tier, created_at from places where id = ${id}::uuid`)[0];
+  const place = (
+    await sql`select id, name, address, lat, lng, kind, whatsapp, partner_tier, created_at from places where id = ${id}::uuid`
+  )[0];
   if (!place) throw new HTTPException(404, { message: 'Lugar não encontrado.' });
   const finds = await sql`
     select a.id as answer_id, a.status, a.price_cents, a.created_at, a.confirms, q.id as question_id, q.title,
@@ -85,7 +94,9 @@ placeRoutes.post('/places', async (c) => {
   const input = newPlaceSchema.parse(await c.req.json());
   const r = await sql.begin((tx) => getOrCreatePlace(tx, c.get('config').CITY_DEFAULT, input, u.id, eco));
   await recordSignal(c, u.id);
-  const place = (await sql`select id, name, address, lat, lng, kind, partner_tier from places where id = ${r.id}::uuid`)[0];
+  const place = (
+    await sql`select id, name, address, lat, lng, kind, partner_tier from places where id = ${r.id}::uuid`
+  )[0];
   return c.json({ place, created: r.created }, r.created ? 201 : 200);
 });
 

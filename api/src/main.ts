@@ -9,7 +9,11 @@ const sql = createDb(config.DATABASE_URL);
 const applied = await migrate(sql);
 await ensureCity(sql);
 if (applied.length) console.log(`migrações aplicadas: ${applied.join(', ')}`);
-if (!config.GOOGLE_CLIENT_ID) console.warn('GOOGLE_CLIENT_ID ausente: login com Google desligado' + (config.allowDevLogin ? ' (login de desenvolvimento ativo)' : ''));
+if (!config.GOOGLE_CLIENT_ID)
+  console.warn(
+    'GOOGLE_CLIENT_ID ausente: login com Google desligado' +
+      (config.allowDevLogin ? ' (login de desenvolvimento ativo)' : ''),
+  );
 if (config.SESSION_SECRET.startsWith('garimpa-dev-secret')) console.warn('SESSION_SECRET padrão: troque em produção');
 
 const app = createApp({ sql, config });

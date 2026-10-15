@@ -4,27 +4,50 @@ import path from 'node:path';
 import type { Context } from 'hono';
 
 const MIME: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon',
-  '.woff2': 'font/woff2', '.woff': 'font/woff', '.txt': 'text/plain; charset=utf-8', '.map': 'application/json', '.wasm': 'application/wasm',
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.txt': 'text/plain; charset=utf-8',
+  '.map': 'application/json',
+  '.wasm': 'application/wasm',
 };
 
 async function sendFile(c: Context, abs: string, cache: string): Promise<Response | null> {
   let st: fs.Stats;
-  try { st = await fsp.stat(abs); } catch { return null; }
+  try {
+    st = await fsp.stat(abs);
+  } catch {
+    return null;
+  }
   if (!st.isFile()) return null;
   const type = MIME[path.extname(abs).toLowerCase()] ?? 'application/octet-stream';
   const stream = fs.createReadStream(abs);
   const body = new ReadableStream({
     start(controller) {
-      stream.on('data', (chunk) => controller.enqueue(typeof chunk === 'string' ? Buffer.from(chunk) : new Uint8Array(chunk)));
+      stream.on('data', (chunk) =>
+        controller.enqueue(typeof chunk === 'string' ? Buffer.from(chunk) : new Uint8Array(chunk)),
+      );
       stream.on('end', () => controller.close());
       stream.on('error', (e) => controller.error(e));
     },
-    cancel() { stream.destroy(); },
+    cancel() {
+      stream.destroy();
+    },
   });
-  return new Response(body, { headers: { 'content-type': type, 'content-length': String(st.size), 'cache-control': cache } });
+  return new Response(body, {
+    headers: { 'content-type': type, 'content-length': String(st.size), 'cache-control': cache },
+  });
 }
 
 /** Fotos enviadas: só caminhos no formato ano/mes/<sha256>.jpg, nada de "..". */

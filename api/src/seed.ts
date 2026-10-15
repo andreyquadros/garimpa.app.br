@@ -14,13 +14,18 @@ export async function seedDemo(sql: Sql, uploadDir: string, cityId: string) {
   const c = { lat: -9.9075, lng: -63.0415 };
 
   const users = [
-    { handle: 'demo-marina', name: 'Marina Castro' }, { handle: 'demo-joao', name: 'João Pedro Lima' },
-    { handle: 'demo-tais', name: 'Taís Oliveira' }, { handle: 'demo-rafael', name: 'Rafael Souza' },
-    { handle: 'demo-dona-neide', name: 'Dona Neide' }, { handle: 'demo-lucas', name: 'Lucas Ferreira' },
+    { handle: 'demo-marina', name: 'Marina Castro' },
+    { handle: 'demo-joao', name: 'João Pedro Lima' },
+    { handle: 'demo-tais', name: 'Taís Oliveira' },
+    { handle: 'demo-rafael', name: 'Rafael Souza' },
+    { handle: 'demo-dona-neide', name: 'Dona Neide' },
+    { handle: 'demo-lucas', name: 'Lucas Ferreira' },
   ];
   const uid: Record<string, string> = {};
   for (const u of users) {
-    const r = await sql<{ id: string }[]>`insert into users(name, handle, city_id, google_sub, created_at) values (${u.name}, ${u.handle}, ${cityId}, ${'seed:' + u.handle}, now() - interval '20 days') returning id`;
+    const r = await sql<
+      { id: string }[]
+    >`insert into users(name, handle, city_id, google_sub, created_at) values (${u.name}, ${u.handle}, ${cityId}, ${'seed:' + u.handle}, now() - interval '20 days') returning id`;
     uid[u.handle] = r[0]!.id;
     await grantBadge(sql, r[0]!.id, 'fundador');
   }
@@ -44,22 +49,107 @@ export async function seedDemo(sql: Sql, uploadDir: string, cityId: string) {
     pid.push(r[0]!.id);
   }
 
-  type Q = { by: string; title: string; details?: string; category: string; daysAgo: number; answers: Array<{ by: string; place: number; note: string; price?: number; accept?: boolean; confirms?: string[]; gps?: boolean }> };
+  type Q = {
+    by: string;
+    title: string;
+    details?: string;
+    category: string;
+    daysAgo: number;
+    answers: Array<{
+      by: string;
+      place: number;
+      note: string;
+      price?: number;
+      accept?: boolean;
+      confirms?: string[];
+      gps?: boolean;
+    }>;
+  };
   const questions: Q[] = [
-    { by: 'demo-marina', title: 'Garrafa de vidro com tampa hermética (1 litro)', details: 'Para guardar kombucha. Pode ser de clipe ou rosca, mas tem que vedar.', category: 'casa', daysAgo: 6,
+    {
+      by: 'demo-marina',
+      title: 'Garrafa de vidro com tampa hermética (1 litro)',
+      details: 'Para guardar kombucha. Pode ser de clipe ou rosca, mas tem que vedar.',
+      category: 'casa',
+      daysAgo: 6,
       answers: [
-        { by: 'demo-joao', place: 0, note: 'Tem na prateleira do fundo, perto das panelas. Vidro com tampa de clipe, 1 L.', price: 2490, accept: true, confirms: ['demo-tais', 'demo-lucas'], gps: true },
-        { by: 'demo-rafael', place: 2, note: 'Vi hoje de manhã no corredor de potes, modelo com rosca.', price: 1990, confirms: ['demo-marina'] },
-      ] },
-    { by: 'demo-rafael', title: 'Fonte carregador USB-C 65W (notebook)', details: 'Pode ser de qualquer marca, só precisa ser USB-C PD 65W.', category: 'eletronicos', daysAgo: 4,
-      answers: [{ by: 'demo-lucas', place: 8, note: 'Tem Baseus 65W no balcão, pediu pra testar e funcionou no meu Lenovo.', price: 15900, accept: true, confirms: ['demo-joao', 'demo-tais'], gps: true }] },
-    { by: 'demo-dona-neide', title: 'Ração hipoalergênica para gato castrado', category: 'pets', daysAgo: 3,
-      answers: [{ by: 'demo-tais', place: 7, note: 'Pacote de 1,5 kg da Premier Gourmet e da Guabi. Preço na foto.', price: 8990, confirms: ['demo-rafael', 'demo-lucas'], gps: true }] },
-    { by: 'demo-joao', title: 'Lâmpada LED E27 bivolt 15W luz amarela', category: 'casa', daysAgo: 2,
-      answers: [{ by: 'demo-dona-neide', place: 5, note: 'Caixa com 3 unidades, R$ 29,90.', price: 2990, confirms: ['demo-marina'] }] },
+        {
+          by: 'demo-joao',
+          place: 0,
+          note: 'Tem na prateleira do fundo, perto das panelas. Vidro com tampa de clipe, 1 L.',
+          price: 2490,
+          accept: true,
+          confirms: ['demo-tais', 'demo-lucas'],
+          gps: true,
+        },
+        {
+          by: 'demo-rafael',
+          place: 2,
+          note: 'Vi hoje de manhã no corredor de potes, modelo com rosca.',
+          price: 1990,
+          confirms: ['demo-marina'],
+        },
+      ],
+    },
+    {
+      by: 'demo-rafael',
+      title: 'Fonte carregador USB-C 65W (notebook)',
+      details: 'Pode ser de qualquer marca, só precisa ser USB-C PD 65W.',
+      category: 'eletronicos',
+      daysAgo: 4,
+      answers: [
+        {
+          by: 'demo-lucas',
+          place: 8,
+          note: 'Tem Baseus 65W no balcão, pediu pra testar e funcionou no meu Lenovo.',
+          price: 15900,
+          accept: true,
+          confirms: ['demo-joao', 'demo-tais'],
+          gps: true,
+        },
+      ],
+    },
+    {
+      by: 'demo-dona-neide',
+      title: 'Ração hipoalergênica para gato castrado',
+      category: 'pets',
+      daysAgo: 3,
+      answers: [
+        {
+          by: 'demo-tais',
+          place: 7,
+          note: 'Pacote de 1,5 kg da Premier Gourmet e da Guabi. Preço na foto.',
+          price: 8990,
+          confirms: ['demo-rafael', 'demo-lucas'],
+          gps: true,
+        },
+      ],
+    },
+    {
+      by: 'demo-joao',
+      title: 'Lâmpada LED E27 bivolt 15W luz amarela',
+      category: 'casa',
+      daysAgo: 2,
+      answers: [
+        {
+          by: 'demo-dona-neide',
+          place: 5,
+          note: 'Caixa com 3 unidades, R$ 29,90.',
+          price: 2990,
+          confirms: ['demo-marina'],
+        },
+      ],
+    },
     { by: 'demo-tais', title: 'Fita isolante líquida', category: 'ferramentas', daysAgo: 2, answers: [] },
-    { by: 'demo-lucas', title: 'Caderno de desenho A3 (papel 180g)', category: 'papelaria', daysAgo: 1,
-      answers: [{ by: 'demo-marina', place: 4, note: 'Canson A3 180g, última unidade estava hoje às 10h.', price: 4590 }] },
+    {
+      by: 'demo-lucas',
+      title: 'Caderno de desenho A3 (papel 180g)',
+      category: 'papelaria',
+      daysAgo: 1,
+      answers: [
+        { by: 'demo-marina', place: 4, note: 'Canson A3 180g, última unidade estava hoje às 10h.', price: 4590 },
+      ],
+    },
     { by: 'demo-marina', title: 'Guarda-chuva transparente estilo bolha', category: 'roupas', daysAgo: 1, answers: [] },
     { by: 'demo-rafael', title: 'Cadeirinha de carro reversível até 25 kg', category: 'bebe', daysAgo: 0, answers: [] },
   ];
@@ -81,7 +171,9 @@ export async function seedDemo(sql: Sql, uploadDir: string, cityId: string) {
     let first = true;
     for (const a of q.answers) {
       const placeId = pid[a.place]!;
-      const pl = (await sql<{ lat: number; lng: number }[]>`select lat, lng from places where id = ${placeId}::uuid`)[0]!;
+      const pl = (
+        await sql<{ lat: number; lng: number }[]>`select lat, lng from places where id = ${placeId}::uuid`
+      )[0]!;
       const ar = await sql<{ id: string }[]>`
         insert into answers(question_id, author_id, place_id, note, price_cents, seen_on, is_first_for_place, created_at)
         values (${qid}::uuid, ${uid[a.by]!}::uuid, ${placeId}::uuid, ${a.note}, ${a.price ?? null}, current_date - ${q.daysAgo}::int, ${first}, now() - make_interval(days => ${q.daysAgo}::int, hours => 1)) returning id`;
@@ -92,15 +184,33 @@ export async function seedDemo(sql: Sql, uploadDir: string, cityId: string) {
       const rel = await storeImage(uploadDir, p.sha256, p.jpeg);
       const exifLat = a.gps ? pl.lat + 0.0004 : null;
       const exifLng = a.gps ? pl.lng - 0.0003 : null;
-      const sc = scoreEvidence({ kind: 'foto_produto', exifLat, exifLng, exifTakenAt: a.gps ? new Date(Date.now() - q.daysAgo * 86400000) : null,
-        deviceLat: pl.lat + 0.001, deviceLng: pl.lng, placeLat: pl.lat, placeLng: pl.lng, reusedBySameUser: false });
+      const sc = scoreEvidence({
+        kind: 'foto_produto',
+        exifLat,
+        exifLng,
+        exifTakenAt: a.gps ? new Date(Date.now() - q.daysAgo * 86400000) : null,
+        deviceLat: pl.lat + 0.001,
+        deviceLng: pl.lng,
+        placeLat: pl.lat,
+        placeLng: pl.lng,
+        reusedBySameUser: false,
+      });
       await sql`insert into evidences(answer_id, uploader_id, kind, file_path, mime, width, height, bytes, sha256, dhash, exif_taken_at, exif_lat, exif_lng, device_lat, device_lng, distance_exif_m, distance_device_m, flags, score)
         values (${aid}::uuid, ${uid[a.by]!}::uuid, 'foto_produto', ${rel}, 'image/jpeg', ${p.width}, ${p.height}, ${p.jpeg.length}, ${p.sha256}, ${p.dhash}::bit(64),
                 ${a.gps ? new Date(Date.now() - q.daysAgo * 86400000) : null}, ${exifLat}, ${exifLng}, ${pl.lat + 0.001}, ${pl.lng}, ${sc.distanceExifM}, ${sc.distanceDeviceM}, ${sc.flags}::text[], ${sc.score})`;
       ids.evidences++;
       await sql`update answers set evidence_score = ${sc.score} where id = ${aid}::uuid`;
       await sql`update questions set answers_count = answers_count + 1, status = case when status = 'aberta' then 'respondida' else status end where id = ${qid}::uuid`;
-      await award(sql, uid[a.by]!, 'resposta_com_evidencia', sc.score >= eco.evidencia_forte ? eco.xp.resposta_com_evidencia : 5, 0, { type: 'resposta', id: aid }, { forte: sc.score >= eco.evidencia_forte }, 0);
+      await award(
+        sql,
+        uid[a.by]!,
+        'resposta_com_evidencia',
+        sc.score >= eco.evidencia_forte ? eco.xp.resposta_com_evidencia : 5,
+        0,
+        { type: 'resposta', id: aid },
+        { forte: sc.score >= eco.evidencia_forte },
+        0,
+      );
       for (const v of a.confirms ?? []) {
         await sql`insert into confirmations(answer_id, user_id, vote, weight) values (${aid}::uuid, ${uid[v]!}::uuid, 1, 1.0)`;
         await sql`update answers set confirms = confirms + 1 where id = ${aid}::uuid`;
@@ -108,19 +218,76 @@ export async function seedDemo(sql: Sql, uploadDir: string, cityId: string) {
       }
       if ((a.confirms?.length ?? 0) >= eco.confirmacoes_para_validar) {
         await sql`update answers set status = 'confirmada' where id = ${aid}::uuid`;
-        await award(sql, uid[a.by]!, 'resposta_confirmada', eco.xp.resposta_confirmada, Math.round(eco.pepitas.resposta_confirmada * (first ? 1 : eco.pepitas.fracao_segundo_achado)), { type: 'resposta', id: aid }, {}, 0);
-        for (const v of a.confirms ?? []) await award(sql, uid[v]!, 'confirmacao_validada', eco.xp.confirmacao_validada, eco.pepitas.confirmacao_validada, { type: 'resposta', id: aid }, {}, 0);
+        await award(
+          sql,
+          uid[a.by]!,
+          'resposta_confirmada',
+          eco.xp.resposta_confirmada,
+          Math.round(eco.pepitas.resposta_confirmada * (first ? 1 : eco.pepitas.fracao_segundo_achado)),
+          { type: 'resposta', id: aid },
+          {},
+          0,
+        );
+        for (const v of a.confirms ?? [])
+          await award(
+            sql,
+            uid[v]!,
+            'confirmacao_validada',
+            eco.xp.confirmacao_validada,
+            eco.pepitas.confirmacao_validada,
+            { type: 'resposta', id: aid },
+            {},
+            0,
+          );
       }
       if (a.accept) {
         await sql`update questions set status = 'resolvida', accepted_answer_id = ${aid}::uuid, solved_at = now() - make_interval(days => ${q.daysAgo}::int) where id = ${qid}::uuid`;
         await sql`update answers set status = 'aceita' where id = ${aid}::uuid`;
-        await award(sql, uid[a.by]!, 'resposta_aceita', eco.xp.resposta_aceita, eco.pepitas.resposta_aceita, { type: 'resposta', id: aid }, { primeiro: first }, 0);
-        await award(sql, uid[a.by]!, 'primeiro_achado', eco.xp.primeiro_achado, eco.pepitas.primeiro_achado, { type: 'resposta', id: aid }, {}, 0);
-        await award(sql, uid[q.by]!, 'aceitar_resposta', eco.xp.aceitar_resposta, 0, { type: 'pergunta', id: qid }, {}, 0);
+        await award(
+          sql,
+          uid[a.by]!,
+          'resposta_aceita',
+          eco.xp.resposta_aceita,
+          eco.pepitas.resposta_aceita,
+          { type: 'resposta', id: aid },
+          { primeiro: first },
+          0,
+        );
+        await award(
+          sql,
+          uid[a.by]!,
+          'primeiro_achado',
+          eco.xp.primeiro_achado,
+          eco.pepitas.primeiro_achado,
+          { type: 'resposta', id: aid },
+          {},
+          0,
+        );
+        await award(
+          sql,
+          uid[q.by]!,
+          'aceitar_resposta',
+          eco.xp.aceitar_resposta,
+          0,
+          { type: 'pergunta', id: qid },
+          {},
+          0,
+        );
         await grantBadge(sql, uid[a.by]!, 'primeiro_achado');
-        const tip = await sql<{ id: string }[]>`insert into tips(from_user, to_user, answer_id, amount, source) values (${uid[q.by]!}::uuid, ${uid[a.by]!}::uuid, ${aid}::uuid, 10, 'orcamento') returning id`;
+        const tip = await sql<
+          { id: string }[]
+        >`insert into tips(from_user, to_user, answer_id, amount, source) values (${uid[q.by]!}::uuid, ${uid[a.by]!}::uuid, ${aid}::uuid, 10, 'orcamento') returning id`;
         await sql`update questions set tip_budget_left = tip_budget_left - 10 where id = ${qid}::uuid`;
-        await award(sql, uid[a.by]!, 'gorjeta_recebida', 2, 10, { type: 'gorjeta', id: tip[0]!.id }, { de: uid[q.by] }, 0);
+        await award(
+          sql,
+          uid[a.by]!,
+          'gorjeta_recebida',
+          2,
+          10,
+          { type: 'gorjeta', id: tip[0]!.id },
+          { de: uid[q.by] },
+          0,
+        );
       }
       first = false;
     }
@@ -133,13 +300,23 @@ export async function seedDemo(sql: Sql, uploadDir: string, cityId: string) {
 
 /** Imagem de demonstração: cartão com o nome do produto e formas em posições que dependem do texto (hashes distintos). */
 export async function demoImage(title: string, seed: number): Promise<Buffer> {
-  const palette = [['#0F4C4C', '#F2B705'], ['#1E7A52', '#F5F8F3'], ['#B3401F', '#FBE7A1'], ['#133A3A', '#7FD1AE'], ['#F2B705', '#0F4C4C']];
+  const palette = [
+    ['#0F4C4C', '#F2B705'],
+    ['#1E7A52', '#F5F8F3'],
+    ['#B3401F', '#FBE7A1'],
+    ['#133A3A', '#7FD1AE'],
+    ['#F2B705', '#0F4C4C'],
+  ];
   const [bg, fg] = palette[seed % palette.length]!;
   let h = 0;
   for (const ch of title) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const shapes = Array.from({ length: 7 }, (_, i) => {
-    const x = ((h >> (i * 3)) % 700) + 50; const y = ((h >> (i * 2 + 1)) % 420) + 60; const r = 20 + ((h >> i) % 60);
-    return i % 2 ? `<circle cx="${x}" cy="${y}" r="${r}" fill="${fg}" opacity="0.35"/>` : `<rect x="${x}" y="${y}" width="${r * 2}" height="${r}" rx="12" fill="${fg}" opacity="0.25"/>`;
+    const x = ((h >> (i * 3)) % 700) + 50;
+    const y = ((h >> (i * 2 + 1)) % 420) + 60;
+    const r = 20 + ((h >> i) % 60);
+    return i % 2
+      ? `<circle cx="${x}" cy="${y}" r="${r}" fill="${fg}" opacity="0.35"/>`
+      : `<rect x="${x}" y="${y}" width="${r * 2}" height="${r}" rx="12" fill="${fg}" opacity="0.25"/>`;
   }).join('');
   const safe = title.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="${bg}"/>${shapes}

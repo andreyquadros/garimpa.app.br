@@ -2,8 +2,16 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { HTTPException } from 'hono/http-exception';
 import {
-  type AppEnv, type GoogleProfile, clearSessionCookie, loadUser, recordSignal, requireUser,
-  setSessionCookie, signSession, uniqueHandle, verifyGoogleIdToken,
+  type AppEnv,
+  type GoogleProfile,
+  clearSessionCookie,
+  loadUser,
+  recordSignal,
+  requireUser,
+  setSessionCookie,
+  signSession,
+  uniqueHandle,
+  verifyGoogleIdToken,
 } from '../auth.js';
 import { grantBadge } from '../economy.js';
 import type { Sql } from '../db.js';
@@ -23,7 +31,9 @@ export async function upsertGoogleUser(sql: Sql, p: GoogleProfile, cityId: strin
       order by (google_sub = ${p.sub}) desc nulls last limit 1`;
     if (found[0]) {
       if (found[0].googleSub && found[0].googleSub !== p.sub) {
-        throw new HTTPException(409, { message: 'Este e-mail já está vinculado a outra conta Google. Entre com a conta original.' });
+        throw new HTTPException(409, {
+          message: 'Este e-mail já está vinculado a outra conta Google. Entre com a conta original.',
+        });
       }
       await tx`update users set google_sub = coalesce(google_sub, ${p.sub}), name = ${p.name}, avatar_url = coalesce(${p.picture}, avatar_url),
                email = coalesce(email, ${p.email}::citext) where id = ${found[0].id}::uuid`;
@@ -54,9 +64,14 @@ authRoutes.post('/dev', async (c) => {
   const body = z.object({ name: z.string().min(2).max(60) }).parse(await c.req.json());
   const sql = c.get('sql');
   // "marina" entra na conta de demonstração demo-marina (dados do seed); outros nomes criam contas dev.
-  const demo = (await sql<{ id: string }[]>`select id from users where handle = ${'demo-' + slugify(body.name)} and google_sub like 'seed:%' and banned_at is null`)[0];
+  const demo = (
+    await sql<
+      { id: string }[]
+    >`select id from users where handle = ${'demo-' + slugify(body.name)} and google_sub like 'seed:%' and banned_at is null`
+  )[0];
   const sub = `dev:${body.name.toLowerCase()}`;
-  const id = demo?.id ?? (await upsertGoogleUser(sql, { sub, email: null, name: body.name, picture: null }, cfg.CITY_DEFAULT));
+  const id =
+    demo?.id ?? (await upsertGoogleUser(sql, { sub, email: null, name: body.name, picture: null }, cfg.CITY_DEFAULT));
   setSessionCookie(c, await signSession(cfg, id));
   await recordSignal(c, id);
   return c.json({ user: await loadUser(sql, id) });
@@ -69,7 +84,9 @@ authRoutes.post('/logout', async (c) => {
 
 authRoutes.delete('/account', async (c) => {
   const u = requireUser(c);
-  await c.get('sql')`update users set banned_at = now(), name = 'Conta removida', email = null, google_sub = null, avatar_url = null where id = ${u.id}::uuid`;
+  await c.get(
+    'sql',
+  )`update users set banned_at = now(), name = 'Conta removida', email = null, google_sub = null, avatar_url = null where id = ${u.id}::uuid`;
   clearSessionCookie(c);
   return c.json({ ok: true });
 });
