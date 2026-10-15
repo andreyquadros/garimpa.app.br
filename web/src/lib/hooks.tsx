@@ -25,7 +25,12 @@ export function useMe() {
 
 export function useInvalidate() {
   const qc = useQueryClient();
-  return useCallback((keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] })), [qc]);
+  return useCallback(
+    (keys: string[]) => {
+      for (const k of keys) qc.invalidateQueries({ queryKey: [k] });
+    },
+    [qc],
+  );
 }
 
 export type Geo = { lat: number; lng: number; accuracy: number };
