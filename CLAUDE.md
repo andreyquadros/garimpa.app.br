@@ -20,12 +20,12 @@ pnpm typecheck                                        # tipos de api e web
 pnpm test:scripts                                     # testes dos scripts (validador de mensagens de commit)
 pnpm --filter garimpa-api test                        # testes da API (precisa do Postgres em :54329)
 pnpm --filter garimpa-web test                        # testes do web
-pnpm --filter garimpa-web test:e2e                    # ponta a ponta (Playwright; precisa do Postgres local, usa :8788, :5174 e o banco garimpa_e2e)
+pnpm --filter garimpa-web test:e2e                    # ponta a ponta (Playwright; precisa do Postgres local, usa :8788, :5174 e o banco garimpa_e2e; outro banco via DATABASE_URL_E2E, com nome terminado em _e2e e host local)
 pnpm --filter garimpa-web build                       # build do PWA
 ```
 
 Sem pnpm na máquina: `npm i -g pnpm@10.28.0` (pode pedir `sudo`, conforme o prefixo do npm) ou prefixe qualquer
-comando com `npx pnpm@10.28.0` (ex.: `npx pnpm@10.28.0 install`). Os hooks do lefthook (pre-commit e commit-msg)
+comando com `npx pnpm@10.28.0` (ex.: `npx pnpm@10.28.0 install`). Os `webServer` do e2e também não precisam do pnpm no `PATH`. Os hooks do lefthook (pre-commit e commit-msg)
 se instalam no `pnpm install` e chamam os binários locais, então não dependem do pnpm no `PATH` (só do `node`).
 
 Mudou o fluxo principal (entrar → missão → evidência → confirmar → aceitar)? Atualize `web/e2e/fluxo-principal.spec.ts` (ADR-0005).
