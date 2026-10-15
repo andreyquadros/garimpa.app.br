@@ -1,8 +1,10 @@
 name: CI
 on:
   push:
-    branches: ["**"]
+    branches: [main]   # o PR é o portão; evita rodar duas vezes na branch de trabalho
   pull_request:
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
