@@ -79,3 +79,30 @@ test('--range aponta só o commit inválido', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('--range recusa fixup e squash e manda rodar o autosquash', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'commit-msg-'));
+  try {
+    const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' }).trim();
+    git('init', '-q', '-b', 'main');
+    git('config', 'user.email', 't@t.t');
+    git('config', 'user.name', 't');
+    git('config', 'commit.gpgsign', 'false');
+    git('commit', '-q', '--allow-empty', '-m', 'feat: base');
+    git('commit', '-q', '--allow-empty', '-m', 'fixup! feat: base');
+    const fixup = git('rev-parse', '--short=7', 'HEAD');
+    const r = spawnSync('node', [script, '--range', 'HEAD~1..HEAD'], { cwd: dir, encoding: 'utf8' });
+    assert.equal(r.status, 1);
+    const out = r.stdout + r.stderr;
+    assert.ok(out.includes(`${fixup}: `));
+    assert.ok(out.includes('git rebase -i --autosquash'));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('arquivo (hook local) continua aceitando fixup, squash e amend', () => {
+  assert.deepEqual(validateCommitMessage('fixup! feat: x'), []);
+  assert.deepEqual(validateCommitMessage('squash! feat: x'), []);
+  assert.deepEqual(validateCommitMessage('amend! feat: x'), []);
+});

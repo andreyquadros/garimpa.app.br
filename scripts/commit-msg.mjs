@@ -9,6 +9,8 @@ const FORMAT = /^(feat|fix|refactor|perf|test|docs|infra|ci|chore|style)(\([a-z0
 const MAX_FIRST_LINE = 72;
 
 // Mensagens que o próprio git gera; não seguem o formato, mas precisam passar (rebase --autosquash, reverts, merges).
+// fixup!/squash!/amend! só valem localmente: no CI (`autosquash: false`) o histórico já deveria estar limpo.
+const AUTOSQUASH = /^(fixup|squash|amend)! /;
 const GIT_GENERATED = /^(fixup! |squash! |amend! |Revert "|Merge (branch|pull request|remote-tracking branch|tag) )/;
 
 const ATTRIBUTION = [
@@ -19,9 +21,10 @@ const ATTRIBUTION = [
 
 /**
  * @param {string} message
+ * @param {{ autosquash?: boolean }} [options] `autosquash: false` recusa fixup!/squash!/amend!
  * @returns {string[]} erros em português; lista vazia significa mensagem válida
  */
-export function validateCommitMessage(message) {
+export function validateCommitMessage(message, { autosquash = true } = {}) {
   // O git remove os comentários antes de gravar o commit; aqui fazemos o mesmo para o hook ver o texto final.
   const lines = message.split(/\r?\n/).filter((line) => !line.startsWith('#'));
   while (lines.length > 0 && lines.at(-1).trim() === '') lines.pop();
@@ -31,7 +34,11 @@ export function validateCommitMessage(message) {
   const errors = [];
   const first = lines[0];
 
-  if (!GIT_GENERATED.test(first)) {
+  if (!autosquash && AUTOSQUASH.test(first)) {
+    errors.push(
+      `Commit de fixup/squash/amend ("${first}") não pode ir para o PR; rode "git rebase -i --autosquash" para incorporá-lo.`,
+    );
+  } else if (!GIT_GENERATED.test(first)) {
     if (!FORMAT.test(first)) {
       errors.push(
         `A primeira linha deve seguir "tipo(escopo): descrição" com tipo em feat, fix, refactor, perf, test, docs, infra, ci, chore ou style (recebido: "${first}").`,
@@ -68,7 +75,7 @@ function validateRange(range) {
   for (const record of output.split('\x1e')) {
     if (record.trim() === '') continue;
     const [hash, body = ''] = record.trim().split('\x00');
-    for (const error of validateCommitMessage(body)) {
+    for (const error of validateCommitMessage(body, { autosquash: false })) {
       failed = true;
       console.error(`${hash.slice(0, 7)}: ${error}`);
     }
