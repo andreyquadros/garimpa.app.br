@@ -1,10 +1,20 @@
 import { createDb, ensureCity, migrate } from '../../api/src/db.ts';
 import { E2E_DATABASE_URL } from './db-url.ts';
 
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
+
 // Banco próprio dos testes de ponta a ponta: recriado do zero a cada execução, sem tocar no banco de desenvolvimento.
 export default async function setup(): Promise<void> {
   const url = new URL(E2E_DATABASE_URL);
   const name = decodeURIComponent(url.pathname.slice(1));
+
+  // O preparo apaga o schema inteiro: recusa qualquer banco que não seja claramente de teste e local, antes de conectar.
+  if (!name.endsWith('_e2e') || !LOOPBACK_HOSTS.has(url.hostname)) {
+    throw new Error(
+      `DATABASE_URL_E2E recusada (${url.hostname}/${name}): o banco precisa terminar em "_e2e" e estar em ` +
+        'localhost, 127.0.0.1 ou ::1, porque o teste de ponta a ponta apaga todo o schema.',
+    );
+  }
 
   // `create database` não roda no banco que está sendo criado: usa o banco de manutenção do mesmo servidor.
   const admin = new URL(E2E_DATABASE_URL);

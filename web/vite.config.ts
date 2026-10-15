@@ -7,6 +7,9 @@ import { configDefaults, defineConfig } from 'vitest/config';
 // VITE_DEMO=1: build estático com a API falsa no navegador (GitHub Pages). VITE_BASE=./ deixa os caminhos relativos.
 const demo = process.env.VITE_DEMO === '1';
 
+// Os testes de ponta a ponta apontam o proxy para a API deles (porta 8788).
+const apiProxy = process.env.VITE_API_PROXY ?? 'http://localhost:8787';
+
 export default defineConfig({
   base: process.env.VITE_BASE ?? '/',
   // Literal em tempo de build: no modo normal o código da demonstração some do bundle.
@@ -64,7 +67,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    proxy: { '/api': 'http://localhost:8787', '/u': 'http://localhost:8787' },
+    proxy: { '/api': apiProxy, '/u': apiProxy },
   },
   build: { sourcemap: false, target: 'es2022' },
   // Os testes de ponta a ponta (Playwright) rodam com `test:e2e`, não no Vitest.
