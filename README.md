@@ -68,6 +68,9 @@ pnpm dev                             # http://localhost:5173 (API em :8787)
 pnpm --filter garimpa-api test       # testes contra o Postgres local
 ```
 
+O script usa os binários locais do PostgreSQL só se eles tiverem PostGIS (`postgis.control`); senão cai para o Docker
+(imagem `postgis/postgis:18-3.6-alpine`). `PGLOCAL_MODE=docker` ou `PGLOCAL_MODE=binarios` força um dos modos.
+
 Sem `GOOGLE_CLIENT_ID` o app oferece login de desenvolvimento: entre como `marina` para ver uma conta com histórico.
 
 ## Estado
