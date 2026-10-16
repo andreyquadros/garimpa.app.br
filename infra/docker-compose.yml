@@ -2,7 +2,7 @@
 # Variáveis: defina no painel do Dokploy (ou .env ao lado deste arquivo) as mesmas de ../.env.example.
 services:
   garimpa-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: garimpa
@@ -10,7 +10,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
       TZ: America/Porto_Velho
     volumes:
-      - garimpa-pgdata:/var/lib/postgresql/data
+      # Postgres 18: a imagem guarda os dados em /var/lib/postgresql/18/docker e o volume monta o diretório pai.
+      # Montar em .../data, como no 16, faz o banco subir vazio, fora do volume.
+      - garimpa-pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U garimpa -d garimpa"]
       interval: 10s
@@ -46,7 +48,7 @@ services:
 
   # Backup diário do banco para fora do VPS (mesma rotina do Traccar). Ajuste o destino rclone.
   garimpa-backup:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     depends_on:
       garimpa-db:

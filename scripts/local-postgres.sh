@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe um PostgreSQL 16 local, sem Docker, para desenvolvimento e testes do Garimpa.
+# Sobe um PostgreSQL 18 local, sem Docker, para desenvolvimento e testes do Garimpa.
 # Uso: scripts/local-postgres.sh start|stop|status|psql
 # Variáveis: PGLOCAL_DIR (padrão garimpa/.pglocal), PGLOCAL_PORT (padrão 54329)
 set -euo pipefail

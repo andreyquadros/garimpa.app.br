@@ -40,7 +40,7 @@ Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (p
 |---|---|
 | [docs/00-visao-do-produto.md](docs/00-visao-do-produto.md) | problema, aposta, personas, métricas do piloto, riscos |
 | [docs/01-dominios.md](docs/01-dominios.md) | histórico do nome (Garimpa → Pepita Social), domínios candidatos e verificados, como registrar |
-| [docs/02-adr-banco-de-dados.md](docs/02-adr-banco-de-dados.md) | por que **PostgreSQL 16** auto-hospedado (e não Supabase, Firestore ou PocketBase) |
+| [docs/02-adr-banco-de-dados.md](docs/02-adr-banco-de-dados.md) | por que **PostgreSQL 18** auto-hospedado (e não Supabase, Firestore ou PocketBase) |
 | [docs/03-gamificacao-arvore-de-pontos.md](docs/03-gamificacao-arvore-de-pontos.md) | XP × pepitas, tabela de eventos, níveis, conquistas, por que não onera cedo |
 | [docs/04-antiplagio-e-confianca.md](docs/04-antiplagio-e-confianca.md) | primeiro achado, hash perceptual, EXIF, texto copiado, conluio, denúncias, carência |
 | [docs/05-modelo-de-negocio.md](docs/05-modelo-de-negocio.md) | fase 1 (hábito), fase 2 (lojas parceiras e Cofre), fase 3, benchmark, LGPD |
@@ -52,14 +52,14 @@ Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (p
 |---|---|
 | PWA | React 19, Vite 8, TypeScript, Tailwind 4, Motion, Leaflet (tiles próprios de Ariquemes), TanStack Query, vite-plugin-pwa |
 | API | Node 22, Hono, Postgres.js, jose (Google ID token), sharp + exifr (provas), zod |
-| Banco | PostgreSQL 16 com `earthdistance`, `pg_trgm`, `unaccent`, `tsvector('portuguese')`; livro-razão em PL/pgSQL |
+| Banco | PostgreSQL 18 com `earthdistance`, `pg_trgm`, `unaccent`, `tsvector('portuguese')`; livro-razão em PL/pgSQL |
 | Deploy | uma imagem Docker (API serve o PWA e as fotos) + Postgres + backup, via Dokploy no KVM 8 |
 
 ## Rodar
 
 ```bash
 pnpm install
-scripts/local-postgres.sh start      # Postgres 16 local, sem Docker
+scripts/local-postgres.sh start      # Postgres 18 local, sem Docker
 pnpm db:migrate && pnpm db:seed      # esquema + dados de demonstração
 pnpm dev                             # http://localhost:5173 (API em :8787)
 pnpm --filter garimpa-api test       # testes contra o Postgres local

@@ -8,7 +8,7 @@
    Motion · Leaflet · TanStack Query        │           ├─ /u/*     fotos (disco, volume garimpa-uploads)
    login: Google Identity Services ─────────┘           └─ /*       build do PWA (web/dist)
                                                              │
-                                                      PostgreSQL 16 (garimpa-db)
+                                                      PostgreSQL 18 (garimpa-db)
                                                       earthdistance · pg_trgm · unaccent · tsvector pt
    tiles: OpenStreetMap por padrão (configurável por TILES_URL; servidor próprio opcional)
 ```
@@ -23,7 +23,7 @@ Um contêiner de aplicação, um de banco, um de backup. Nenhum serviço externo
 | `web/` | PWA. `src/pages/*` (Mapa, Garimpos, Perguntar, Pergunta, Responder, Ranking, Perfil, Entrar, Lugar); `src/components/*` (MapView, AnswerTicket, EvidenceChecklist…); `src/styles.css` (tokens) |
 | `db/migrations/` | SQL puro, aplicado em ordem pela API na subida (`schema_migrations`) |
 | `infra/` | `Dockerfile` (uma imagem: API + build do PWA), `docker-compose.yml` para o Dokploy, `Caddyfile` alternativo |
-| `scripts/local-postgres.sh` | Postgres 16 local sem Docker (desenvolvimento e testes) |
+| `scripts/local-postgres.sh` | Postgres 18 local sem Docker (desenvolvimento e testes) |
 | `docs/` | esta documentação |
 
 ## Rodar localmente
