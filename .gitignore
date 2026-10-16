@@ -9,3 +9,5 @@ uploads/
 coverage/
 web/dev-dist/
 dist-demo/
+web/test-results/
+web/playwright-report/

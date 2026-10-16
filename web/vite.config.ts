@@ -1,11 +1,14 @@
 import path from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 // VITE_DEMO=1: build estático com a API falsa no navegador (GitHub Pages). VITE_BASE=./ deixa os caminhos relativos.
 const demo = process.env.VITE_DEMO === '1';
+
+// Os testes de ponta a ponta apontam o proxy para a API deles (porta 8788).
+const apiProxy = process.env.GARIMPA_API_PROXY ?? 'http://localhost:8787';
 
 export default defineConfig({
   base: process.env.VITE_BASE ?? '/',
@@ -64,7 +67,9 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    proxy: { '/api': 'http://localhost:8787', '/u': 'http://localhost:8787' },
+    proxy: { '/api': apiProxy, '/u': apiProxy },
   },
   build: { sourcemap: false, target: 'es2022' },
+  // Os testes de ponta a ponta (Playwright) rodam com `test:e2e`, não no Vitest.
+  test: { exclude: [...configDefaults.exclude, 'e2e/**'] },
 });
