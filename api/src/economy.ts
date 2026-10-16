@@ -3,11 +3,41 @@ import type { Sql, Tx } from './db.js';
 
 /** Patentes por XP acumulado (XP nunca vira dinheiro; só pepitas). Cinco níveis, como no guia visual. */
 export const LEVELS = [
-  { level: 1, name: 'Explorador', xp: 0, perk: 'Abre missões, envia evidências e confirma achados.', motto: 'O primeiro passo é descobrir.' },
-  { level: 2, name: 'Garimpeiro', xp: 100, perk: 'Confirmações valem mais e agradecimentos saem do próprio saldo.', motto: 'Você já sabe seguir boas pistas.' },
-  { level: 3, name: 'Guia local', xp: 350, perk: 'Cadastra lugares novos sem revisão e leva o título no ranking.', motto: 'Sua experiência orienta a cidade.' },
-  { level: 4, name: 'Guardião', xp: 900, perk: 'Carência das pepitas cai para 3 dias e revisa denúncias.', motto: 'Ajude a manter pistas confiáveis.' },
-  { level: 5, name: 'Lenda local', xp: 1800, perk: 'Missões de parceiros em primeira mão e nome no mapa.', motto: 'Uma referência para a comunidade.' },
+  {
+    level: 1,
+    name: 'Explorador',
+    xp: 0,
+    perk: 'Abre missões, envia evidências e confirma achados.',
+    motto: 'O primeiro passo é descobrir.',
+  },
+  {
+    level: 2,
+    name: 'Garimpeiro',
+    xp: 100,
+    perk: 'Confirmações valem mais e agradecimentos saem do próprio saldo.',
+    motto: 'Você já sabe seguir boas pistas.',
+  },
+  {
+    level: 3,
+    name: 'Guia local',
+    xp: 350,
+    perk: 'Cadastra lugares novos sem revisão e leva o título no ranking.',
+    motto: 'Sua experiência orienta a cidade.',
+  },
+  {
+    level: 4,
+    name: 'Guardião',
+    xp: 900,
+    perk: 'Carência das pepitas cai para 3 dias e revisa denúncias.',
+    motto: 'Ajude a manter pistas confiáveis.',
+  },
+  {
+    level: 5,
+    name: 'Lenda local',
+    xp: 1800,
+    perk: 'Missões de parceiros em primeira mão e nome no mapa.',
+    motto: 'Uma referência para a comunidade.',
+  },
 ] as const;
 
 export function levelFor(xp: number) {
@@ -22,15 +52,38 @@ export function levelFor(xp: number) {
 /** Valores padrão; em produção são lidos de settings.economia (mesma forma). */
 export const DEFAULT_ECONOMY = {
   xp: {
-    pergunta: 5, tambem_quero: 2, resposta_com_evidencia: 15, resposta_aceita: 50,
-    resposta_confirmada: 20, confirmar: 3, confirmacao_validada: 5, primeiro_achado: 10,
-    aceitar_resposta: 10, streak_por_dia: 2, streak_maximo: 14,
+    pergunta: 5,
+    tambem_quero: 2,
+    resposta_com_evidencia: 15,
+    resposta_aceita: 50,
+    resposta_confirmada: 20,
+    confirmar: 3,
+    confirmacao_validada: 5,
+    primeiro_achado: 10,
+    aceitar_resposta: 10,
+    streak_por_dia: 2,
+    streak_maximo: 14,
   },
   pepitas: {
-    resposta_aceita: 50, resposta_confirmada: 20, confirmacao_validada: 5, primeiro_achado: 10,
-    fracao_segundo_achado: 0.25, gorjeta_por_pergunta: 20, bounty_tambem_quero: 5, bounty_maximo: 100,
+    resposta_aceita: 50,
+    resposta_confirmada: 20,
+    confirmacao_validada: 5,
+    primeiro_achado: 10,
+    fracao_segundo_achado: 0.25,
+    gorjeta_por_pergunta: 20,
+    bounty_tambem_quero: 5,
+    bounty_maximo: 100,
   },
-  limites_dia: { perguntas: 10, respostas: 20, confirmacoes: 30, gorjetas_orcamento: 30, pepitas_cunhadas: 300, uploads: 40, tambem_quero: 10, lugares: 15 },
+  limites_dia: {
+    perguntas: 10,
+    respostas: 20,
+    confirmacoes: 30,
+    gorjetas_orcamento: 30,
+    pepitas_cunhadas: 300,
+    uploads: 40,
+    tambem_quero: 10,
+    lugares: 15,
+  },
   carencia_dias: 7,
   carencia_dias_baixa_confianca: 14,
   /** A partir deste XP (patente Guardião) a carência cai para `carencia_dias_veterano`. */
@@ -51,7 +104,8 @@ export async function loadEconomy(sql: Sql): Promise<Economy> {
   if (!v) return DEFAULT_ECONOMY;
   // Mescla por seção: uma chave nova no código continua valendo mesmo que settings.economia ainda não a tenha.
   return {
-    ...DEFAULT_ECONOMY, ...v,
+    ...DEFAULT_ECONOMY,
+    ...v,
     xp: { ...DEFAULT_ECONOMY.xp, ...v.xp },
     pepitas: { ...DEFAULT_ECONOMY.pepitas, ...v.pepitas },
     limites_dia: { ...DEFAULT_ECONOMY.limites_dia, ...v.limites_dia },
@@ -60,9 +114,23 @@ export async function loadEconomy(sql: Sql): Promise<Economy> {
 }
 
 export type AwardKind =
-  | 'pergunta' | 'tambem_quero' | 'resposta_com_evidencia' | 'resposta_aceita' | 'resposta_confirmada'
-  | 'confirmar' | 'confirmacao_validada' | 'primeiro_achado' | 'aceitar_resposta' | 'gorjeta_recebida'
-  | 'gorjeta_enviada' | 'bonus_streak' | 'badge' | 'lugar_novo' | 'ajuste' | 'estorno' | 'devolucao';
+  | 'pergunta'
+  | 'tambem_quero'
+  | 'resposta_com_evidencia'
+  | 'resposta_aceita'
+  | 'resposta_confirmada'
+  | 'confirmar'
+  | 'confirmacao_validada'
+  | 'primeiro_achado'
+  | 'aceitar_resposta'
+  | 'gorjeta_recebida'
+  | 'gorjeta_enviada'
+  | 'bonus_streak'
+  | 'badge'
+  | 'lugar_novo'
+  | 'ajuste'
+  | 'estorno'
+  | 'devolucao';
 
 export async function award(
   db: Sql | Tx,
@@ -112,7 +180,9 @@ export async function grantBadge(db: Sql | Tx, userId: string, slug: string): Pr
 /** Streak: XP pequeno por dia consecutivo (teto), sem pepitas — presença não vira dinheiro. */
 export async function touchStreak(db: Sql, userId: string, eco: Economy): Promise<number> {
   // last_active_on::text evita comparar Date com string (o que premiaria a sequência a cada chamada).
-  const before = await db<{ lastActiveOn: string | null }[]>`select last_active_on::text as last_active_on from users where id = ${userId}::uuid`;
+  const before = await db<
+    { lastActiveOn: string | null }[]
+  >`select last_active_on::text as last_active_on from users where id = ${userId}::uuid`;
   const rows = await db<{ fnTouchStreak: number }[]>`select fn_touch_streak(${userId}::uuid)`;
   const streak = rows[0]!.fnTouchStreak;
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Porto_Velho' });

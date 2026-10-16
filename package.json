@@ -9,6 +9,16 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "db:migrate": "pnpm --filter garimpa-api db:migrate",
-    "db:seed": "pnpm --filter garimpa-api db:seed"
+    "db:seed": "pnpm --filter garimpa-api db:seed",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check --write .",
+    "check:ci": "biome ci .",
+    "test:scripts": "node --test scripts/*.test.mjs",
+    "prepare": "git rev-parse --git-dir >/dev/null 2>&1 || exit 0; lefthook install"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "lefthook": "2.1.15"
   }
 }

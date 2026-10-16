@@ -11,26 +11,28 @@ Monorepo pnpm: `api/` (Node 22, Hono, Postgres.js, zod), `web/` (React 19, Vite,
 
 ```bash
 pnpm install
-docker run -d --name garimpa-pg18 -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=garimpa_test \
-  -p 127.0.0.1:54329:5432 postgres:18-alpine        # Postgres 18 local (depois: docker start garimpa-pg18)
-docker exec garimpa-pg18 createdb -U postgres garimpa  # só na primeira vez
+scripts/local-postgres.sh start                       # Postgres 18 local (binários instalados ou Docker)
 pnpm db:migrate && pnpm db:seed                       # esquema + dados de demonstração
 pnpm dev                                              # web em :5173, API em :8787 (login dev: "marina")
+pnpm check                                            # Biome: formata e corrige (use antes de commitar)
+pnpm lint                                             # Biome: só o lint
 pnpm typecheck                                        # tipos de api e web
+pnpm test:scripts                                     # testes dos scripts (validador de mensagens de commit)
 pnpm --filter garimpa-api test                        # testes da API (precisa do Postgres em :54329)
 pnpm --filter garimpa-web test                        # testes do web
 pnpm --filter garimpa-web build                       # build do PWA
 ```
 
-Biome, lefthook e o teste de ponta a ponta estão decididos (ADRs 0003 a 0005) mas ainda não implantados; quando
-entrarem, os comandos vêm para cá.
+Sem pnpm na máquina: `npm i -g pnpm@10.28.0` (pode pedir `sudo`, conforme o prefixo do npm) ou prefixe qualquer
+comando com `npx pnpm@10.28.0` (ex.: `npx pnpm@10.28.0 install`). Os hooks do lefthook (pre-commit e commit-msg)
+se instalam no `pnpm install` e chamam os binários locais, então não dependem do pnpm no `PATH` (só do `node`). O teste de ponta a ponta (Playwright, ADR-0005) ainda está pendente.
 
 ## Git (ADR-0002)
 
 - Uma branch por tarefa, a partir da `main` atualizada: `tipo/descricao-curta` (ex.: `feat/uuidv7`).
   Nunca commitar direto na `main`.
 - Commits pequenos, um assunto cada, no formato `tipo: descrição` em português, no presente, primeira linha com até
-  ~70 caracteres; corpo com o porquê quando não for óbvio. Tipos: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`,
+  72 caracteres; corpo com o porquê quando não for óbvio. Tipos: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`,
   `infra`, `ci`, `chore`, `style`.
 - Código, infra e documentação em commits separados quando forem mudanças distintas.
 - Todo commit deixa tipos, lint e testes passando. Teste e implementação vão juntos no mesmo commit.
@@ -49,7 +51,7 @@ entrarem, os comandos vêm para cá.
 - **Interface:** Testing Library + `user-event`, testando comportamento (o que a pessoa vê e faz), sem snapshots.
   Lógica pura em `web/src/lib/` com teste unitário. Aspecto visual se verifica rodando o app; o PR diz como.
 - **Bug:** primeiro o teste que reproduz e falha, depois a correção.
-- **Estilo:** 2 espaços, aspas simples, ponto e vírgula, linha de até 120 caracteres (Biome, quando implantado).
+- **Estilo:** 2 espaços, aspas simples, ponto e vírgula, linha de até 120 caracteres (Biome: `pnpm check`).
 - Nunca dizer que algo funciona sem ter rodado a verificação e visto o resultado.
 
 ## Idioma e comentários

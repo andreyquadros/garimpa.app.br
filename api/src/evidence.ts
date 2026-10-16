@@ -1,8 +1,8 @@
-import sharp from 'sharp';
-import exifr from 'exifr';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import exifr from 'exifr';
+import sharp from 'sharp';
 import { haversineM } from './text.js';
 
 export const EXIF_NEAR_M = 300;
@@ -65,14 +65,18 @@ export async function processImage(input: Buffer): Promise<Processed> {
       exifLat = gps.latitude;
       exifLng = gps.longitude;
     }
-  } catch { /* sem GPS */ }
+  } catch {
+    /* sem GPS */
+  }
   try {
     const meta = (await exifr.parse(input, ['DateTimeOriginal', 'CreateDate'])) as
       | { DateTimeOriginal?: Date; CreateDate?: Date }
       | undefined;
     const d = meta?.DateTimeOriginal ?? meta?.CreateDate;
     if (d instanceof Date && !Number.isNaN(d.getTime())) exifTakenAt = d;
-  } catch { /* sem data */ }
+  } catch {
+    /* sem data */
+  }
 
   const { data, info } = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS })
     .rotate()
@@ -86,7 +90,11 @@ export async function processImage(input: Buffer): Promise<Processed> {
 
 export async function storeImage(uploadDir: string, sha256: string, jpeg: Buffer): Promise<string> {
   const now = new Date();
-  const rel = path.posix.join(String(now.getUTCFullYear()), String(now.getUTCMonth() + 1).padStart(2, '0'), `${sha256}.jpg`);
+  const rel = path.posix.join(
+    String(now.getUTCFullYear()),
+    String(now.getUTCMonth() + 1).padStart(2, '0'),
+    `${sha256}.jpg`,
+  );
   const abs = path.join(uploadDir, rel);
   await fs.mkdir(path.dirname(abs), { recursive: true });
   await fs.writeFile(abs, jpeg);
@@ -107,7 +115,12 @@ export type ScoreInput = {
   now?: Date;
 };
 
-export type ScoreResult = { score: number; flags: string[]; distanceExifM: number | null; distanceDeviceM: number | null };
+export type ScoreResult = {
+  score: number;
+  flags: string[];
+  distanceExifM: number | null;
+  distanceDeviceM: number | null;
+};
 
 /**
  * Pontua a prova de 0 a 100. A regra é transparente para o usuário (checklist na tela):
@@ -123,7 +136,10 @@ export function scoreEvidence(i: ScoreInput): ScoreResult {
     distanceExifM = haversineM(i.exifLat, i.exifLng, i.placeLat, i.placeLng);
     if (distanceExifM <= EXIF_NEAR_M) score += 30;
     else if (distanceExifM <= EXIF_FAR_M) score += 10;
-    else { score -= 20; flags.push('longe_do_local'); }
+    else {
+      score -= 20;
+      flags.push('longe_do_local');
+    }
   } else {
     flags.push('sem_gps');
   }
@@ -142,11 +158,20 @@ export function scoreEvidence(i: ScoreInput): ScoreResult {
     distanceDeviceM = haversineM(i.deviceLat, i.deviceLng, i.placeLat, i.placeLng);
     if (distanceDeviceM <= DEVICE_NEAR_M) score += 20;
     else if (distanceDeviceM <= DEVICE_FAR_M) score += 5;
-    else { score -= 10; flags.push('enviada_de_longe'); }
+    else {
+      score -= 10;
+      flags.push('enviada_de_longe');
+    }
   }
 
-  if (i.reusedBySameUser) { score -= 30; flags.push('foto_reutilizada'); }
-  if (i.similarToOther) { score -= 20; flags.push('foto_parecida'); }
+  if (i.reusedBySameUser) {
+    score -= 30;
+    flags.push('foto_reutilizada');
+  }
+  if (i.similarToOther) {
+    score -= 20;
+    flags.push('foto_parecida');
+  }
 
   return { score: Math.max(0, Math.min(100, score)), flags, distanceExifM, distanceDeviceM };
 }

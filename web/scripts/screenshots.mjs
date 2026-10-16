@@ -5,8 +5,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 async function loadPlaywright() {
-  for (const spec of ['playwright', '/opt/node-tools/node_modules/playwright/index.mjs', '/opt/node22/lib/node_modules/playwright/index.mjs']) {
-    try { return await import(spec); } catch { /* tenta o próximo */ }
+  for (const spec of [
+    'playwright',
+    '/opt/node-tools/node_modules/playwright/index.mjs',
+    '/opt/node22/lib/node_modules/playwright/index.mjs',
+  ]) {
+    try {
+      return await import(spec);
+    } catch {
+      /* tenta o próximo */
+    }
   }
   throw new Error('playwright não encontrado: npx playwright install chromium ou pnpm dlx playwright');
 }
@@ -16,10 +24,22 @@ const OUT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..
 await fs.mkdir(OUT, { recursive: true });
 
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
-const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'pt-BR', geolocation: { latitude: -9.9075, longitude: -63.0415 }, permissions: ['geolocation'] });
+const ctx = await browser.newContext({
+  viewport: { width: 390, height: 844 },
+  deviceScaleFactor: 2,
+  isMobile: true,
+  hasTouch: true,
+  locale: 'pt-BR',
+  geolocation: { latitude: -9.9075, longitude: -63.0415 },
+  permissions: ['geolocation'],
+});
 const page = await ctx.newPage();
 page.setDefaultTimeout(20000);
-const shot = async (name) => { await page.waitForTimeout(900); await page.screenshot({ path: path.join(OUT, `${name}.png`) }); console.log('ok', name); };
+const shot = async (name) => {
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: path.join(OUT, `${name}.png`) });
+  console.log('ok', name);
+};
 const loginAs = async (name) => {
   await page.goto(`${BASE}/entrar`);
   await page.keyboard.press('Escape');
@@ -90,7 +110,13 @@ await page.goto(`${BASE}/carteira`);
 await page.waitForSelector('text=Pepitas de agradecimento');
 await shot('08-carteira');
 
-const dark = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, colorScheme: 'dark', locale: 'pt-BR' });
+const dark = await browser.newContext({
+  viewport: { width: 390, height: 844 },
+  deviceScaleFactor: 2,
+  isMobile: true,
+  colorScheme: 'dark',
+  locale: 'pt-BR',
+});
 const dp = await dark.newPage();
 await dp.goto(`${BASE}/missoes`);
 await dp.waitForSelector('a[href^="/m/"]');

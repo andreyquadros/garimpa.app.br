@@ -1,17 +1,20 @@
 import { createBrowserRouter, createHashRouter, Navigate, useParams } from 'react-router';
-import { DEMO } from './lib/api';
 import { Shell } from './components/Shell';
-import { Home } from './pages/Home';
-import { Feed } from './pages/Feed';
-import { Ask } from './pages/Ask';
-import { QuestionPage } from './pages/Question';
+import { DEMO } from './lib/api';
 import { AnswerPage } from './pages/Answer';
-import { Jornada } from './pages/Jornada';
+import { Ask } from './pages/Ask';
 import { Carteira } from './pages/Carteira';
+import { Feed } from './pages/Feed';
+import { Home } from './pages/Home';
+import { Jornada } from './pages/Jornada';
 import { Login } from './pages/Login';
 import { PlacePage } from './pages/Place';
+import { QuestionPage } from './pages/Question';
 
-function LegacyMission({ sub = '' }: { sub?: string }) { const { id } = useParams(); return <Navigate to={`/m/${id}${sub}`} replace />; }
+function LegacyMission({ sub = '' }: { sub?: string }) {
+  const { id } = useParams();
+  return <Navigate to={`/m/${id}${sub}`} replace />;
+}
 
 // Na demonstração (hospedagem estática, GitHub Pages) as rotas vivem no hash: /#/missoes.
 export const router = (DEMO ? createHashRouter : createBrowserRouter)([

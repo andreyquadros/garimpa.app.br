@@ -23,7 +23,7 @@ Um contêiner de aplicação, um de banco, um de backup. Nenhum serviço externo
 | `web/` | PWA. `src/pages/*` (Mapa, Garimpos, Perguntar, Pergunta, Responder, Ranking, Perfil, Entrar, Lugar); `src/components/*` (MapView, AnswerTicket, EvidenceChecklist…); `src/styles.css` (tokens) |
 | `db/migrations/` | SQL puro, aplicado em ordem pela API na subida (`schema_migrations`) |
 | `infra/` | `Dockerfile` (uma imagem: API + build do PWA), `docker-compose.yml` para o Dokploy, `Caddyfile` alternativo |
-| `scripts/local-postgres.sh` | Postgres 18 local sem Docker (desenvolvimento e testes) |
+| `scripts/local-postgres.sh` | Postgres 18 local, com binários instalados ou Docker (desenvolvimento e testes) |
 | `docs/` | esta documentação |
 
 ## Rodar localmente

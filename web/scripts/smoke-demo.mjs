@@ -4,8 +4,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 async function loadPlaywright() {
-  for (const spec of ['playwright', '/opt/node-tools/node_modules/playwright/index.mjs', '/opt/node22/lib/node_modules/playwright/index.mjs']) {
-    try { return await import(spec); } catch { /* tenta o próximo */ }
+  for (const spec of [
+    'playwright',
+    '/opt/node-tools/node_modules/playwright/index.mjs',
+    '/opt/node22/lib/node_modules/playwright/index.mjs',
+  ]) {
+    try {
+      return await import(spec);
+    } catch {
+      /* tenta o próximo */
+    }
   }
   throw new Error('playwright não encontrado: pnpm dlx playwright install chromium');
 }
@@ -16,17 +24,31 @@ await fs.mkdir(OUT, { recursive: true });
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({
-  viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'pt-BR',
-  geolocation: { latitude: -9.9075, longitude: -63.0415 }, permissions: ['geolocation'],
+  viewport: { width: 390, height: 844 },
+  deviceScaleFactor: 2,
+  isMobile: true,
+  hasTouch: true,
+  locale: 'pt-BR',
+  geolocation: { latitude: -9.9075, longitude: -63.0415 },
+  permissions: ['geolocation'],
 });
 const page = await ctx.newPage();
 page.setDefaultTimeout(20000);
 const errors = [];
-page.on('pageerror', (e) => { errors.push(`pageerror: ${e.message}`); });
-page.on('console', (m) => { if (m.type() === 'error' && !/tile|ERR_|net::|Failed to load resource/i.test(m.text())) errors.push(`console: ${m.text()}`); });
+page.on('pageerror', (e) => {
+  errors.push(`pageerror: ${e.message}`);
+});
+page.on('console', (m) => {
+  if (m.type() === 'error' && !/tile|ERR_|net::|Failed to load resource/i.test(m.text()))
+    errors.push(`console: ${m.text()}`);
+});
 
 const step = (msg) => console.log('·', msg);
-const shot = async (name) => { await page.waitForTimeout(700); await page.screenshot({ path: path.join(OUT, `${name}.png`) }); step(`captura ${name}`); };
+const shot = async (name) => {
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: path.join(OUT, `${name}.png`) });
+  step(`captura ${name}`);
+};
 const credits = () => page.$eval('[data-testid=credits]', (el) => Number(el.textContent.replace(/\D/g, '')));
 
 async function loginAs(name) {
@@ -65,13 +87,25 @@ await page.waitForSelector('text=Uma foto sua vale uma boa pista.');
 
 // 2. Envia uma imagem PNG gerada (buffer) e declara autoria
 const dataUrl = await page.evaluate(() => {
-  const c = document.createElement('canvas'); c.width = 640; c.height = 480;
+  const c = document.createElement('canvas');
+  c.width = 640;
+  c.height = 480;
   const x = c.getContext('2d');
   const rnd = () => `hsl(${Math.floor(Math.random() * 360)} 70% 45%)`;
-  const g = x.createLinearGradient(0, 0, 640, 480); g.addColorStop(0, rnd()); g.addColorStop(1, rnd());
-  x.fillStyle = g; x.fillRect(0, 0, 640, 480);
-  for (let i = 0; i < 14; i++) { x.fillStyle = rnd(); x.beginPath(); x.arc(Math.random() * 640, Math.random() * 480, 20 + Math.random() * 90, 0, 7); x.fill(); }
-  x.fillStyle = '#fff'; x.font = 'bold 40px sans-serif'; x.fillText(`prova ${Date.now()}`, 30, 440);
+  const g = x.createLinearGradient(0, 0, 640, 480);
+  g.addColorStop(0, rnd());
+  g.addColorStop(1, rnd());
+  x.fillStyle = g;
+  x.fillRect(0, 0, 640, 480);
+  for (let i = 0; i < 14; i++) {
+    x.fillStyle = rnd();
+    x.beginPath();
+    x.arc(Math.random() * 640, Math.random() * 480, 20 + Math.random() * 90, 0, 7);
+    x.fill();
+  }
+  x.fillStyle = '#fff';
+  x.font = 'bold 40px sans-serif';
+  x.fillText(`prova ${Date.now()}`, 30, 440);
   return c.toDataURL('image/png');
 });
 const png = Buffer.from(dataUrl.split(',')[1], 'base64');
@@ -104,8 +138,10 @@ await page.goto(`${BASE}/#/m/${qid}`);
 await page.waitForSelector('button:has-text("Foi aqui que encontrei")');
 await page.click('button:has-text("Foi aqui que encontrei")');
 await page.waitForSelector('text=Agradecer com pepitas');
-const toast = await page.waitForSelector('text=/ganhou [0-9]+ pepitas/'); const toastText = await toast.textContent(); if (!/ganhou 55 pepitas/.test(toastText)) throw new Error('toast inesperado: ' + toastText);
-step('evidência aceita: ' + toastText.trim());
+const toast = await page.waitForSelector('text=/ganhou [0-9]+ pepitas/');
+const toastText = await toast.textContent();
+if (!/ganhou 55 pepitas/.test(toastText)) throw new Error(`toast inesperado: ${toastText}`);
+step(`evidência aceita: ${toastText.trim()}`);
 await page.click('[role=dialog] button:has-text("10")');
 await page.waitForSelector('text=Agradecimento de 10 pepitas enviado.');
 step('agradecimento de 10 enviado');
@@ -122,7 +158,9 @@ step(`carteira: ${pendingText.trim()}`);
 if (!/\+75 em carência/.test(pendingText)) throw new Error(`esperava +75 em carência, veio: ${pendingText}`);
 const creditsBefore = await credits();
 step(`pepitas disponíveis antes: ${creditsBefore}`);
-await page.waitForSelector('text=Agradecimento de 10 pepitas enviado.', { state: 'detached', timeout: 8000 }).catch(() => {});
+await page
+  .waitForSelector('text=Agradecimento de 10 pepitas enviado.', { state: 'detached', timeout: 8000 })
+  .catch(() => {});
 await shot('demo-07-carteira-carencia');
 
 await page.click('button[aria-label="Modo demonstração: saiba mais"]');
@@ -142,8 +180,13 @@ for (let i = 0; i < 3; i++) {
   const dlg = await page.waitForSelector('[role=dialog]', { timeout: 4000 }).catch(() => null);
   if (!dlg) break;
   const title = await page.$eval('[role=dialog] h2', (el) => el.textContent).catch(() => '?');
-  const kind = (await page.$('[role=dialog] >> text=Nova conquista')) ? 'conquista' : (await page.$('[role=dialog] >> text=Nova patente')) ? 'patente' : 'cerimônia';
-  if (kind === 'conquista') await shot('demo-08-nova-conquista'); else if (kind === 'patente') await shot('demo-08-nova-patente');
+  const kind = (await page.$('[role=dialog] >> text=Nova conquista'))
+    ? 'conquista'
+    : (await page.$('[role=dialog] >> text=Nova patente'))
+      ? 'patente'
+      : 'cerimônia';
+  if (kind === 'conquista') await shot('demo-08-nova-conquista');
+  else if (kind === 'patente') await shot('demo-08-nova-patente');
   await page.click('[role=dialog] button:has-text("Continuar")');
   await page.waitForTimeout(600);
   step(`${kind}: ${title}`);
@@ -172,7 +215,13 @@ await page.waitForSelector('text=Encontrado');
 await page.waitForSelector('text=Lucas Ferreira');
 step('estado persistiu após recarregar (evidência aceita continua lá)');
 
-const dark = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, colorScheme: 'dark', locale: 'pt-BR' });
+const dark = await browser.newContext({
+  viewport: { width: 390, height: 844 },
+  deviceScaleFactor: 2,
+  isMobile: true,
+  colorScheme: 'dark',
+  locale: 'pt-BR',
+});
 const dp = await dark.newPage();
 await dp.goto(`${BASE}/#/missoes`);
 await dp.waitForSelector('a[href^="#/m/"]');
@@ -181,5 +230,9 @@ await dp.screenshot({ path: path.join(OUT, 'demo-11-missoes-escuro.png') });
 step('captura demo-11-missoes-escuro');
 
 await browser.close();
-if (errors.length) { console.log('ERROS DE PÁGINA:'); for (const e of errors) console.log('  ', e); process.exit(1); }
+if (errors.length) {
+  console.log('ERROS DE PÁGINA:');
+  for (const e of errors) console.log('  ', e);
+  process.exit(1);
+}
 console.log('SMOKE OK');

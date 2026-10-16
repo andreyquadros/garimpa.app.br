@@ -1,9 +1,9 @@
-import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
 import { createHash } from 'node:crypto';
-import type { Context, MiddlewareHandler } from 'hono';
-import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { HTTPException } from 'hono/http-exception';
 import { getConnInfo } from '@hono/node-server/conninfo';
+import type { Context, MiddlewareHandler } from 'hono';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { HTTPException } from 'hono/http-exception';
+import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import type { Config } from './config.js';
 import type { Sql, Tx } from './db.js';
 import { slugify } from './text.js';
@@ -72,7 +72,8 @@ export type GoogleProfile = { sub: string; email: string | null; name: string; p
 
 /** Verifica o ID token do "Entrar com Google" (Google Identity Services) contra as chaves públicas do Google. */
 export async function verifyGoogleIdToken(config: Config, idToken: string): Promise<GoogleProfile> {
-  if (!config.GOOGLE_CLIENT_ID) throw new HTTPException(503, { message: 'Login com Google não configurado (GOOGLE_CLIENT_ID).' });
+  if (!config.GOOGLE_CLIENT_ID)
+    throw new HTTPException(503, { message: 'Login com Google não configurado (GOOGLE_CLIENT_ID).' });
   jwks ??= createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
   const { payload } = await jwtVerify(idToken, jwks, {
     issuer: ['https://accounts.google.com', 'accounts.google.com'],
@@ -136,11 +137,16 @@ export function signalsOf(c: Context<AppEnv>): { ipHash: string; deviceHash: str
   let ip = '';
   if (cfg.trustProxy) ip = (c.req.header('x-forwarded-for') ?? '').split(',')[0]!.trim();
   if (!ip) {
-    try { ip = getConnInfo(c).remote.address ?? ''; } catch { ip = ''; }
+    try {
+      ip = getConnInfo(c).remote.address ?? '';
+    } catch {
+      ip = '';
+    }
   }
   const device = c.req.header('x-garimpa-device') ?? '';
   // Sem IP ou sem id de dispositivo fica vazio: vazio nunca casa com vazio na detecção de conluio.
-  const h = (v: string) => (v ? createHash('sha256').update(cfg.SESSION_SECRET + '|' + v).digest('hex').slice(0, 32) : '');
+  const h = (v: string) =>
+    v ? createHash('sha256').update(`${cfg.SESSION_SECRET}|${v}`).digest('hex').slice(0, 32) : '';
   return { ipHash: h(ip), deviceHash: h(device) };
 }
 

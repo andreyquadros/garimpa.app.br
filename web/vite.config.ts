@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 // VITE_DEMO=1: build estático com a API falsa no navegador (GitHub Pages). VITE_BASE=./ deixa os caminhos relativos.
 const demo = process.env.VITE_DEMO === '1';
@@ -41,9 +41,21 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//, /^\/u\//],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         runtimeCaching: [
-          { urlPattern: /\/u\/.*\.jpg$/, handler: 'CacheFirst', options: { cacheName: 'provas', expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 } } },
-          { urlPattern: /\/tiles\/.*\.png$/, handler: 'CacheFirst', options: { cacheName: 'tiles', expiration: { maxEntries: 1500, maxAgeSeconds: 60 * 60 * 24 * 60 } } },
-          { urlPattern: /\/api\/(config|map\/finds|questions)(\?.*)?$/, handler: 'NetworkFirst', options: { cacheName: 'api', networkTimeoutSeconds: 4 } },
+          {
+            urlPattern: /\/u\/.*\.jpg$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'provas', expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+          },
+          {
+            urlPattern: /\/tiles\/.*\.png$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'tiles', expiration: { maxEntries: 1500, maxAgeSeconds: 60 * 60 * 24 * 60 } },
+          },
+          {
+            urlPattern: /\/api\/(config|map\/finds|questions)(\?.*)?$/,
+            handler: 'NetworkFirst',
+            options: { cacheName: 'api', networkTimeoutSeconds: 4 },
+          },
         ],
       },
     }),

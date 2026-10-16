@@ -2,7 +2,13 @@ import { hash32, rng } from './text';
 
 /** Imagens do modo demonstração: provas do seed em SVG, processamento de envios via canvas e hash perceptual. */
 
-const PALETTE = [['#0F4C4C', '#F2B705'], ['#1E7A52', '#F5F8F3'], ['#B3401F', '#FBE7A1'], ['#133A3A', '#7FD1AE'], ['#F2B705', '#0F4C4C']] as const;
+const PALETTE = [
+  ['#0F4C4C', '#F2B705'],
+  ['#1E7A52', '#F5F8F3'],
+  ['#B3401F', '#FBE7A1'],
+  ['#133A3A', '#7FD1AE'],
+  ['#F2B705', '#0F4C4C'],
+] as const;
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -17,16 +23,24 @@ export function demoImageDataUrl(title: string, seed: number): string {
   let h = 0;
   for (const ch of title) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const shapes = Array.from({ length: 7 }, (_, i) => {
-    const x = ((h >> (i * 3)) % 700) + 50; const y = ((h >> (i * 2 + 1)) % 420) + 60; const r = 20 + ((h >> i) % 60);
-    return i % 2 ? `<circle cx="${x}" cy="${y}" r="${r}" fill="${fg}" opacity="0.35"/>` : `<rect x="${x}" y="${y}" width="${r * 2}" height="${r}" rx="12" fill="${fg}" opacity="0.25"/>`;
+    const x = ((h >> (i * 3)) % 700) + 50;
+    const y = ((h >> (i * 2 + 1)) % 420) + 60;
+    const r = 20 + ((h >> i) % 60);
+    return i % 2
+      ? `<circle cx="${x}" cy="${y}" r="${r}" fill="${fg}" opacity="0.35"/>`
+      : `<rect x="${x}" y="${y}" width="${r * 2}" height="${r}" rx="12" fill="${fg}" opacity="0.25"/>`;
   }).join('');
   const short = title.length > 34 ? `${title.slice(0, 33)}…` : title;
-  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600"><rect width="800" height="600" fill="${bg}"/>${shapes}<text x="40" y="520" font-family="sans-serif" font-size="34" font-weight="700" fill="${fg}">${esc(short)}</text><text x="40" y="565" font-family="sans-serif" font-size="22" fill="${fg}" opacity="0.8">foto de exemplo · piloto Ariquemes</text></svg>`);
+  return svgUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600"><rect width="800" height="600" fill="${bg}"/>${shapes}<text x="40" y="520" font-family="sans-serif" font-size="34" font-weight="700" fill="${fg}">${esc(short)}</text><text x="40" y="565" font-family="sans-serif" font-size="22" fill="${fg}" opacity="0.8">foto de exemplo · piloto Ariquemes</text></svg>`,
+  );
 }
 
 /** Substitui fotos enviadas nesta sessão que se perderam ao recarregar (o demo não guarda imagens). */
 export function placeholderDataUrl(): string {
-  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600"><rect width="800" height="600" fill="#D5E9E2"/><rect x="300" y="210" width="200" height="140" rx="20" fill="none" stroke="#0F4C4C" stroke-width="10"/><circle cx="400" cy="280" r="38" fill="none" stroke="#0F4C4C" stroke-width="10"/><rect x="350" y="180" width="60" height="40" rx="8" fill="#0F4C4C"/><text x="400" y="420" text-anchor="middle" font-family="sans-serif" font-size="26" font-weight="700" fill="#0F4C4C">foto enviada na demonstração</text><text x="400" y="458" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#3F6260">a imagem fica só na memória do navegador</text></svg>`);
+  return svgUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600"><rect width="800" height="600" fill="#D5E9E2"/><rect x="300" y="210" width="200" height="140" rx="20" fill="none" stroke="#0F4C4C" stroke-width="10"/><circle cx="400" cy="280" r="38" fill="none" stroke="#0F4C4C" stroke-width="10"/><rect x="350" y="180" width="60" height="40" rx="8" fill="#0F4C4C"/><text x="400" y="420" text-anchor="middle" font-family="sans-serif" font-size="26" font-weight="700" fill="#0F4C4C">foto enviada na demonstração</text><text x="400" y="458" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#3F6260">a imagem fica só na memória do navegador</text></svg>`,
+  );
 }
 
 /** dHash pseudoaleatório, estável por título, para as provas do seed (não há pixels para ler). */
@@ -43,8 +57,14 @@ function loadImage(blob: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
     const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagem ilegível')); };
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('imagem ilegível'));
+    };
     img.src = url;
   });
 }
@@ -68,7 +88,7 @@ export function dhashOfCanvas(src: HTMLCanvasElement): string {
     ctx.drawImage(cur, 0, 0, canvas.width, canvas.height);
     cur = canvas;
   }
-  const { canvas, ctx } = canvasOf(9, 8);
+  const { ctx } = canvasOf(9, 8);
   ctx.drawImage(cur, 0, 0, 9, 8);
   const { data } = ctx.getImageData(0, 0, 9, 8);
   const grey = (i: number) => 0.299 * data[i * 4]! + 0.587 * data[i * 4 + 1]! + 0.114 * data[i * 4 + 2]!;
@@ -90,5 +110,11 @@ export async function processImage(blob: Blob): Promise<Processed> {
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
   const dhash = dhashOfCanvas(canvas);
-  return { dataUrl, width: canvas.width, height: canvas.height, dhash, sha: hash32(dataUrl).toString(16).padStart(8, '0') + dataUrl.length.toString(16) };
+  return {
+    dataUrl,
+    width: canvas.width,
+    height: canvas.height,
+    dhash,
+    sha: hash32(dataUrl).toString(16).padStart(8, '0') + dataUrl.length.toString(16),
+  };
 }

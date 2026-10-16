@@ -57,9 +57,12 @@ Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (p
 
 ## Rodar
 
+Precisa de Node 22 e pnpm. Sem pnpm: `npm i -g pnpm@10.28.0` (pode pedir `sudo`, conforme o prefixo do npm) ou use
+`npx pnpm@10.28.0 <comando>` no lugar de `pnpm <comando>`.
+
 ```bash
 pnpm install
-scripts/local-postgres.sh start      # Postgres 18 local, sem Docker
+scripts/local-postgres.sh start      # Postgres 18 local (binários instalados ou Docker)
 pnpm db:migrate && pnpm db:seed      # esquema + dados de demonstração
 pnpm dev                             # http://localhost:5173 (API em :8787)
 pnpm --filter garimpa-api test       # testes contra o Postgres local

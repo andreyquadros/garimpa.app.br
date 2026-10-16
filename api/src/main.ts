@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server';
-import { loadConfig } from './config.js';
-import { createDb, migrate, ensureCity } from './db.js';
 import { createApp } from './app.js';
+import { loadConfig } from './config.js';
+import { createDb, ensureCity, migrate } from './db.js';
 import { runTick } from './jobs.js';
 
 const config = loadConfig();
@@ -9,7 +9,11 @@ const sql = createDb(config.DATABASE_URL);
 const applied = await migrate(sql);
 await ensureCity(sql);
 if (applied.length) console.log(`migrações aplicadas: ${applied.join(', ')}`);
-if (!config.GOOGLE_CLIENT_ID) console.warn('GOOGLE_CLIENT_ID ausente: login com Google desligado' + (config.allowDevLogin ? ' (login de desenvolvimento ativo)' : ''));
+if (!config.GOOGLE_CLIENT_ID)
+  console.warn(
+    'GOOGLE_CLIENT_ID ausente: login com Google desligado' +
+      (config.allowDevLogin ? ' (login de desenvolvimento ativo)' : ''),
+  );
 if (config.SESSION_SECRET.startsWith('garimpa-dev-secret')) console.warn('SESSION_SECRET padrão: troque em produção');
 
 const app = createApp({ sql, config });

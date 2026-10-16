@@ -1,8 +1,10 @@
 name: CI
 on:
   push:
-    branches: ["**"]
+    branches: [main]   # o PR é o portão; evita rodar duas vezes na branch de trabalho
   pull_request:
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,12 +17,19 @@ jobs:
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # o validador de mensagens lê o histórico do PR
       - uses: pnpm/action-setup@v4   # versão vem de packageManager no package.json
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - name: Mensagens de commit
+        if: github.event_name == 'pull_request'
+        run: node scripts/commit-msg.mjs --range ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+      - run: pnpm check:ci
+      - run: pnpm test:scripts
       - run: pnpm typecheck
       - run: pnpm --filter garimpa-api test
         env: { DATABASE_URL_TEST: "postgres://postgres:postgres@127.0.0.1:54329/garimpa_test" }
+      - run: pnpm --filter garimpa-web test
       - run: pnpm --filter garimpa-web build
       - run: pnpm --filter garimpa-web build:demo

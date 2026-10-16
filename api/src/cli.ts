@@ -1,5 +1,5 @@
 import { loadConfig } from './config.js';
-import { createDb, migrate, ensureCity } from './db.js';
+import { createDb, ensureCity, migrate } from './db.js';
 import { seedDemo } from './seed.js';
 
 const cmd = process.argv[2];
