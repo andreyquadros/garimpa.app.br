@@ -40,7 +40,7 @@ Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (p
 |---|---|
 | [docs/00-visao-do-produto.md](docs/00-visao-do-produto.md) | problema, aposta, personas, métricas do piloto, riscos |
 | [docs/01-dominios.md](docs/01-dominios.md) | histórico do nome (Garimpa → Pepita Social), domínios candidatos e verificados, como registrar |
-| [docs/02-adr-banco-de-dados.md](docs/02-adr-banco-de-dados.md) | por que **PostgreSQL 18** auto-hospedado (e não Supabase, Firestore ou PocketBase) |
+| [docs/adr/0001-banco-de-dados.md](docs/adr/0001-banco-de-dados.md) | por que **PostgreSQL 18** auto-hospedado (e não Supabase, Firestore ou PocketBase) |
 | [docs/03-gamificacao-arvore-de-pontos.md](docs/03-gamificacao-arvore-de-pontos.md) | XP × pepitas, tabela de eventos, níveis, conquistas, por que não onera cedo |
 | [docs/04-antiplagio-e-confianca.md](docs/04-antiplagio-e-confianca.md) | primeiro achado, hash perceptual, EXIF, texto copiado, conluio, denúncias, carência |
 | [docs/05-modelo-de-negocio.md](docs/05-modelo-de-negocio.md) | fase 1 (hábito), fase 2 (lojas parceiras e Cofre), fase 3, benchmark, LGPD |
