@@ -52,7 +52,7 @@ Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (p
 |---|---|
 | PWA | React 19, Vite 8, TypeScript, Tailwind 4, Motion, Leaflet (tiles próprios de Ariquemes), TanStack Query, vite-plugin-pwa |
 | API | Node 22, Hono, Postgres.js, jose (Google ID token), sharp + exifr (provas), zod |
-| Banco | PostgreSQL 18 com `earthdistance`, `pg_trgm`, `unaccent`, `tsvector('portuguese')`; livro-razão em PL/pgSQL |
+| Banco | PostgreSQL 18 com PostGIS, `pg_trgm`, `unaccent`, `tsvector('portuguese')`; livro-razão em PL/pgSQL |
 | Deploy | uma imagem Docker (API serve o PWA e as fotos) + Postgres + backup, via Dokploy no KVM 8 |
 
 ## Rodar
@@ -67,6 +67,9 @@ pnpm db:migrate && pnpm db:seed      # esquema + dados de demonstração
 pnpm dev                             # http://localhost:5173 (API em :8787)
 pnpm --filter garimpa-api test       # testes contra o Postgres local
 ```
+
+O script usa os binários locais do PostgreSQL só se eles tiverem PostGIS (`postgis.control`); senão cai para o Docker
+(imagem `postgis/postgis:18-3.6-alpine`). `PGLOCAL_MODE=docker` ou `PGLOCAL_MODE=binarios` força um dos modos.
 
 Sem `GOOGLE_CLIENT_ID` o app oferece login de desenvolvimento: entre como `marina` para ver uma conta com histórico.
 

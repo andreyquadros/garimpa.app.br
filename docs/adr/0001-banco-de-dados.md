@@ -63,6 +63,7 @@
 
 ## Revisão 2 — `earthdistance` → PostGIS (out/2026)
 
+- **Status:** implementada (migrações 0005 e 0006).
 - **Motivo:** a troca nunca vai custar tão pouco: não há dados em produção, a stack está em revisão e o banco acabou de mudar de versão. Várias ideias em discussão dependem de PostGIS: importar lojas do OpenStreetMap, agrupar pinos no servidor, servir tiles vetoriais próprios (`ST_AsMVT`) e trocar a cidade "ponto + raio" por um polígono (bairros, várias cidades).
 - **O motivo original deixou de valer:** o `earthdistance` foi escolhido para rodar em qualquer imagem do Postgres, sem imagem especial no CI. Com o banco em contêiner no CI, no ambiente local e no deploy (ADR-0004), usar PostGIS é trocar a imagem.
 - **Problema encontrado no esquema atual:** o índice GiST `places_earth` não é usado por nenhuma consulta. Elas filtram com `earth_distance(...) <= raio` ou `lat between ... and lng between ...`, formas que não aproveitam o índice; `lat`/`lng` também não têm índice comum. Toda consulta de mapa percorre a tabela inteira.
@@ -72,4 +73,7 @@
   - consultas reescritas para `ST_DWithin` (raio), `&&` com `ST_MakeEnvelope` (área visível do mapa) e `<->` (mais perto primeiro), cada uma coberta por teste antes da troca (ADR-0005);
   - `earthdistance` e `cube` saem do esquema;
   - polígono de área em `cities` no lugar de `radius_m` fica para quando houver bairros ou uma segunda cidade.
-- **Consequências:** a imagem do banco fica algumas centenas de MB maior; a cada atualização de versão do Postgres, a versão do PostGIS precisa existir nos dois lados do `pg_upgrade`; em todo código geográfico, a ordem é **longitude, latitude** (`ST_MakePoint(lng, lat)`). A imagem do PostGIS deriva da oficial do Postgres, então vale o mesmo cuidado com o caminho do volume da Revisão 1 (conferir na implementação).
+- **Consequências:** a imagem do banco fica algumas centenas de MB maior; a cada atualização de versão do Postgres, a versão do PostGIS precisa existir nos dois lados do `pg_upgrade`; em todo código geográfico, a ordem é **longitude, latitude** (`ST_MakePoint(lng, lat)`). A imagem do PostGIS deriva da oficial do Postgres; o caminho do volume da Revisão 1 foi conferido (feito): ela herda o `PGDATA` de `postgres:18-alpine`.
+- **Volume novo × existente:** num volume **novo**, o script de inicialização da imagem (`10_postgis.sh`) também instala `postgis_topology`, `fuzzystrmatch` e `postgis_tiger_geocoder` (schemas extras); um volume existente só recebe o que a migração 0005 cria. Aceito.
+- **Superusuário:** `create extension postgis` exige superusuário; no compose isso é o caso, mas vale conferir em bancos gerenciados.
+- **Plano B (Supabase):** a frase "o esquema é Postgres puro e migra com `pg_dump`" é anterior a esta revisão. O Supabase continua servindo de plano B porque oferece PostGIS.

@@ -1,19 +1,42 @@
 #!/usr/bin/env bash
 # Sobe um PostgreSQL 18 local para desenvolvimento e testes do Garimpa.
 # Usa os binários instalados (/usr/lib/postgresql, /usr/pgsql-* ou pg_ctl no PATH); sem eles, usa Docker.
+# As migrações exigem PostGIS: se os binários não trazem a extensão (postgis.control), cai para o Docker.
 # Uso: scripts/local-postgres.sh start|stop|status|psql
 # Variáveis: PGLOCAL_DIR (padrão garimpa/.pglocal, só no modo binários), PGLOCAL_PORT (padrão 54329),
-#            PGLOCAL_IMAGE (padrão postgres:18-alpine) e PGLOCAL_CONTAINER (padrão garimpa-pg18), só no modo Docker
+#            PGLOCAL_MODE (docker|binarios; força o modo, senão é detectado) e
+#            PGLOCAL_IMAGE (padrão postgis/postgis:18-3.6-alpine) e PGLOCAL_CONTAINER (padrão garimpa-pg18), só no modo Docker
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 DIR="${PGLOCAL_DIR:-$HERE/.pglocal}"
 PORT="${PGLOCAL_PORT:-54329}"
-IMAGE="${PGLOCAL_IMAGE:-postgres:18-alpine}"
+IMAGE="${PGLOCAL_IMAGE:-postgis/postgis:18-3.6-alpine}"
 CONTAINER="${PGLOCAL_CONTAINER:-garimpa-pg18}"
 URL="postgres://postgres@127.0.0.1:$PORT/garimpa (testes: /garimpa_test)"
 
 BIN="$(ls -d /usr/lib/postgresql/*/bin /usr/pgsql-*/bin 2>/dev/null | sort -V | tail -n1 || true)"
 if [ -z "$BIN" ] && command -v pg_ctl >/dev/null 2>&1; then BIN="$(dirname "$(command -v pg_ctl)")"; fi
+
+# Os binários só servem se tiverem PostGIS; do contrário a migração 0005 falharia ("extension postgis is not available")
+has_postgis() {
+  local share=""
+  [ -x "$BIN/pg_config" ] && share="$("$BIN/pg_config" --sharedir 2>/dev/null || true)"
+  [ -n "$share" ] || share="$(dirname "$BIN")/share"
+  [ -f "$share/extension/postgis.control" ] || [ -f "$(dirname "$BIN")/share/postgresql/extension/postgis.control" ]
+}
+
+MODE="${PGLOCAL_MODE:-}"
+case "$MODE" in
+  docker) BIN="";;
+  binarios)
+    [ -n "$BIN" ] || { echo "PGLOCAL_MODE=binarios, mas não há binários do PostgreSQL instalados"; exit 1; }
+    has_postgis || { echo "PGLOCAL_MODE=binarios, mas os binários não têm PostGIS (postgis.control)"; exit 1; };;
+  "") if [ -n "$BIN" ] && ! has_postgis; then
+        echo "PostGIS não encontrado nos binários locais; usando Docker" >&2
+        BIN=""
+      fi;;
+  *) echo "PGLOCAL_MODE inválido: use docker ou binarios"; exit 2;;
+esac
 
 run_as_pg() { if [ "$(id -u)" = 0 ]; then su postgres -s /bin/bash -c "$*"; else bash -c "$*"; fi; }
 

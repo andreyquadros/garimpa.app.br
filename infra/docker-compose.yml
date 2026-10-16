@@ -2,7 +2,7 @@
 # Variáveis: defina no painel do Dokploy (ou .env ao lado deste arquivo) as mesmas de ../.env.example.
 services:
   garimpa-db:
-    image: postgres:18-alpine
+    image: postgis/postgis:18-3.6-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: garimpa

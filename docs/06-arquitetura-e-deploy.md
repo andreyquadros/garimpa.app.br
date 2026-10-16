@@ -9,7 +9,7 @@
    login: Google Identity Services ─────────┘           └─ /*       build do PWA (web/dist)
                                                              │
                                                       PostgreSQL 18 (garimpa-db)
-                                                      earthdistance · pg_trgm · unaccent · tsvector pt
+                                                      PostGIS · pg_trgm · unaccent · tsvector pt
    tiles: OpenStreetMap por padrão (configurável por TILES_URL; servidor próprio opcional)
 ```
 
@@ -50,7 +50,7 @@ pnpm typecheck && pnpm build
 2. **Variáveis** (aba Environment): `POSTGRES_PASSWORD`, `SESSION_SECRET` (`openssl rand -hex 32`), `GOOGLE_CLIENT_ID`, `PUBLIC_URL=https://garimpa.incubadora.cloud`.
 3. **Domínio**: `garimpa.incubadora.cloud` → serviço `garimpa`, porta `8787`, HTTPS automático. Depois, adicionar `garimpa.app.br` quando registrado.
 4. Deploy. A API aplica as migrações sozinha na subida e cria a cidade de Ariquemes. Para dados de demonstração em produção **não** rode o seed.
-5. **Backups**: o serviço `garimpa-backup` gera um `pg_dump` diário em volume próprio (14 dias). Copie para fora da VPS com a mesma rotina `rclone` do Traccar. As fotos ficam em `garimpa-uploads`; inclua o volume no backup semanal.
+5. **Backups**: o serviço `garimpa-backup` gera um `pg_dump` diário em volume próprio (14 dias). Copie para fora da VPS com a mesma rotina `rclone` do Traccar. As fotos ficam em `garimpa-uploads`; inclua o volume no backup semanal. **Restauração**: o dump traz `create extension postgis` e colunas `geog geography`, então o destino precisa ter PostGIS 3.6 ou mais novo (ex.: `postgis/postgis:18-3.6-alpine`); um `postgres:18` puro falha na extensão e nas colunas `geog`. **Troca de imagem em produção**: antes de trocar `postgres:18-alpine` pela imagem do PostGIS (mesma versão maior, a menor pode diferir), faça um `pg_dump` manual.
 6. **Uptime Kuma**: monitor HTTP em `https://garimpa.incubadora.cloud/api/health`.
 
 ### Login com Google
@@ -101,4 +101,4 @@ Diferenças assumidas em relação à API real: o navegador não lê EXIF (a pro
 - Notificações push (Web Push, VAPID) quando a sua pergunta recebe pista.
 - Painel do parceiro (fase 2): reivindicar lugar, campanhas, relatório de demanda.
 - Resgate via Pix (fase 2): `payouts` + conciliação com o Cofre.
-- PostGIS quando houver polígonos de bairro ou área de cobertura.
+- Polígonos de bairro ou área de cobertura (o PostGIS já está no banco).
