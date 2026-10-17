@@ -1,5 +1,7 @@
 packages:
   - api
   - web
+# pnpm 10 só faz `pnpm deploy` (usado no infra/Dockerfile) com pacotes do workspace injetados.
+injectWorkspacePackages: true
 onlyBuiltDependencies:
   - lefthook
