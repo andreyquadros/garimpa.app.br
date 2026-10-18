@@ -8,12 +8,13 @@
    Motion · Leaflet · TanStack Query        │           ├─ /u/*     fotos (disco, volume garimpa-uploads)
    login: Google Identity Services ─────────┘           └─ /*       build do PWA (web/dist)
                                                              │
-                                                      PostgreSQL 18 (garimpa-db)
-                                                      PostGIS · pg_trgm · unaccent · tsvector pt
+                                                      ├─ PostgreSQL 18 (garimpa-db)
+                                                      │  PostGIS · pg_trgm · unaccent · tsvector pt
+                                                      └─ Redis 8 (garimpa-cache) · cache das leituras públicas
    tiles: OpenStreetMap por padrão (configurável por TILES_URL; servidor próprio opcional)
 ```
 
-Um contêiner de aplicação, um de banco, um de backup. Nenhum serviço externo além do login do Google e dos tiles do OpenStreetMap (ou de um servidor próprio via `TILES_URL`).
+Um contêiner de aplicação, um de banco, um de cache (Redis, ADR-0006), um de backup. Nenhum serviço externo além do login do Google e dos tiles do OpenStreetMap (ou de um servidor próprio via `TILES_URL`).
 
 ## Pastas
 
@@ -24,6 +25,7 @@ Um contêiner de aplicação, um de banco, um de backup. Nenhum serviço externo
 | `db/migrations/` | SQL puro, aplicado em ordem pela API na subida (`schema_migrations`) |
 | `infra/` | `Dockerfile` (uma imagem: API + build do PWA), `docker-compose.yml` para o Dokploy, `Caddyfile` alternativo |
 | `scripts/local-postgres.sh` | Postgres 18 local, com binários instalados ou Docker (desenvolvimento e testes) |
+| `scripts/local-redis.sh` | Redis 8 local em Docker, porta 63799 (cache em desenvolvimento, testes da API e e2e) |
 | `docs/` | esta documentação |
 
 ## Rodar localmente
@@ -31,13 +33,16 @@ Um contêiner de aplicação, um de banco, um de backup. Nenhum serviço externo
 ```bash
 pnpm install
 scripts/local-postgres.sh start        # postgres://postgres@127.0.0.1:54329/garimpa (e garimpa_test)
+scripts/local-redis.sh start           # redis://127.0.0.1:63799 (opcional no dev; exigido pelos testes da API e pelo e2e)
 pnpm db:migrate && pnpm db:seed        # esquema + dados de demonstração (6 pessoas, 10 lugares, 8 perguntas)
 pnpm dev                               # API em :8787 e Vite em :5173 (proxy de /api e /u)
 ```
 
 Abra <http://localhost:5173>. Sem `GOOGLE_CLIENT_ID`, a tela de entrada mostra o login de desenvolvimento: digite `marina`, `joao`, `tais`, `rafael`, `lucas` ou `dona neide` para usar uma conta do seed, ou qualquer outro nome para criar uma conta nova.
 
-Testes (Postgres local precisa estar de pé):
+Para usar o cache no `pnpm dev`, exporte `REDIS_URL=redis://127.0.0.1:63799/0`; sem a variável a API roda sem cache. `pnpm cache:bump <grupo...>` invalida grupos à mão (ex.: `config` depois de mudar `settings.economia` direto no banco).
+
+Testes (Postgres e Redis locais precisam estar de pé):
 
 ```bash
 pnpm --filter garimpa-api test     # economia, evidência, fluxo ponta a ponta, conluio, denúncias, sequência diária
@@ -47,10 +52,10 @@ pnpm typecheck && pnpm build
 ## Deploy no KVM 8 (Dokploy)
 
 1. **Projeto** `garimpa` → **Compose** apontando para este repositório, caminho `infra/docker-compose.yml`.
-2. **Variáveis** (aba Environment): `POSTGRES_PASSWORD`, `SESSION_SECRET` (`openssl rand -hex 32`), `GOOGLE_CLIENT_ID`, `PUBLIC_URL=https://garimpa.incubadora.cloud`.
+2. **Variáveis** (aba Environment): `POSTGRES_PASSWORD`, `SESSION_SECRET` (`openssl rand -hex 32`), `REDIS_PASSWORD` (senha do Redis; o compose monta o `REDIS_URL` da API sozinho), `GOOGLE_CLIENT_ID`, `PUBLIC_URL=https://garimpa.incubadora.cloud`.
 3. **Domínio**: `garimpa.incubadora.cloud` → serviço `garimpa`, porta `8787`, HTTPS automático. Depois, adicionar `garimpa.app.br` quando registrado.
 4. Deploy. A API aplica as migrações sozinha na subida e cria a cidade de Ariquemes. Para dados de demonstração em produção **não** rode o seed.
-5. **Backups**: o serviço `garimpa-backup` gera um `pg_dump` diário em volume próprio (14 dias). Copie para fora da VPS com a mesma rotina `rclone` do Traccar. As fotos ficam em `garimpa-uploads`; inclua o volume no backup semanal. **Restauração**: o dump traz `create extension postgis` e colunas `geog geography`, então o destino precisa ter PostGIS 3.6 ou mais novo (ex.: `postgis/postgis:18-3.6-alpine`); um `postgres:18` puro falha na extensão e nas colunas `geog`. **Troca de imagem em produção**: antes de trocar `postgres:18-alpine` pela imagem do PostGIS (mesma versão maior, a menor pode diferir), faça um `pg_dump` manual.
+5. **Backups**: o serviço `garimpa-backup` gera um `pg_dump` diário em volume próprio (14 dias). Copie para fora da VPS com a mesma rotina `rclone` do Traccar. As fotos ficam em `garimpa-uploads`; inclua o volume no backup semanal. **Restauração**: o dump traz `create extension postgis` e colunas `geog geography`, então o destino precisa ter PostGIS 3.6 ou mais novo (ex.: `postgis/postgis:18-3.6-alpine`); um `postgres:18` puro falha na extensão e nas colunas `geog`. **Troca de imagem em produção**: antes de trocar `postgres:18-alpine` pela imagem do PostGIS (mesma versão maior, a menor pode diferir), faça um `pg_dump` manual. **Redis**: não tem backup nem volume, de propósito. É só cache; ao reiniciar ele começa vazio e a API lê do Postgres até reaquecer.
 6. **Uptime Kuma**: monitor HTTP em `https://garimpa.incubadora.cloud/api/health`.
 
 ### Login com Google
