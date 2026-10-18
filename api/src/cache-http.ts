@@ -35,3 +35,11 @@ export async function cached<T>(
   c.header('X-Cache', status);
   return value;
 }
+
+/**
+ * Grupos que mudam quando uma resposta vira (ou deixa de ser) achado, ou rende pepitas e XP: a missão e a lista
+ * (status, achado em destaque), o mapa e a busca de achados, a página do lugar e o ranking.
+ */
+export function findGroups(questionId: string, placeId: string): string[] {
+  return ['missoes', `missao:${questionId}`, 'achados', `lugar:${placeId}`, 'ranking'];
+}

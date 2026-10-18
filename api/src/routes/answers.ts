@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { type AppEnv, type Collusion, collusionBetween, recordSignal, requireUser } from '../auth.js';
+import { findGroups, markDirty } from '../cache-http.js';
 import type { Sql, Tx } from '../db.js';
 import { award, grantBadge, levelFor, loadEconomy, takeCap, takeMintCap } from '../economy.js';
 import { SIMILAR_HAMMING, scoreEvidence } from '../evidence.js';
@@ -103,7 +104,13 @@ answerRoutes.post('/questions/:id/answers', async (c) => {
     // Serializa as respostas da mesma pergunta: duas pessoas apontando o mesmo lugar ao mesmo tempo
     // não disputam o índice único do "primeiro achado" (a segunda entra como segundo achado).
     await tx`select 1 from questions where id = ${qid}::uuid for update`;
-    const placeId = body.placeId ?? (await getOrCreatePlace(tx, cfg.CITY_DEFAULT, body.newPlace!, u.id, eco)).id;
+    let placeCreated = false;
+    let placeId = body.placeId;
+    if (!placeId) {
+      const p = await getOrCreatePlace(tx, cfg.CITY_DEFAULT, body.newPlace!, u.id, eco);
+      placeId = p.id;
+      placeCreated = p.created;
+    }
     const place = (
       await tx<{ lat: number; lng: number }[]>`select lat, lng from places where id = ${placeId}::uuid`
     )[0];
@@ -226,6 +233,8 @@ answerRoutes.post('/questions/:id/answers', async (c) => {
       >`select count(*)::int as n from evidences where uploader_id = ${u.id}::uuid and score >= ${eco.evidencia_forte} and answer_id is not null`
     )[0]!.n;
     if (strongCount >= 10) await grantBadge(tx, u.id, 'bom_de_prova');
+    // Lugar novo entra na lista de lugares; a resposta pendente já aparece na página do lugar.
+    markDirty(c, 'missoes', `missao:${qid}`, `lugar:${placeId}`, 'ranking', ...(placeCreated ? ['lugares'] : []));
     return { answerId, placeId, isFirst, evidenceScore: best, strong, xp, checks };
   });
   await recordSignal(c, u.id);
@@ -248,13 +257,14 @@ answerRoutes.post('/answers/:id/confirm', async (c) => {
 
   const out = await sql.begin(async (tx) => {
     const a = (
-      await tx<{ authorId: string; status: string; isFirstForPlace: boolean; questionId: string }[]>`
-      select author_id, status, is_first_for_place, question_id from answers where id = ${id}::uuid for update`
+      await tx<{ authorId: string; status: string; isFirstForPlace: boolean; questionId: string; placeId: string }[]>`
+      select author_id, status, is_first_for_place, question_id, place_id from answers where id = ${id}::uuid for update`
     )[0];
     if (!a) throw new HTTPException(404, { message: 'Resposta não encontrada.' });
     if (a.status === 'oculta' || a.status === 'rejeitada')
       throw new HTTPException(400, { message: 'Essa resposta foi removida.' });
     if (a.authorId === u.id) throw new HTTPException(400, { message: 'Você não confirma a própria resposta.' });
+    markDirty(c, ...findGroups(a.questionId, a.placeId));
     // Peso do voto em degraus: conta suspeita 0,5 · normal 1 · veterana 1,5. Duas contas normais confirmam.
     const trust = Number(u.trust);
     const weight = trust < eco.confianca_baixa ? 0.5 : trust >= 0.8 ? 1.5 : 1.0;
@@ -378,14 +388,17 @@ answerRoutes.post('/answers/:id/tip', async (c) => {
     .parse(await c.req.json());
   const out = await sql.begin(async (tx) => {
     const a = (
-      await tx<{ authorId: string; status: string; questionId: string; qAuthor: string; budget: number }[]>`
-      select a.author_id, a.status, a.question_id, q.author_id as q_author, q.tip_budget_left as budget
+      await tx<
+        { authorId: string; status: string; questionId: string; placeId: string; qAuthor: string; budget: number }[]
+      >`
+      select a.author_id, a.status, a.question_id, a.place_id, q.author_id as q_author, q.tip_budget_left as budget
       from answers a join questions q on q.id = a.question_id where a.id = ${id}::uuid for update of q`
     )[0];
     if (!a) throw new HTTPException(404, { message: 'Resposta não encontrada.' });
     if (a.status === 'oculta' || a.status === 'rejeitada')
       throw new HTTPException(400, { message: 'Essa resposta foi removida.' });
     if (a.authorId === u.id) throw new HTTPException(400, { message: 'Gorjeta é para quem ajudou você.' });
+    markDirty(c, ...findGroups(a.questionId, a.placeId));
     const col = await collusionBetween(tx, u.id, a.authorId);
     const meta: Record<string, unknown> = { de: u.id, fonte: body.source };
     let minted = true;
