@@ -13,15 +13,30 @@ export const miscRoutes = new Hono<AppEnv>();
 miscRoutes.get('/config', async (c) => {
   const cfg = c.get('config');
   const sql = c.get('sql');
-  // O ambiente é fixo por processo; o que muda é a cidade e a economia, e ambas invalidam o grupo `config`.
-  const body = await cached(c, 'config', ['config'], {}, 3600, async () => {
+  // A resposta mistura banco (cidade, economia: invalidados pelo grupo `config`) e ambiente (Google, tiles). O ambiente
+  // entra nos parâmetros da chave: um redeploy com outro GOOGLE_CLIENT_ID/TILES_URL, ou dois processos com
+  // configurações diferentes no mesmo Redis, não podem servir os valores um do outro.
+  const tiles = {
+    // Padrão: OpenStreetMap (o Pepita Social não depende da infraestrutura de outros apps). Servidor próprio via TILES_URL.
+    url: process.env.TILES_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    fallbackUrl: process.env.TILES_FALLBACK_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    minZoom: 12,
+    maxZoom: 18,
+  };
+  const env = {
+    googleClientId: cfg.GOOGLE_CLIENT_ID ?? null,
+    devLogin: cfg.allowDevLogin,
+    cityId: cfg.CITY_DEFAULT,
+    tiles,
+  };
+  const body = await cached(c, 'config', ['config'], env, 3600, async () => {
     const city =
       (await sql`select id, name, state, lat, lng, radius_m from cities where id = ${cfg.CITY_DEFAULT}`)[0] ?? null;
     const eco = await loadEconomy(sql, c.get('cache'));
     return {
       city,
-      googleClientId: cfg.GOOGLE_CLIENT_ID ?? null,
-      devLogin: cfg.allowDevLogin,
+      googleClientId: env.googleClientId,
+      devLogin: env.devLogin,
       levels: LEVELS,
       economy: {
         xp: eco.xp,
@@ -31,13 +46,7 @@ miscRoutes.get('/config', async (c) => {
         conversao: eco.conversao,
         evidencia_forte: eco.evidencia_forte,
       },
-      tiles: {
-        // Padrão: OpenStreetMap (o Pepita Social não depende da infraestrutura de outros apps). Servidor próprio via TILES_URL.
-        url: process.env.TILES_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        fallbackUrl: process.env.TILES_FALLBACK_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        minZoom: 12,
-        maxZoom: 18,
-      },
+      tiles,
     };
   });
   return c.json(body);

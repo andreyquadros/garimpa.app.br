@@ -12,7 +12,7 @@ export const TEST_DB = process.env.DATABASE_URL_TEST ?? 'postgres://postgres@127
 export const TEST_REDIS = process.env.REDIS_URL_TEST ?? 'redis://127.0.0.1:63799/2';
 
 /** Cache real (Redis de teste) por padrão; um teste pode passar outro, ex.: um Redis fora do ar. */
-export async function makeApp(opts: { cache?: Cache } = {}) {
+export async function makeApp(opts: { cache?: Cache; env?: Record<string, string> } = {}) {
   const uploadDir = await fs.mkdtemp(path.join(os.tmpdir(), 'garimpa-uploads-'));
   const config = loadConfig({
     NODE_ENV: 'test',
@@ -21,6 +21,7 @@ export async function makeApp(opts: { cache?: Cache } = {}) {
     SESSION_SECRET: 'segredo-de-teste-com-mais-de-dezesseis-chars',
     UPLOAD_DIR: uploadDir,
     PUBLIC_URL: 'http://localhost',
+    ...opts.env,
   });
   const sql = createDb(TEST_DB);
   const cache = opts.cache ?? createCache(TEST_REDIS);
