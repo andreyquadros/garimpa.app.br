@@ -185,6 +185,24 @@ export async function grantBadge(db: Sql | Tx, userId: string, slug: string): Pr
 }
 
 /**
+ * Semana ISO corrente no fuso de Porto Velho (ex.: '2026-W42'). Entra na chave do ranking semanal: na virada da
+ * semana a chave muda sozinha, sem precisar de invalidação (o SQL do ranking usa o mesmo fuso).
+ */
+export function rankingWeek(now = new Date()): string {
+  const [y, m, d] = now.toLocaleDateString('en-CA', { timeZone: 'America/Porto_Velho' }).split('-').map(Number) as [
+    number,
+    number,
+    number,
+  ];
+  const date = new Date(Date.UTC(y, m - 1, d));
+  // A semana ISO pertence ao ano da sua quinta-feira.
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const year = date.getUTCFullYear();
+  const week = Math.ceil(((date.getTime() - Date.UTC(year, 0, 1)) / 86_400_000 + 1) / 7);
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+/**
  * Streak: XP pequeno por dia consecutivo (teto), sem pepitas — presença não vira dinheiro.
  * `awarded` diz se o bônus foi lançado: só aí o ranking muda e o cache dele precisa ser invalidado.
  */

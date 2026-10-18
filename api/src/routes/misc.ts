@@ -4,7 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { type AppEnv, recordSignal, requireRole, requireUser } from '../auth.js';
 import { cached, findGroups, markDirty } from '../cache-http.js';
-import { LEVELS, levelFor, loadEconomy, takeCap, touchStreak } from '../economy.js';
+import { LEVELS, levelFor, loadEconomy, rankingWeek, takeCap, touchStreak } from '../economy.js';
 import { DUPLICATE_HAMMING, type Processed, processImage, SIMILAR_HAMMING, storeImage } from '../evidence.js';
 import { reopenQuestionIfAccepted, restoreAnswerAwards, reverseAnswerAwards } from './answers.js';
 
@@ -110,18 +110,21 @@ miscRoutes.get('/ranking', async (c) => {
     pontos: number;
     streakDays: number;
   };
-  const items =
-    period === 'geral'
-      ? await sql<
-          RankRow[]
-        >`select id, name, handle, avatar_url, xp, xp as pontos, streak_days from users where banned_at is null and xp > 0 order by xp desc, created_at asc limit 50`
-      : await sql<RankRow[]>`
+  // A lista é igual para todos e vai para o cache; "me" é calculado depois, a partir dela, para quem pede.
+  const ranked = await cached(c, 'ranking', ['ranking'], { period, week: rankingWeek() }, 600, async () => {
+    const items =
+      period === 'geral'
+        ? await sql<
+            RankRow[]
+          >`select id, name, handle, avatar_url, xp, xp as pontos, streak_days from users where banned_at is null and xp > 0 order by xp desc, created_at asc limit 50`
+        : await sql<RankRow[]>`
         select u.id, u.name, u.handle, u.avatar_url, u.xp, sum(l.xp)::int as pontos, u.streak_days
         from ledger l join users u on u.id = l.user_id
         where l.xp > 0 and l.state <> 'estornado' and u.banned_at is null
           and l.created_at >= date_trunc('week', (now() at time zone 'America/Porto_Velho')) at time zone 'America/Porto_Velho'
         group by u.id order by pontos desc, u.xp desc limit 50`;
-  const ranked = items.map((r, i) => ({ ...r, pos: i + 1, level: levelFor(Number(r.xp)) }));
+    return items.map((r, i) => ({ ...r, pos: i + 1, level: levelFor(Number(r.xp)) }));
+  });
   const mine = me ? (ranked.find((r) => r.id === me.id) ?? null) : null;
   return c.json({ period, items: ranked, me: mine });
 });
