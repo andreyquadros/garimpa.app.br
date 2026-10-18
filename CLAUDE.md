@@ -12,15 +12,17 @@ Monorepo pnpm: `api/` (Node 22, Hono, Postgres.js, zod), `web/` (React 19, Vite,
 ```bash
 pnpm install
 scripts/local-postgres.sh start                       # Postgres 18 local (binários instalados ou Docker)
+scripts/local-redis.sh start                          # Redis 8 local (Docker, :63799): exigido pelos testes da API e pelo e2e
 pnpm db:migrate && pnpm db:seed                       # esquema + dados de demonstração
 pnpm dev                                              # web em :5173, API em :8787 (login dev: "marina")
+pnpm cache:bump <grupo...>                          # invalida grupos do cache à mão (precisa de REDIS_URL)
 pnpm check                                            # Biome: formata e corrige (use antes de commitar)
 pnpm lint                                             # Biome: só o lint
 pnpm typecheck                                        # tipos de api e web
 pnpm test:scripts                                     # testes dos scripts (validador de mensagens de commit)
-pnpm --filter garimpa-api test                        # testes da API (precisa do Postgres em :54329)
+pnpm --filter garimpa-api test                        # testes da API (precisa do Postgres em :54329 e do Redis em :63799)
 pnpm --filter garimpa-web test                        # testes do web
-pnpm --filter garimpa-web test:e2e                    # ponta a ponta (Playwright; precisa do Postgres local, usa :8788, :5174 e o banco garimpa_e2e; outro banco via DATABASE_URL_E2E, com nome terminado em _e2e e host local)
+pnpm --filter garimpa-web test:e2e                    # ponta a ponta (Playwright; precisa do Postgres e do Redis locais, usa :8788, :5174 e o banco garimpa_e2e; outro banco via DATABASE_URL_E2E, com nome terminado em _e2e e host local)
 pnpm --filter garimpa-web build                       # build do PWA
 ```
 
@@ -29,6 +31,13 @@ comando com `npx pnpm@10.28.0` (ex.: `npx pnpm@10.28.0 install`). Os `webServer`
 se instalam no `pnpm install` e chamam os binários locais, então não dependem do pnpm no `PATH` (só do `node`).
 
 Mudou o fluxo principal (entrar → missão → evidência → confirmar → aceitar)? Atualize `web/e2e/fluxo-principal.spec.ts` (ADR-0005).
+
+## Cache (ADR-0006)
+
+Leituras públicas passam pelo Redis (`api/src/cache.ts`, `cache-http.ts`); `REDIS_URL` é opcional e sem ela a API
+roda sem cache (`pnpm dev` só usa se você exportar `REDIS_URL=redis://127.0.0.1:63799/0`). Regra: toda rota de
+escrita nova chama `markDirty` com os grupos que afeta, e toda leitura pública nova usa `cached`. Inclua a escrita
+no teste `api/test/cache-invalidacao.test.ts`.
 
 ## Git (ADR-0002)
 

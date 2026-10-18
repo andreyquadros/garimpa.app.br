@@ -53,7 +53,8 @@ Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (p
 | PWA | React 19, Vite 8, TypeScript, Tailwind 4, Motion, Leaflet (tiles próprios de Ariquemes), TanStack Query, vite-plugin-pwa |
 | API | Node 22, Hono, Postgres.js, jose (Google ID token), sharp + exifr (provas), zod |
 | Banco | PostgreSQL 18 com PostGIS, `pg_trgm`, `unaccent`, `tsvector('portuguese')`; livro-razão em PL/pgSQL |
-| Deploy | uma imagem Docker (API serve o PWA e as fotos) + Postgres + backup, via Dokploy no KVM 8 |
+| Cache | Redis 8 (leituras públicas, invalidação por versão de grupo; opcional via `REDIS_URL`), ver [ADR-0006](docs/adr/0006-cache-com-redis.md) |
+| Deploy | uma imagem Docker (API serve o PWA e as fotos) + Postgres + Redis + backup, via Dokploy no KVM 8 |
 
 ## Rodar
 
@@ -63,13 +64,16 @@ Precisa de Node 22 e pnpm. Sem pnpm: `npm i -g pnpm@10.28.0` (pode pedir `sudo`,
 ```bash
 pnpm install
 scripts/local-postgres.sh start      # Postgres 18 local (binários instalados ou Docker)
+scripts/local-redis.sh start         # Redis 8 local em Docker (necessário para os testes da API e o e2e)
 pnpm db:migrate && pnpm db:seed      # esquema + dados de demonstração
 pnpm dev                             # http://localhost:5173 (API em :8787)
-pnpm --filter garimpa-api test       # testes contra o Postgres local
+pnpm --filter garimpa-api test       # testes contra o Postgres e o Redis locais
 ```
 
 O script usa os binários locais do PostgreSQL só se eles tiverem PostGIS (`postgis.control`); senão cai para o Docker
 (imagem `postgis/postgis:18-3.6-alpine`). `PGLOCAL_MODE=docker` ou `PGLOCAL_MODE=binarios` força um dos modos.
+
+Para ligar o cache no `pnpm dev`, exporte `REDIS_URL=redis://127.0.0.1:63799/0`; sem a variável a API funciona sem cache.
 
 Sem `GOOGLE_CLIENT_ID` o app oferece login de desenvolvimento: entre como `marina` para ver uma conta com histórico.
 
