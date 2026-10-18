@@ -5,7 +5,8 @@ import { type AppEnv, collusionBetween, recordSignal, requireUser } from '../aut
 import { cached, findGroups, markDirty } from '../cache-http.js';
 import type { Sql } from '../db.js';
 import { award, grantBadge, loadEconomy, takeCap, takeMintCap } from '../economy.js';
-import { pointSql } from '../geo.js';
+import { pointSql, roundCoord } from '../geo.js';
+import { capQuery } from '../text.js';
 import { allEvidencesReused } from './answers.js';
 
 export const questionRoutes = new Hono<AppEnv>();
@@ -86,7 +87,7 @@ export async function similarQuestions(sql: Sql, cityId: string, q: string, limi
 questionRoutes.get('/search', async (c) => {
   const sql = c.get('sql');
   const cfg = c.get('config');
-  const q = (c.req.query('q') ?? '').trim();
+  const q = capQuery(c.req.query('q'));
   if (q.length < 2) {
     c.header('X-Cache', 'BYPASS');
     return c.json({ q, similar: [], finds: [] });
@@ -107,6 +108,22 @@ questionRoutes.get('/search', async (c) => {
   return c.json(body);
 });
 
+/** Categorias conhecidas. Fora desta lista o filtro da listagem não passa pelo cache (cardinalidade de chaves). */
+const CATEGORIES = [
+  'casa',
+  'eletronicos',
+  'ferramentas',
+  'saude',
+  'alimentos',
+  'pets',
+  'roupas',
+  'papelaria',
+  'auto',
+  'bebe',
+  'esporte',
+  'outros',
+] as const;
+
 const listSchema = z.object({
   status: z.enum(['aberta', 'respondida', 'resolvida', 'fechada', 'abertas', 'todas']).default('todas'),
   category: z.string().optional(),
@@ -123,6 +140,9 @@ questionRoutes.get('/questions', async (c) => {
   const me = c.get('user');
   const p = listSchema.parse(Object.fromEntries(new URL(c.req.url).searchParams));
   const hasPos = p.lat != null && p.lng != null;
+  // Posição arredondada (~110 m) na consulta e na chave: pontos próximos dividem a mesma entrada.
+  const lat = hasPos ? roundCoord(p.lat!) : 0;
+  const lng = hasPos ? roundCoord(p.lng!) : 0;
   const load = async () => {
     const rows = await sql`
     select qu.id, qu.title, qu.category, qu.status, qu.bounty, qu.answers_count, qu.followers_count, qu.created_at, qu.solved_at,
@@ -131,7 +151,7 @@ questionRoutes.get('/questions', async (c) => {
            (select p2.name from answers a join places p2 on p2.id = a.place_id
              where a.question_id = qu.id and a.status in ('aceita','confirmada')
              order by (a.status = 'aceita') desc, a.confirms desc limit 1) as top_place,
-           ${hasPos ? sql`case when qu.geog is null then null else ST_Distance(qu.geog, ${pointSql(sql, p.lat!, p.lng!)})::int end` : sql`null::int`} as distance_m
+           ${hasPos ? sql`case when qu.geog is null then null else ST_Distance(qu.geog, ${pointSql(sql, lat, lng)})::int end` : sql`null::int`} as distance_m
     from questions qu join users u on u.id = qu.author_id
     where qu.city_id = ${cfg.CITY_DEFAULT}
       ${p.status === 'todas' ? sql`and qu.status <> 'fechada'` : p.status === 'abertas' ? sql`and qu.status in ('aberta','respondida')` : sql`and qu.status = ${p.status}`}
@@ -141,7 +161,7 @@ questionRoutes.get('/questions', async (c) => {
       p.sort === 'populares'
         ? sql`qu.bounty desc, qu.followers_count desc, qu.created_at desc`
         : p.sort === 'perto' && hasPos
-          ? sql`qu.geog <-> ${pointSql(sql, p.lat!, p.lng!)} nulls last, qu.created_at desc`
+          ? sql`qu.geog <-> ${pointSql(sql, lat, lng)} nulls last, qu.created_at desc`
           : sql`qu.created_at desc`
     }
     limit 20 offset ${p.offset}`;
@@ -152,6 +172,11 @@ questionRoutes.get('/questions', async (c) => {
     c.header('X-Cache', 'BYPASS');
     return c.json(await load());
   }
+  // Categoria fora da lista e paginação funda são entradas que o cliente inventa à vontade: não valem uma chave.
+  if ((p.category && !(CATEGORIES as readonly string[]).includes(p.category)) || p.offset > 200) {
+    c.header('X-Cache', 'BYPASS');
+    return c.json(await load());
+  }
   const params = {
     city: cfg.CITY_DEFAULT,
     status: p.status,
@@ -159,7 +184,7 @@ questionRoutes.get('/questions', async (c) => {
     sort: p.sort,
     offset: p.offset,
     // Com posição, a resposta traz a distância de cada missão até ela.
-    pos: hasPos ? [p.lat, p.lng] : null,
+    pos: hasPos ? [lat, lng] : null,
   };
   return c.json(await cached(c, 'questions', ['missoes', 'achados'], params, 600, load));
 });
@@ -167,22 +192,7 @@ questionRoutes.get('/questions', async (c) => {
 const createSchema = z.object({
   title: z.string().trim().min(3).max(140),
   details: z.string().trim().max(1000).optional(),
-  category: z
-    .enum([
-      'casa',
-      'eletronicos',
-      'ferramentas',
-      'saude',
-      'alimentos',
-      'pets',
-      'roupas',
-      'papelaria',
-      'auto',
-      'bebe',
-      'esporte',
-      'outros',
-    ])
-    .default('outros'),
+  category: z.enum(CATEGORIES).default('outros'),
   lat: z.number().optional(),
   lng: z.number().optional(),
   photoEvidenceId: z.string().uuid().optional(),

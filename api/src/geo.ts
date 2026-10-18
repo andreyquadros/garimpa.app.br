@@ -8,10 +8,16 @@ export function pointSql(db: Sql | Tx, lat: number, lng: number) {
 }
 
 /**
+ * Arredonda a 3 casas (~110 m). Coordenadas vindas do cliente entram na chave do cache: sem isso cada pixel de
+ * arrasto no mapa criaria uma entrada nova e qualquer pessoa poderia encher o Redis com chaves distintas.
+ */
+export const roundCoord = (v: number) => Math.round(v * 1000) / 1000;
+
+/**
  * Lê `w,s,e,n`; `null` se não forem quatro números finitos (aí a consulta não filtra por área).
  * Também devolve `null` quando a área não é representável como geography: o Leaflet não limita a longitude e, com
  * zoom baixo ou cruzando o antimeridiano, o polígono seria desenhado "pelo caminho curto" e excluiria os pinos.
- * A latitude é limitada a ±90.
+ * A latitude é limitada a ±90. Os valores saem arredondados (ver `roundCoord`).
  */
 export function parseBbox(raw: string | undefined): Bbox | null {
   if (!raw) return null;
@@ -22,7 +28,7 @@ export function parseBbox(raw: string | undefined): Bbox | null {
   const [w, s, e, n] = nums as Bbox;
   if (w < -180 || e > 180 || w > e || e - w >= 180) return null;
   const clamp = (v: number) => Math.min(90, Math.max(-90, v));
-  return [w, clamp(s), e, clamp(n)];
+  return [roundCoord(w), clamp(roundCoord(s)), roundCoord(e), clamp(roundCoord(n))];
 }
 
 /** `and <coluna> && envelope`, usando o índice GiST. `column` é fixo no código, nunca vem da requisição. */

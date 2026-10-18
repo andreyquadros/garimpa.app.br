@@ -5,7 +5,8 @@ import { type AppEnv, recordSignal, requireUser } from '../auth.js';
 import { cached, markDirty } from '../cache-http.js';
 import type { Sql, Tx } from '../db.js';
 import { award, type Economy, grantBadge, loadEconomy, takeCap } from '../economy.js';
-import { bboxSql, parseBbox, pointSql } from '../geo.js';
+import { bboxSql, parseBbox, pointSql, roundCoord } from '../geo.js';
+import { capQuery } from '../text.js';
 
 export const placeRoutes = new Hono<AppEnv>();
 
@@ -57,9 +58,9 @@ export async function getOrCreatePlace(
 placeRoutes.get('/places', async (c) => {
   const sql = c.get('sql');
   const cfg = c.get('config');
-  const q = (c.req.query('q') ?? '').trim();
-  const lat = Number(c.req.query('lat'));
-  const lng = Number(c.req.query('lng'));
+  const q = capQuery(c.req.query('q'));
+  const lat = roundCoord(Number(c.req.query('lat')));
+  const lng = roundCoord(Number(c.req.query('lng')));
   const hasPos = Number.isFinite(lat) && Number.isFinite(lng);
   const params = { city: cfg.CITY_DEFAULT, q, pos: hasPos ? [lat, lng] : null };
   const items = await cached(c, 'places', ['lugares', 'achados'], params, 600, async () => {
@@ -118,7 +119,7 @@ placeRoutes.get('/map/finds', async (c) => {
   const sql = c.get('sql');
   const cfg = c.get('config');
   const box = parseBbox(c.req.query('bbox'));
-  const q = (c.req.query('q') ?? '').trim();
+  const q = capQuery(c.req.query('q'));
   const items = await cached(c, 'map-finds', ['achados'], { city: cfg.CITY_DEFAULT, box, q }, 600, async () =>
     q
       ? await sql`

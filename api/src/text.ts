@@ -8,6 +8,9 @@ export function normText(s: string): string {
     .trim();
 }
 
+/** Limita o texto de busca vindo do cliente: ele entra na chave do cache e uma busca útil não passa de 80 caracteres. */
+export const capQuery = (raw: string | undefined) => (raw ?? '').trim().slice(0, 80).trim();
+
 export function slugify(s: string): string {
   return normText(s).replace(/\s+/g, '-').slice(0, 24) || 'garimpeiro';
 }

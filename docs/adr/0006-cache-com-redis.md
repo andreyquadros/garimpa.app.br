@@ -15,8 +15,9 @@ Requisitos que moldam a decisão: nada de dado velho depois de uma escrita; o Re
 
 ## Decisão
 
-- **Servidor:** `redis:8.8.3-alpine` no compose, sem volume, sem porta publicada, com senha, `maxmemory 256mb` e `allkeys-lru`. Ambiente local e CI usam o mesmo contêiner, na porta 63799.
+- **Servidor:** `redis:8.8.3-alpine` no compose, sem volume, sem porta publicada, com senha, `maxmemory 256mb` e `volatile-lru`. O ambiente local (`scripts/local-redis.sh`, porta 63799) usa a mesma imagem e os mesmos limites, só sem senha e sem rede interna.
 - **Invalidação por versão de grupo:** cada leitura em cache depende de grupos (`missoes`, `achados`, `ranking`, `missao:<id>`…) e a chave carrega a versão de cada um. Depois do commit, a escrita faz `INCR` nos grupos que afeta; as leituras seguintes montam outra chave e as antigas expiram.
+- **`volatile-lru` e sem persistência:** toda chave de dados tem prazo (`EX`) e as chaves de versão do grupo nunca têm. Com `volatile-lru` só as de dados podem ser despejadas; com `allkeys-lru` uma versão despejada voltaria a 0 e chaves antigas ainda vivas ressuscitariam dados velhos. A persistência precisa continuar desligada (`--save "" --appendonly no`) pelo mesmo motivo: um RDB ou AOF antigo traria de volta versões atrasadas.
 - **Cliente único** em `api/src/cache.ts`, com prazo curto por comando e sem fila offline.
 - **Prazo de reserva** de 10 minutos em toda chave (1 hora para a configuração).
 
@@ -26,7 +27,7 @@ Estratégia de invalidação:
 
 | Opção | A favor | Contra |
 |---|---|---|
-| **Versão por grupo** | `INCR` atômico e barato; vale para todas as réplicas; nenhuma leitura posterior ao `bump` vê dado velho; leitura concorrente grava chave órfã que expira | Chaves antigas ocupam memória até expirar (o `allkeys-lru` cuida) |
+| **Versão por grupo** | `INCR` atômico e barato; vale para todas as réplicas; nenhuma leitura posterior ao `bump` vê dado velho; leitura concorrente grava chave órfã que expira | Chaves antigas ocupam memória até expirar (o `volatile-lru` despeja as de dados se faltar memória) |
 | Apagar chaves por padrão | Libera memória na hora | `SCAN`/`DEL` é caro e não é atômico: uma leitura concorrente regrava dado velho |
 | Invalidação pelo banco (`LISTEN/NOTIFY`, gatilhos) | Cobre escritas feitas fora da API | Mais peças e acoplamento ao banco; perde avisos com a conexão caída |
 
