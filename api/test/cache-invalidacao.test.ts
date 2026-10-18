@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { type Cache, createCache } from '../src/cache.js';
+import { award } from '../src/economy.js';
 import { api, login, makeApp, type Session, TEST_REDIS, testImage, uniq, upload } from './helpers.js';
 
 // Espião sobre um cache real: registra cada `bump` para conferir que cada escrita invalida exatamente os seus grupos
@@ -248,5 +249,40 @@ describe('escritas invalidam exatamente os seus grupos', () => {
     expect(bonus.bumped).toEqual(groups('ranking'));
     const again = await track(() => api(app, 'GET', '/api/me', { session: s }));
     expect(again.bumped).toEqual([]);
+  });
+
+  it('DELETE /auth/account invalida as leituras que mostram o nome de quem saiu', async () => {
+    // Quem sai abriu uma missão, respondeu a de outra pessoa num lugar e deu gorjeta (do saldo) numa terceira.
+    const leaving = await login(app, uniq('Saindo'));
+    await award(sql, leaving.user.id, 'ajuste', 200, 50, undefined, {}, 0);
+    const own = await question(leaving);
+    const { qid: tippedQ, aid: tippedA } = await scenario();
+    const other = await login(app, uniq('Outra'));
+    const answeredQ = await question(other);
+    const pid = await place(leaving);
+    const ans = await api(app, 'POST', `/api/questions/${answeredQ}/answers`, {
+      session: leaving,
+      body: { placeId: pid, evidenceIds: [await evidence(leaving)] },
+    });
+    expect(ans.status).toBe(201);
+    const tip = await api(app, 'POST', `/api/answers/${tippedA}/tip`, {
+      session: leaving,
+      body: { amount: 5, source: 'saldo' },
+    });
+    expect(tip.status).toBe(201);
+    const { res, bumped } = await track(() => api(app, 'DELETE', '/api/auth/account', { session: leaving }));
+    expect(res.status).toBe(200);
+    expect(bumped).toEqual(
+      groups(
+        'ranking',
+        'missoes',
+        'achados',
+        'lugares',
+        `missao:${own}`,
+        `missao:${answeredQ}`,
+        `missao:${tippedQ}`,
+        `lugar:${pid}`,
+      ),
+    );
   });
 });
