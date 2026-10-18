@@ -32,6 +32,9 @@ export default defineConfig({
         UPLOAD_DIR: uploadDir,
         NODE_ENV: 'test',
         PORT: '8788',
+        // Com Redis: o fluxo confere o estado final em leituras que agora passam pelo cache, então o e2e também
+        // verifica a invalidação. Base 1 do Redis local, separada da 0 (dev) e da 2 (testes da API).
+        REDIS_URL: process.env.REDIS_URL_E2E ?? 'redis://127.0.0.1:63799/1',
       },
       reuseExistingServer: false,
     },
