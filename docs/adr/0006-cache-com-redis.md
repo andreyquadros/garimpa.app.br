@@ -43,7 +43,11 @@ Trocar por Valkey é simples (mesmo protocolo e cliente), caso a licença passe 
 ## Consequências
 
 - **Fail-open:** com o Redis fora, lento ou com erro, a API lê do Postgres (`X-Cache: BYPASS`) e reconecta sozinha quando ele volta.
-- **Prazo de reserva:** se o `bump` falhar depois de uma escrita, ou se alguma escrita esquecer de declarar grupos, a leitura pode ficar velha por até 10 minutos. Mudança manual em `settings.economia` pede `pnpm cache:bump config`.
+- **Prazo de reserva:** se o `bump` falhar depois de uma escrita, ou se alguma escrita esquecer de declarar grupos, a leitura pode ficar velha por até 10 minutos.
+- **Subida da API:** ao iniciar, a API faz `bump` dos grupos globais (`config`, `missoes`, `achados`, `lugares`, `ranking`), depois da migração. Assim um deploy que muda `settings.economia`, `DEFAULT_ECONOMY` ou o formato de uma resposta não serve a versão antiga.
+- **Dado alterado fora da API:** correção por SQL, banimento ou seed num banco cuja API usa Redis não passam pelo `markDirty`; é preciso rodar `pnpm cache:bump <grupos>` (o comando sai com erro se o Redis não responder).
+- **Entradas por id depois de um deploy:** `missao:<id>` e `lugar:<id>` não entram no `bump` da subida (não há como listá-las) e podem devolver o formato anterior do JSON por até 10 minutos logo após um deploy que mude essas respostas. Aceito: não há impressão digital de build na chave, e o prazo é curto.
+- **Cardinalidade de chaves:** coordenadas (`bbox`, posição) são arredondadas a 3 casas (~110 m), `q` é limitado a 80 caracteres e categoria desconhecida ou `offset` acima de 200 em `/questions` não usam cache, para o cliente não gerar chaves sem limite. Efeito colateral: a distância devolvida em `/places` e `/questions` pode errar até ~78 m.
 - **Só dados públicos:** sessão, carteira, voto e "eu sigo" ficam fora do cache; o que é pessoal vem de consulta separada.
 - Mais um serviço na infraestrutura (compose, CI e ambiente local), mas sem dados a guardar nem a restaurar.
 
@@ -73,5 +77,5 @@ Leitura dos números:
 
 - Com o cache cheio, nenhuma rota abriu transação de forma relevante: de 2 a 11 no intervalo inteiro (atividade de fundo, não das rotas), contra 31 mil a 73 mil sem cache. A p97,5 e a p99 caíram em todas as rotas.
 - O ganho de latência é modesto em valores absolutos porque o seed é minúsculo e o Postgres está na mesma máquina: cada consulta já custa poucos milissegundos. Com milhares de registros, rede entre API e banco e consultas mais pesadas, a diferença tende a crescer; esta medição não prova isso.
-- `/api/ranking` quase não melhorou (p50 de 9 para 8 ms) mesmo com `X-Cache: HIT` e sem transações. A causa não foi investigada aqui; a hipótese é custo fora da consulta ao banco, mas não está confirmada.
+- `/api/ranking` quase não melhorou (p50 de 9 para 8 ms) mesmo com `X-Cache: HIT` e sem transações. A causa era `rankingWeek()` criar um `Intl.DateTimeFormat` a cada chamada (~124 µs), custo fora do banco; o formatador passou a ser criado uma vez (`perf: reaproveita o formatador de data do ranking`). Não foi medido de novo depois da correção.
 - Rodada única, com autocannon e a API disputando a mesma CPU: servem para comparar sem cache com cache, não como capacidade absoluta.

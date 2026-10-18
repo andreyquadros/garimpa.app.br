@@ -15,7 +15,7 @@ scripts/local-postgres.sh start                       # Postgres 18 local (biná
 scripts/local-redis.sh start                          # Redis 8 local (Docker, :63799): exigido pelos testes da API e pelo e2e
 pnpm db:migrate && pnpm db:seed                       # esquema + dados de demonstração
 pnpm dev                                              # web em :5173, API em :8787 (login dev: "marina")
-pnpm cache:bump <grupo...>                          # invalida grupos do cache à mão (precisa de REDIS_URL)
+pnpm cache:bump <grupo...>                            # invalida grupos do cache à mão (precisa de REDIS_URL)
 pnpm check                                            # Biome: formata e corrige (use antes de commitar)
 pnpm lint                                             # Biome: só o lint
 pnpm typecheck                                        # tipos de api e web
@@ -37,7 +37,8 @@ Mudou o fluxo principal (entrar → missão → evidência → confirmar → ace
 Leituras públicas passam pelo Redis (`api/src/cache.ts`, `cache-http.ts`); `REDIS_URL` é opcional e sem ela a API
 roda sem cache (`pnpm dev` só usa se você exportar `REDIS_URL=redis://127.0.0.1:63799/0`). Regra: toda rota de
 escrita nova chama `markDirty` com os grupos que afeta, e toda leitura pública nova usa `cached`. Inclua a escrita
-no teste `api/test/cache-invalidacao.test.ts`.
+no teste `api/test/cache-invalidacao.test.ts`. A API invalida os grupos globais ao subir; dado alterado FORA da
+API (correção por SQL, banimento, seed num banco cuja API usa Redis) exige `pnpm cache:bump <grupos>`.
 
 ## Git (ADR-0002)
 

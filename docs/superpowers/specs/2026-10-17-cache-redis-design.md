@@ -23,7 +23,7 @@
 ## Infraestrutura
 
 - Contêiner `redis:8-alpine` no `infra/docker-compose.yml`, sem volume persistente, só na rede interna (sem porta publicada), com senha.
-- Configuração de cache puro: `maxmemory` (ex.: 256 MB) e `maxmemory-policy allkeys-lru`.
+- Configuração de cache puro: `maxmemory` (ex.: 256 MB) e `maxmemory-policy volatile-lru` (ver ADR-0006: as versões dos grupos não têm prazo e não podem ser despejadas).
 - A API recebe `REDIS_URL` (opcional) em `api/src/config.ts`.
 - CI: serviço Redis no job `test` e no job `e2e`. Ambiente local: script para subir o Redis em contêiner, no mesmo estilo de `scripts/local-postgres.sh`.
 - Alternativa registrada na ADR: **Valkey** (fork BSD mantido pela Linux Foundation, mesmo protocolo). Escolhido o Redis 8 (AGPL; sem impacto para uso interno sem modificar o servidor).
@@ -91,7 +91,7 @@ Prazo de reserva padrão: **10 minutos** (limita o estrago se alguma escrita esq
 | Redis fora, lento (> ~50 ms) ou resposta inválida na leitura | Postgres responde; `X-Cache: BYPASS`; log limitado |
 | Falha no `bump` após uma escrita | Log de erro; leituras podem ver dado velho até o prazo de reserva (10 min) |
 | Redis volta | Cliente reconecta sozinho; sem reinício da API |
-| Redis cheio | `allkeys-lru` descarta as chaves menos usadas |
+| Redis cheio | `volatile-lru` descarta as chaves de dados menos usadas (as versões ficam) |
 
 ## Testes (TDD, Redis real)
 
