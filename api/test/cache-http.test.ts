@@ -1,3 +1,4 @@
+import { HTTPException } from 'hono/http-exception';
 import { afterAll, describe, expect, it } from 'vitest';
 import { createCache } from '../src/cache.js';
 import { bumpGroups } from '../src/cache-bump.js';
@@ -21,6 +22,11 @@ ctx.app.post('/api/teste-400', (c) => {
 ctx.app.post('/api/teste-throw', (c) => {
   markDirty(c, gFail);
   throw new Error('boom');
+});
+
+ctx.app.post('/api/teste-403', (c) => {
+  markDirty(c, gFail);
+  throw new HTTPException(403, { message: 'proibido' });
 });
 
 const xcache = async (url = '/api/config') => {
@@ -51,6 +57,7 @@ describe('cache no Hono', () => {
     await load();
     expect((await api(ctx.app, 'POST', '/api/teste-400')).status).toBe(400);
     expect((await api(ctx.app, 'POST', '/api/teste-throw')).status).toBe(500);
+    expect((await api(ctx.app, 'POST', '/api/teste-403')).status).toBe(403);
     expect((await load()).status).toBe('HIT');
   });
 
@@ -76,5 +83,25 @@ describe('cache no Hono', () => {
     expect(await xcache()).toBe('HIT');
     await bumpGroups(ctx.cache, ['config']);
     expect(await xcache()).toBe('MISS');
+  });
+
+  it('configs de ambiente diferentes no mesmo Redis não trocam as respostas', async () => {
+    const a = await makeApp({ cache: ctx.cache, env: { GOOGLE_CLIENT_ID: uniq('cid-a') } });
+    const b = await makeApp({ cache: ctx.cache, env: { GOOGLE_CLIENT_ID: uniq('cid-b') } });
+    try {
+      await ctx.cache.bump(['config']);
+      const ra = await a.app.request('/api/config');
+      expect(ra.headers.get('x-cache')).toBe('MISS');
+      const rb = await b.app.request('/api/config');
+      expect(rb.headers.get('x-cache')).toBe('MISS');
+      expect(((await rb.json()) as any).googleClientId).toBe(b.config.GOOGLE_CLIENT_ID);
+      const ra2 = await a.app.request('/api/config');
+      expect(ra2.headers.get('x-cache')).toBe('HIT');
+      expect(((await ra2.json()) as any).googleClientId).toBe(a.config.GOOGLE_CLIENT_ID);
+    } finally {
+      // Fecha só o Postgres: o cache é compartilhado com o app principal do arquivo.
+      await a.sql.end();
+      await b.sql.end();
+    }
   });
 });
