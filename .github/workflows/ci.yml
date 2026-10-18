@@ -15,6 +15,11 @@ jobs:
         ports: ["54329:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:8.8.3-alpine
+        ports: ["63799:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # o validador de mensagens lê o histórico do PR
@@ -29,7 +34,9 @@ jobs:
       - run: pnpm test:scripts
       - run: pnpm typecheck
       - run: pnpm --filter garimpa-api test
-        env: { DATABASE_URL_TEST: "postgres://postgres:postgres@127.0.0.1:54329/garimpa_test" }
+        env:
+          DATABASE_URL_TEST: "postgres://postgres:postgres@127.0.0.1:54329/garimpa_test"
+          REDIS_URL_TEST: "redis://127.0.0.1:63799/2"
       - run: pnpm --filter garimpa-web test
       - run: pnpm --filter garimpa-web build
       - run: pnpm --filter garimpa-web build:demo
@@ -44,6 +51,11 @@ jobs:
         ports: ["54329:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:8.8.3-alpine
+        ports: ["63799:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -52,7 +64,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter garimpa-web exec playwright install --with-deps chromium
       - run: pnpm --filter garimpa-web test:e2e
-        env: { DATABASE_URL_E2E: "postgres://postgres:postgres@127.0.0.1:54329/garimpa_e2e" }
+        env:
+          DATABASE_URL_E2E: "postgres://postgres:postgres@127.0.0.1:54329/garimpa_e2e"
+          REDIS_URL_E2E: "redis://127.0.0.1:63799/1"
       - name: Relatório do Playwright
         if: failure()
         uses: actions/upload-artifact@v4
