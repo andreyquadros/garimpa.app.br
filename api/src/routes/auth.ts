@@ -13,6 +13,7 @@ import {
   uniqueHandle,
   verifyGoogleIdToken,
 } from '../auth.js';
+import { markDirty } from '../cache-http.js';
 import type { Sql } from '../db.js';
 import { grantBadge } from '../economy.js';
 import { slugify } from '../text.js';
@@ -84,9 +85,16 @@ authRoutes.post('/logout', async (c) => {
 
 authRoutes.delete('/account', async (c) => {
   const u = requireUser(c);
-  await c.get(
-    'sql',
-  )`update users set banned_at = now(), name = 'Conta removida', email = null, google_sub = null, avatar_url = null where id = ${u.id}::uuid`;
+  const sql = c.get('sql');
+  await sql`update users set banned_at = now(), name = 'Conta removida', email = null, google_sub = null, avatar_url = null where id = ${u.id}::uuid`;
+  // Privacidade: nome e foto de quem saiu não podem continuar no cache. Ranking, listas, busca e mapa mostram autores;
+  // o detalhe das missões que a pessoa abriu, respondeu ou agradeceu e a página dos lugares onde respondeu também.
+  const refs = await sql<{ group: string }[]>`
+    select 'missao:' || id as group from questions where author_id = ${u.id}::uuid
+    union select 'missao:' || question_id from answers where author_id = ${u.id}::uuid
+    union select 'missao:' || a.question_id from tips t join answers a on a.id = t.answer_id where t.from_user = ${u.id}::uuid
+    union select 'lugar:' || place_id from answers where author_id = ${u.id}::uuid`;
+  markDirty(c, 'ranking', 'missoes', 'achados', 'lugares', ...refs.map((r) => r.group));
   clearSessionCookie(c);
   return c.json({ ok: true });
 });

@@ -441,4 +441,26 @@ describe('escritas invalidam as leituras na hora', () => {
     await ok(api(app, 'GET', '/api/me', { session: s }));
     expect((await get(RANK)).xcache).toBe('HIT');
   });
+
+  it('DELETE /auth/account invalida missão, lugar e ranking na hora e o nome some', async () => {
+    const leaving = await login(app, uniq('Saindo'));
+    const name = leaving.user.name;
+    await boost(leaving);
+    const own = await question(leaving);
+    const other = await login(app, uniq('Outra'));
+    const answeredQ = await question(other);
+    const pid = await place(other);
+    await answer(leaving, answeredQ, pid);
+    const urls = [`/api/questions/${own}`, `/api/questions/${answeredQ}`, `/api/places/${pid}`, RANK];
+    for (const url of urls) expect(JSON.stringify(await warm(url))).toContain(name);
+    await ok(api(app, 'DELETE', '/api/auth/account', { session: leaving }));
+    for (const url of urls) {
+      const r = await get(url);
+      expect(r.xcache, url).toBe('MISS');
+      expect(JSON.stringify(r.json), url).not.toContain(name);
+    }
+    expect((await get(`/api/questions/${own}`)).json.question.authorName).toBe('Conta removida');
+    expect((await get(`/api/questions/${answeredQ}`)).json.answers[0].authorName).toBe('Conta removida');
+    expect(pontos((await get(RANK)).json, leaving.user.id)).toBe(0);
+  });
 });
