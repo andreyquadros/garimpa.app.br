@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { type AppEnv, recordSignal, requireUser } from '../auth.js';
+import { markDirty } from '../cache-http.js';
 import type { Sql, Tx } from '../db.js';
 import { award, type Economy, grantBadge, loadEconomy, takeCap } from '../economy.js';
 import { bboxSql, parseBbox, pointSql } from '../geo.js';
@@ -96,6 +97,8 @@ placeRoutes.post('/places', async (c) => {
   const eco = await loadEconomy(sql, c.get('cache'));
   const input = newPlaceSchema.parse(await c.req.json());
   const r = await sql.begin((tx) => getOrCreatePlace(tx, c.get('config').CITY_DEFAULT, input, u.id, eco));
+  // Lugar reaproveitado não muda nada; lugar novo entra na lista e rende XP.
+  if (r.created) markDirty(c, 'lugares', 'ranking');
   await recordSignal(c, u.id);
   const place = (
     await sql`select id, name, address, lat, lng, kind, partner_tier from places where id = ${r.id}::uuid`

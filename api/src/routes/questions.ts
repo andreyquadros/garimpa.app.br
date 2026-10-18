@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { type AppEnv, collusionBetween, recordSignal, requireUser } from '../auth.js';
+import { findGroups, markDirty } from '../cache-http.js';
 import type { Sql } from '../db.js';
 import { award, grantBadge, loadEconomy, takeCap, takeMintCap } from '../economy.js';
 import { pointSql } from '../geo.js';
@@ -211,6 +212,7 @@ questionRoutes.post('/questions', async (c) => {
     await award(tx, u.id, 'pergunta', eco.xp.pergunta, 0, { type: 'pergunta', id: row.id }, {}, 0);
     return row.id;
   });
+  markDirty(c, 'missoes', `missao:${q}`, 'ranking');
   await recordSignal(c, u.id);
   return c.json({ id: q }, 201);
 });
@@ -258,6 +260,7 @@ questionRoutes.post('/questions/:id/follow', async (c) => {
   const eco = await loadEconomy(sql, c.get('cache'));
   const id = c.req.param('id');
   const body = followSchema.parse(await c.req.json().catch(() => ({})));
+  let paidXp = false;
   const result = await sql.begin(async (tx) => {
     const q = (
       await tx<
@@ -291,9 +294,13 @@ questionRoutes.post('/questions/:id/follow', async (c) => {
       await tx`select 1 from ledger where user_id = ${u.id}::uuid and kind = 'tambem_quero' and ref_type = 'pergunta' and ref_id = ${id}::uuid and state <> 'estornado'`;
     if (!paid.length && (await takeCap(tx, u.id, 'tambem_quero', eco.limites_dia.tambem_quero))) {
       await award(tx, u.id, 'tambem_quero', eco.xp.tambem_quero, 0, { type: 'pergunta', id }, {}, 0);
+      paidXp = true;
     }
     return { following: true, bounty };
   });
+  // Seguir muda contagem e bônus da missão; quem já seguia (`already`) não mudou nada.
+  if (!('already' in result)) markDirty(c, 'missoes', `missao:${id}`);
+  if (paidXp) markDirty(c, 'ranking');
   return c.json(result);
 });
 
@@ -304,6 +311,7 @@ questionRoutes.post('/questions/:id/close', async (c) => {
   const r =
     await sql`update questions set status = 'fechada' where id = ${id}::uuid and author_id = ${u.id}::uuid and status in ('aberta','respondida') returning id`;
   if (!r.length) throw new HTTPException(400, { message: 'Só quem perguntou fecha, e só se ainda estiver aberta.' });
+  markDirty(c, 'missoes', `missao:${id}`);
   return c.json({ ok: true });
 });
 
@@ -325,8 +333,17 @@ questionRoutes.post('/questions/:id/accept', async (c) => {
     if (q.status === 'resolvida' || q.status === 'fechada')
       throw new HTTPException(400, { message: 'Essa pergunta já foi resolvida.' });
     const a = (
-      await tx<{ id: string; authorId: string; status: string; isFirstForPlace: boolean; evidenceScore: number }[]>`
-      select id, author_id, status, is_first_for_place, evidence_score from answers where id = ${body.answerId}::uuid and question_id = ${id}::uuid for update`
+      await tx<
+        {
+          id: string;
+          authorId: string;
+          placeId: string;
+          status: string;
+          isFirstForPlace: boolean;
+          evidenceScore: number;
+        }[]
+      >`
+      select id, author_id, place_id, status, is_first_for_place, evidence_score from answers where id = ${body.answerId}::uuid and question_id = ${id}::uuid for update`
     )[0];
     if (!a) throw new HTTPException(404, { message: 'Resposta não encontrada nessa pergunta.' });
     if (a.status === 'oculta' || a.status === 'rejeitada')
@@ -363,6 +380,7 @@ questionRoutes.post('/questions/:id/accept', async (c) => {
     }
     await tx`update questions set status = 'resolvida', accepted_answer_id = ${a.id}::uuid, solved_at = now() where id = ${id}::uuid`;
     await tx`update answers set status = 'aceita' where id = ${a.id}::uuid`;
+    markDirty(c, ...findGroups(id, a.placeId));
     await award(
       tx,
       a.authorId,

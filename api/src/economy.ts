@@ -184,8 +184,15 @@ export async function grantBadge(db: Sql | Tx, userId: string, slug: string): Pr
   return true;
 }
 
-/** Streak: XP pequeno por dia consecutivo (teto), sem pepitas — presença não vira dinheiro. */
-export async function touchStreak(db: Sql, userId: string, eco: Economy): Promise<number> {
+/**
+ * Streak: XP pequeno por dia consecutivo (teto), sem pepitas — presença não vira dinheiro.
+ * `awarded` diz se o bônus foi lançado: só aí o ranking muda e o cache dele precisa ser invalidado.
+ */
+export async function touchStreak(
+  db: Sql,
+  userId: string,
+  eco: Economy,
+): Promise<{ streak: number; awarded: boolean }> {
   // last_active_on::text evita comparar Date com string (o que premiaria a sequência a cada chamada).
   const before = await db<
     { lastActiveOn: string | null }[]
@@ -193,10 +200,11 @@ export async function touchStreak(db: Sql, userId: string, eco: Economy): Promis
   const rows = await db<{ fnTouchStreak: number }[]>`select fn_touch_streak(${userId}::uuid)`;
   const streak = rows[0]!.fnTouchStreak;
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Porto_Velho' });
-  if (before[0]?.lastActiveOn !== today && streak > 1) {
+  const awarded = before[0]?.lastActiveOn !== today && streak > 1;
+  if (awarded) {
     const xp = Math.min(eco.xp.streak_maximo, eco.xp.streak_por_dia * (streak - 1));
     await award(db, userId, 'bonus_streak', xp, 0, undefined, { streak }, 0);
     if (streak >= 7) await grantBadge(db, userId, 'maratonista');
   }
-  return streak;
+  return { streak, awarded };
 }

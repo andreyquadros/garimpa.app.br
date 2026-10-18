@@ -3,7 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { type AppEnv, recordSignal, requireRole, requireUser } from '../auth.js';
-import { cached } from '../cache-http.js';
+import { cached, findGroups, markDirty } from '../cache-http.js';
 import { LEVELS, levelFor, loadEconomy, takeCap, touchStreak } from '../economy.js';
 import { DUPLICATE_HAMMING, type Processed, processImage, SIMILAR_HAMMING, storeImage } from '../evidence.js';
 import { reopenQuestionIfAccepted, restoreAnswerAwards, reverseAnswerAwards } from './answers.js';
@@ -56,7 +56,9 @@ miscRoutes.get('/me', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
   const eco = await loadEconomy(sql, c.get('cache'));
-  const streak = await touchStreak(sql, u.id, eco);
+  const { streak, awarded } = await touchStreak(sql, u.id, eco);
+  // Leitura com efeito colateral: o bônus de sequência lança XP e muda o ranking.
+  if (awarded) markDirty(c, 'ranking');
   await sql`select fn_vest_due()`;
   const fresh = (await sql`select xp, credits, credits_pending, trust from users where id = ${u.id}::uuid`)[0]!;
   const badges =
@@ -243,9 +245,11 @@ miscRoutes.post('/flags', async (c) => {
     )[0]!.n;
     if (n >= 3) {
       await sql.begin(async (tx) => {
-        const hid =
-          await tx`update answers set status = 'oculta' where id = ${body.targetId}::uuid and status not in ('oculta', 'rejeitada') returning id`;
-        if (hid.length) {
+        const hid = await tx<{ questionId: string; placeId: string }[]>`
+          update answers set status = 'oculta' where id = ${body.targetId}::uuid and status not in ('oculta', 'rejeitada')
+          returning question_id, place_id`;
+        if (hid[0]) {
+          markDirty(c, ...findGroups(hid[0].questionId, hid[0].placeId));
           await reopenQuestionIfAccepted(tx, body.targetId);
           await reverseAnswerAwards(tx, body.targetId, 'denuncias_da_comunidade');
         }
@@ -280,7 +284,10 @@ miscRoutes.post('/admin/flags/:id', async (c) => {
       const aid = f.targetId;
       if (body.status === 'procede') {
         // Rejeição é definitiva: a resposta deixa de ocupar o "primeiro achado" do lugar e a pergunta reabre se ela era a aceita.
-        await tx`update answers set status = 'rejeitada', is_first_for_place = false where id = ${aid}::uuid`;
+        const rej = await tx<{ questionId: string; placeId: string }[]>`
+          update answers set status = 'rejeitada', is_first_for_place = false where id = ${aid}::uuid
+          returning question_id, place_id`;
+        if (rej[0]) markDirty(c, ...findGroups(rej[0].questionId, rej[0].placeId));
         await reopenQuestionIfAccepted(tx, aid);
         await reverseAnswerAwards(tx, aid, 'denuncia_procedente');
         const author = (await tx<{ authorId: string }[]>`select author_id from answers where id = ${aid}::uuid`)[0];
@@ -301,12 +308,13 @@ miscRoutes.post('/admin/flags/:id', async (c) => {
           )[0]!;
           if (!still.procede && still.abertas < 3 && !still.negada) {
             await restoreAnswerAwards(tx, aid, 'denuncia_improcedente');
-            await tx`update answers set status = case
+            const back = await tx<{ questionId: string; placeId: string }[]>`update answers set status = case
                 when exists (select 1 from questions q where q.accepted_answer_id = answers.id) then 'aceita'
                 when exists (select 1 from ledger l where l.ref_type = 'resposta' and l.ref_id = answers.id and l.state <> 'estornado'
                                and (l.kind = 'resposta_confirmada' or (l.kind = 'devolucao' and l.meta->>'original' = 'resposta_confirmada'))) then 'confirmada'
                 else 'pendente' end
-              where id = ${aid}::uuid and status = 'oculta'`;
+              where id = ${aid}::uuid and status = 'oculta' returning question_id, place_id`;
+            if (back[0]) markDirty(c, ...findGroups(back[0].questionId, back[0].placeId));
             await tx`update questions set status = 'resolvida', solved_at = now() where accepted_answer_id = ${aid}::uuid and status = 'respondida'`;
           }
         }
