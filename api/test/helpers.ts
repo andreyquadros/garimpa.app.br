@@ -3,12 +3,16 @@ import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import { type App, createApp } from '../src/app.js';
+import { type Cache, createCache } from '../src/cache.js';
 import { loadConfig } from '../src/config.js';
 import { createDb } from '../src/db.js';
 
 export const TEST_DB = process.env.DATABASE_URL_TEST ?? 'postgres://postgres@127.0.0.1:54329/garimpa_test';
 
-export async function makeApp() {
+export const TEST_REDIS = process.env.REDIS_URL_TEST ?? 'redis://127.0.0.1:63799/2';
+
+/** Cache real (Redis de teste) por padrão; um teste pode passar outro, ex.: um Redis fora do ar. */
+export async function makeApp(opts: { cache?: Cache } = {}) {
   const uploadDir = await fs.mkdtemp(path.join(os.tmpdir(), 'garimpa-uploads-'));
   const config = loadConfig({
     NODE_ENV: 'test',
@@ -19,8 +23,18 @@ export async function makeApp() {
     PUBLIC_URL: 'http://localhost',
   });
   const sql = createDb(TEST_DB);
-  const app = createApp({ sql, config });
-  return { app, sql, config, close: () => sql.end() };
+  const cache = opts.cache ?? createCache(TEST_REDIS);
+  const app = createApp({ sql, config, cache });
+  return {
+    app,
+    sql,
+    config,
+    cache,
+    close: async () => {
+      await cache.close();
+      await sql.end();
+    },
+  };
 }
 
 export type Session = { cookie: string; device: string; user: { id: string; name: string; handle: string } };

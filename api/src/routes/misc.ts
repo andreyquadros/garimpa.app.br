@@ -3,6 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { type AppEnv, recordSignal, requireRole, requireUser } from '../auth.js';
+import { cached } from '../cache-http.js';
 import { LEVELS, levelFor, loadEconomy, takeCap, touchStreak } from '../economy.js';
 import { DUPLICATE_HAMMING, type Processed, processImage, SIMILAR_HAMMING, storeImage } from '../evidence.js';
 import { reopenQuestionIfAccepted, restoreAnswerAwards, reverseAnswerAwards } from './answers.js';
@@ -12,36 +13,40 @@ export const miscRoutes = new Hono<AppEnv>();
 miscRoutes.get('/config', async (c) => {
   const cfg = c.get('config');
   const sql = c.get('sql');
-  const city =
-    (await sql`select id, name, state, lat, lng, radius_m from cities where id = ${cfg.CITY_DEFAULT}`)[0] ?? null;
-  const eco = await loadEconomy(sql);
-  return c.json({
-    city,
-    googleClientId: cfg.GOOGLE_CLIENT_ID ?? null,
-    devLogin: cfg.allowDevLogin,
-    levels: LEVELS,
-    economy: {
-      xp: eco.xp,
-      pepitas: eco.pepitas,
-      limites_dia: eco.limites_dia,
-      carencia_dias: eco.carencia_dias,
-      conversao: eco.conversao,
-      evidencia_forte: eco.evidencia_forte,
-    },
-    tiles: {
-      // Padrão: OpenStreetMap (o Pepita Social não depende da infraestrutura de outros apps). Servidor próprio via TILES_URL.
-      url: process.env.TILES_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      fallbackUrl: process.env.TILES_FALLBACK_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      minZoom: 12,
-      maxZoom: 18,
-    },
+  // O ambiente é fixo por processo; o que muda é a cidade e a economia, e ambas invalidam o grupo `config`.
+  const body = await cached(c, 'config', ['config'], {}, 3600, async () => {
+    const city =
+      (await sql`select id, name, state, lat, lng, radius_m from cities where id = ${cfg.CITY_DEFAULT}`)[0] ?? null;
+    const eco = await loadEconomy(sql, c.get('cache'));
+    return {
+      city,
+      googleClientId: cfg.GOOGLE_CLIENT_ID ?? null,
+      devLogin: cfg.allowDevLogin,
+      levels: LEVELS,
+      economy: {
+        xp: eco.xp,
+        pepitas: eco.pepitas,
+        limites_dia: eco.limites_dia,
+        carencia_dias: eco.carencia_dias,
+        conversao: eco.conversao,
+        evidencia_forte: eco.evidencia_forte,
+      },
+      tiles: {
+        // Padrão: OpenStreetMap (o Pepita Social não depende da infraestrutura de outros apps). Servidor próprio via TILES_URL.
+        url: process.env.TILES_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        fallbackUrl: process.env.TILES_FALLBACK_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        minZoom: 12,
+        maxZoom: 18,
+      },
+    };
   });
+  return c.json(body);
 });
 
 miscRoutes.get('/me', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
-  const eco = await loadEconomy(sql);
+  const eco = await loadEconomy(sql, c.get('cache'));
   const streak = await touchStreak(sql, u.id, eco);
   await sql`select fn_vest_due()`;
   const fresh = (await sql`select xp, credits, credits_pending, trust from users where id = ${u.id}::uuid`)[0]!;
@@ -126,7 +131,7 @@ miscRoutes.post('/uploads', uploadBodyLimit, async (c) => {
   const u = requireUser(c);
   const cfg = c.get('config');
   const sql = c.get('sql');
-  const eco = await loadEconomy(sql);
+  const eco = await loadEconomy(sql, c.get('cache'));
   // Quem já estourou a cota não gasta CPU do servidor; a cota em si só é cobrada depois que a imagem foi aceita.
   const used =
     (
