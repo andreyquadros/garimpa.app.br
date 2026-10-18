@@ -16,6 +16,7 @@ const schema = z.object({
   DATABASE_URL: z.string().default('postgres://postgres@127.0.0.1:54329/garimpa'),
   SESSION_SECRET: z.string().min(16).default('garimpa-dev-secret-troque-em-producao'),
   GOOGLE_CLIENT_ID: z.string().optional(),
+  REDIS_URL: z.string().optional(), // sem ela a API roda sem cache (ADR-0006)
   ALLOW_DEV_LOGIN: bool,
   UPLOAD_DIR: z.string().default(path.join(REPO_ROOT, 'uploads')),
   PUBLIC_URL: z.string().default('http://localhost:5173'),
