@@ -15,9 +15,9 @@ case "${1:-start}" in
     if docker container inspect "$CONTAINER" >/dev/null 2>&1; then
       docker start "$CONTAINER" >/dev/null
     else
-      # Sem volume: é cache, perder os dados só esfria
+      # Sem volume: é cache, perder os dados só esfria. Mesmos limites da produção (ver infra/docker-compose.yml).
       docker run -d --name "$CONTAINER" -p "127.0.0.1:$PORT:6379" "$IMAGE" \
-        redis-server --save "" --appendonly no >/dev/null
+        redis-server --maxmemory 256mb --maxmemory-policy volatile-lru --save "" --appendonly no >/dev/null
     fi
     ok=0
     for i in $(seq 1 50); do
