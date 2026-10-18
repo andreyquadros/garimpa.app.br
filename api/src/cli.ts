@@ -1,5 +1,4 @@
-import { createCache } from './cache.js';
-import { bumpGroups } from './cache-bump.js';
+import { bumpViaUrl } from './cache-bump.js';
 import { loadConfig } from './config.js';
 import { createDb, ensureCity, migrate } from './db.js';
 import { seedDemo } from './seed.js';
@@ -19,13 +18,13 @@ try {
     console.log(r);
   } else if (cmd === 'cache:bump') {
     if (!config.REDIS_URL) throw new Error('REDIS_URL não definida: não há cache para invalidar.');
-    const cache = createCache(config.REDIS_URL);
-    try {
-      await bumpGroups(cache, process.argv.slice(3));
-    } finally {
-      await cache.close();
+    const groups = process.argv.slice(3);
+    const r = await bumpViaUrl(config.REDIS_URL, groups);
+    if (r.ok) console.log(`grupos invalidados: ${groups.join(', ')}`);
+    else {
+      console.error(`Não foi possível invalidar o cache: ${r.error}`);
+      process.exitCode = 1;
     }
-    console.log(`grupos invalidados: ${process.argv.slice(3).join(', ')}`);
   } else {
     console.log('uso: tsx src/cli.ts migrate | seed | cache:bump <grupo...>');
     process.exitCode = 2;
