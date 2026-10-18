@@ -78,6 +78,43 @@ describe('leituras públicas no cache', () => {
     });
   }
 
+  it('bbox que difere só a partir da 4ª casa decimal compartilha a entrada', async () => {
+    await cache.bump(['achados']);
+    // Longe das fronteiras de arredondamento: os dois caem nos mesmos 3 decimais.
+    const a = await get('/api/map/finds?bbox=-63.0912,-9.9572,-63.0412,-9.8572');
+    const b = await get('/api/map/finds?bbox=-63.0914,-9.9574,-63.0414,-9.8574');
+    expect([a.xcache, b.xcache]).toEqual(['MISS', 'HIT']);
+  });
+
+  it('posição que difere só a partir da 4ª casa decimal compartilha a entrada', async () => {
+    await cache.bump(['missoes', 'achados']);
+    const a = await get(`/api/questions?lat=${C.lat + 0.00011}&lng=${C.lng}`);
+    const b = await get(`/api/questions?lat=${C.lat + 0.00012}&lng=${C.lng + 0.00004}`);
+    expect([a.xcache, b.xcache]).toEqual(['MISS', 'HIT']);
+  });
+
+  it('q com 500 caracteres usa a mesma entrada dos 80 primeiros', async () => {
+    const curto = `cadeado ${tag} `.padEnd(80, 'x').slice(0, 80);
+    const longo = curto + 'y'.repeat(420);
+    for (const [path, groups] of [
+      ['/api/search?q=', ['missoes', 'achados']],
+      ['/api/places?q=', ['lugares', 'achados']],
+      [`/api/map/finds?bbox=${BBOX}&q=`, ['achados']],
+    ] as const) {
+      await cache.bump([...groups]);
+      expect((await get(path + encodeURIComponent(curto))).xcache).toBe('MISS');
+      expect((await get(path + encodeURIComponent(longo))).xcache).toBe('HIT');
+    }
+  });
+
+  it('/questions com categoria desconhecida ou offset acima de 200 não usa cache', async () => {
+    for (const url of ['/api/questions?category=nao-existe', '/api/questions?offset=220']) {
+      expect((await get(url)).xcache).toBe('BYPASS');
+      expect((await get(url)).xcache).toBe('BYPASS');
+    }
+    expect((await get('/api/questions?category=ferramentas&offset=200')).xcache).not.toBe('BYPASS');
+  });
+
   it('/questions com mine=1 ou sort=perto não usa cache', async () => {
     for (const url of ['/api/questions?mine=1', `/api/questions?sort=perto&lat=${C.lat}&lng=${C.lng}`]) {
       expect((await get(url, asker)).xcache).toBe('BYPASS');
