@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
 import { createCache } from './cache.js';
+import { bumpOnStartup } from './cache-bump.js';
 import { loadConfig } from './config.js';
 import { createDb, ensureCity, migrate } from './db.js';
 import { runTick } from './jobs.js';
@@ -18,6 +19,8 @@ if (!config.GOOGLE_CLIENT_ID)
 if (config.SESSION_SECRET.startsWith('garimpa-dev-secret')) console.warn('SESSION_SECRET padrão: troque em produção');
 
 const cache = createCache(config.REDIS_URL);
+// Depois da migração: o banco já está no formato novo e o cache não pode devolver o que veio antes do deploy.
+await bumpOnStartup(cache);
 const app = createApp({ sql, config, cache });
 const server = serve({ fetch: app.fetch, port: config.PORT, hostname: '0.0.0.0' }, (info) => {
   console.log(`garimpa-api em http://localhost:${info.port} (${config.NODE_ENV})`);
