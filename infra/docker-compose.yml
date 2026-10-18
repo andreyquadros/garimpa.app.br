@@ -20,6 +20,8 @@ services:
       retries: 10
 
   # Cache das leituras públicas (ADR-0006): sem volume, porque perder os dados só esfria o cache.
+  # volatile-lru despeja só chaves com prazo (dados); as versões dos grupos não têm EX e nunca saem.
+  # Persistência desligada de propósito: um RDB/AOF antigo ressuscitaria versões velhas.
   # Sem `ports`: só a rede interna do compose enxerga o Redis.
   garimpa-cache:
     image: redis:8.8.3-alpine
@@ -29,7 +31,7 @@ services:
     command:
       - sh
       - -c
-      - exec redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 256mb --maxmemory-policy allkeys-lru --save "" --appendonly no
+      - exec redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 256mb --maxmemory-policy volatile-lru --save "" --appendonly no
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
       interval: 10s

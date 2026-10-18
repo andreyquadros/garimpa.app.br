@@ -120,6 +120,8 @@ export function createCache(
     let key: string;
     try {
       await ensureReady();
+      // Invariante: as chaves de versão nunca têm EX e o Redis roda com volatile-lru e sem persistência, então
+      // só chaves de dados são despejadas. Se uma versão sumisse, voltaria a 0 e dados velhos reviveriam.
       // Versão de cada grupo (ausente = 0): o bump a incrementa, o que invalida as chaves antigas sem apagá-las.
       const versions = groups.length ? await redis.mget(sorted.map(groupKey)) : [];
       const versionPart = sorted.map((g, i) => `${g}=${versions[i] ?? 0}`).join(',');
