@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { ZodError } from 'zod';
 import { type AppEnv, withUser } from './auth.js';
+import { type Cache, createCache } from './cache.js';
+import { cacheInvalidation } from './cache-http.js';
 import type { Config } from './config.js';
 import type { Sql } from './db.js';
 import { answerRoutes } from './routes/answers.js';
@@ -11,11 +13,13 @@ import { placeRoutes } from './routes/places.js';
 import { questionRoutes } from './routes/questions.js';
 import { serveUpload, serveWeb } from './static.js';
 
-export function createApp(deps: { sql: Sql; config: Config }) {
+export function createApp(deps: { sql: Sql; config: Config; cache?: Cache }) {
+  const cache = deps.cache ?? createCache(deps.config.REDIS_URL);
   const app = new Hono<AppEnv>();
   app.use('*', async (c, next) => {
     c.set('sql', deps.sql);
     c.set('config', deps.config);
+    c.set('cache', cache);
     await next();
   });
   // Escritas só chegam do app: o cabeçalho x-garimpa-device (que um formulário de outro site não consegue enviar e que,
@@ -31,6 +35,7 @@ export function createApp(deps: { sql: Sql; config: Config }) {
     await next();
   });
   app.use('/api/*', withUser);
+  app.use('/api/*', cacheInvalidation);
 
   app.onError((err, c) => {
     if (err instanceof HTTPException) return c.json({ error: 'http', message: err.message }, err.status);

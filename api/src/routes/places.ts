@@ -93,7 +93,7 @@ placeRoutes.get('/places/:id', async (c) => {
 placeRoutes.post('/places', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
-  const eco = await loadEconomy(sql);
+  const eco = await loadEconomy(sql, c.get('cache'));
   const input = newPlaceSchema.parse(await c.req.json());
   const r = await sql.begin((tx) => getOrCreatePlace(tx, c.get('config').CITY_DEFAULT, input, u.id, eco));
   await recordSignal(c, u.id);

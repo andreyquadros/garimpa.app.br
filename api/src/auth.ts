@@ -4,6 +4,7 @@ import type { Context, MiddlewareHandler } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { HTTPException } from 'hono/http-exception';
 import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
+import type { Cache } from './cache.js';
 import type { Config } from './config.js';
 import type { Sql, Tx } from './db.js';
 import { slugify } from './text.js';
@@ -28,7 +29,7 @@ export type User = {
 };
 
 export type AppEnv = {
-  Variables: { user: User | null; sql: Sql; config: Config };
+  Variables: { user: User | null; sql: Sql; config: Config; cache: Cache; cacheDirty?: Set<string> };
 };
 
 const secretKey = (c: Config) => new TextEncoder().encode(c.SESSION_SECRET);

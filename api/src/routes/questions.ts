@@ -174,7 +174,7 @@ questionRoutes.post('/questions', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
   const cfg = c.get('config');
-  const eco = await loadEconomy(sql);
+  const eco = await loadEconomy(sql, c.get('cache'));
   const body = createSchema.parse(await c.req.json());
   if (!body.force) {
     const similar = await similarQuestions(sql, cfg.CITY_DEFAULT, body.title, 5);
@@ -255,7 +255,7 @@ const followSchema = z.object({ on: z.boolean().optional() });
 questionRoutes.post('/questions/:id/follow', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
-  const eco = await loadEconomy(sql);
+  const eco = await loadEconomy(sql, c.get('cache'));
   const id = c.req.param('id');
   const body = followSchema.parse(await c.req.json().catch(() => ({})));
   const result = await sql.begin(async (tx) => {
@@ -311,7 +311,7 @@ questionRoutes.post('/questions/:id/close', async (c) => {
 questionRoutes.post('/questions/:id/accept', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
-  const eco = await loadEconomy(sql);
+  const eco = await loadEconomy(sql, c.get('cache'));
   const id = c.req.param('id');
   const body = z.object({ answerId: z.string().uuid() }).parse(await c.req.json());
   const out = await sql.begin(async (tx) => {

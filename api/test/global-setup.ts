@@ -1,3 +1,4 @@
+import { Redis } from 'ioredis';
 import { createDb, ensureCity, migrate } from '../src/db.js';
 
 export default async function setup() {
@@ -7,4 +8,11 @@ export default async function setup() {
   await migrate(sql);
   await ensureCity(sql);
   await sql.end();
+  // Banco novo, cache novo: sobras de execuções anteriores não podem responder HIT para dados que já não existem.
+  const redis = new Redis(process.env.REDIS_URL_TEST ?? 'redis://127.0.0.1:63799/2');
+  try {
+    await redis.flushdb();
+  } finally {
+    redis.disconnect();
+  }
 }

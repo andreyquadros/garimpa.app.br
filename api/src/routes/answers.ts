@@ -82,7 +82,7 @@ answerRoutes.post('/questions/:id/answers', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
   const cfg = c.get('config');
-  const eco = await loadEconomy(sql);
+  const eco = await loadEconomy(sql, c.get('cache'));
   const qid = c.req.param('id');
   const body = createSchema.parse(await c.req.json());
 
@@ -235,7 +235,7 @@ answerRoutes.post('/questions/:id/answers', async (c) => {
 answerRoutes.post('/answers/:id/confirm', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
-  const eco = await loadEconomy(sql);
+  const eco = await loadEconomy(sql, c.get('cache'));
   const id = c.req.param('id');
   const body = z
     .object({
@@ -371,7 +371,7 @@ answerRoutes.post('/answers/:id/confirm', async (c) => {
 answerRoutes.post('/answers/:id/tip', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
-  const eco = await loadEconomy(sql);
+  const eco = await loadEconomy(sql, c.get('cache'));
   const id = c.req.param('id');
   const body = z
     .object({ amount: z.number().int().min(1).max(500), source: z.enum(['orcamento', 'saldo']).default('orcamento') })

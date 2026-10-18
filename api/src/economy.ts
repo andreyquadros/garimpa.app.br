@@ -1,4 +1,5 @@
 import type { JSONValue } from 'postgres';
+import type { Cache } from './cache.js';
 import type { Sql, Tx } from './db.js';
 
 /** Patentes por XP acumulado (XP nunca vira dinheiro; só pepitas). Cinco níveis, como no guia visual. */
@@ -97,7 +98,13 @@ export const DEFAULT_ECONOMY = {
 };
 export type Economy = typeof DEFAULT_ECONOMY;
 
-export async function loadEconomy(sql: Sql): Promise<Economy> {
+export async function loadEconomy(sql: Sql, cache?: Cache): Promise<Economy> {
+  // Sem cache (seed, scripts) lê direto; com cache, a economia vive no grupo `config` por até 1 hora.
+  if (!cache) return readEconomy(sql);
+  return (await cache.wrap('economia', ['config'], {}, 3600, () => readEconomy(sql))).value;
+}
+
+async function readEconomy(sql: Sql): Promise<Economy> {
   // value::text evita que o transform camelCase do cliente reescreva as chaves do JSON.
   const rows = await sql<{ v: string }[]>`select value::text as v from settings where key = 'economia'`;
   const v = rows[0]?.v ? (JSON.parse(rows[0].v) as Partial<Economy>) : null;
