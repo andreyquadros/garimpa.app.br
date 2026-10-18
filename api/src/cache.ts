@@ -73,29 +73,37 @@ export function createCache(
     // Sem fila offline e com timeout curto: Redis lento ou fora do ar nunca pode atrasar a API.
     enableOfflineQueue: false,
     commandTimeout: opts.commandTimeoutMs ?? 50,
+    connectTimeout: 1000,
     maxRetriesPerRequest: 0,
     retryStrategy: (times) => Math.min(times * 200, 5000),
   });
   // Sem listener, o 'error' do ioredis vira exceção não tratada e derruba o processo.
   redis.on('error', noteError);
 
-  // Sem fila offline, comando enviado antes do handshake falha. Só na primeira conexão vale esperar
-  // (até o timeout de comando); em 'reconnecting' o Redis está caído e falhar na hora evita atrasar a API.
+  // Sem fila offline, comando enviado antes do handshake falha. Esperamos só antes do PRIMEIRO 'ready',
+  // uma única vez e compartilhada por todos os pedidos (um timer e um listener, não um por chamada), e
+  // encerramos a espera cedo em 'error'/'close'. Depois disso, status diferente de 'ready' falha na hora:
+  // numa queda com host que não recusa a conexão, esperar a cada tentativa somaria latência a toda requisição.
   const commandTimeoutMs = opts.commandTimeoutMs ?? 50;
+  let initialSettled = false;
+  let settleInitial: (ok: boolean) => void = () => {};
+  const initial = new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => settleInitial(false), commandTimeoutMs);
+    settleInitial = (ok) => {
+      if (initialSettled) return;
+      initialSettled = true;
+      clearTimeout(timer);
+      resolve(ok);
+    };
+  });
+  redis.on('ready', () => settleInitial(true));
+  redis.on('error', () => settleInitial(false));
+  redis.on('close', () => settleInitial(false));
   async function ensureReady() {
-    if (redis.status === 'ready') return;
-    if (redis.status !== 'connecting' && redis.status !== 'connect') throw new Error(`Redis ${redis.status}`);
-    await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        redis.off('ready', onReady);
-        reject(new Error('Redis ainda conectando'));
-      }, commandTimeoutMs);
-      const onReady = () => {
-        clearTimeout(timer);
-        resolve();
-      };
-      redis.once('ready', onReady);
-    });
+    const isReady = () => redis.status === 'ready';
+    if (isReady()) return;
+    if (!initialSettled && (await initial) && isReady()) return;
+    throw new Error(`Redis ${redis.status}`);
   }
 
   const inflight = new Map<string, Promise<{ value: unknown; status: CacheStatus }>>();
@@ -107,12 +115,14 @@ export function createCache(
     ttlSeconds: number,
     loader: () => Promise<T>,
   ): Promise<{ value: T; status: CacheStatus }> {
+    // Ordenados para que ['a','b'] e ['b','a'] compartilhem a entrada.
+    const sorted = [...groups].sort();
     let key: string;
     try {
       await ensureReady();
       // Versão de cada grupo (ausente = 0): o bump a incrementa, o que invalida as chaves antigas sem apagá-las.
-      const versions = groups.length ? await redis.mget(groups.map(groupKey)) : [];
-      const versionPart = groups.map((g, i) => `${g}=${versions[i] ?? 0}`).join(',');
+      const versions = groups.length ? await redis.mget(sorted.map(groupKey)) : [];
+      const versionPart = sorted.map((g, i) => `${g}=${versions[i] ?? 0}`).join(',');
       key = `${PREFIX}${name}:${versionPart}:${hashParams(params)}`;
     } catch (err) {
       noteError(err);
@@ -130,9 +140,19 @@ export function createCache(
         noteError(err);
         return { value: await loader(), status: 'BYPASS' };
       }
-      const value = await loader();
-      const json = JSON.stringify(value);
-      if (json === undefined) return { value, status: 'MISS' };
+      const loaded = await loader();
+      let json: string | undefined;
+      try {
+        json = JSON.stringify(loaded);
+      } catch (err) {
+        // BigInt, referência circular etc.: sem como guardar, mas o valor do loader continua válido.
+        noteError(err);
+        return { value: loaded, status: 'BYPASS' };
+      }
+      if (json === undefined) return { value: loaded, status: 'BYPASS' };
+      // O MISS devolve a cópia que passou por JSON, com o mesmo formato do HIT (Date vira string etc.),
+      // para a resposta não mudar conforme o cache esteja quente ou frio.
+      const value = JSON.parse(json) as T;
       try {
         await redis.set(key, json, 'EX', ttlSeconds);
         return { value, status: 'MISS' };
@@ -160,12 +180,16 @@ export function createCache(
         await ensureReady();
         const pipeline = redis.pipeline();
         for (const g of groups) pipeline.incr(groupKey(g));
-        await pipeline.exec();
+        const results = await pipeline.exec();
+        // exec() não rejeita quando um comando falha: o erro vem dentro do resultado de cada um.
+        const failed = results?.find(([err]) => err);
+        if (failed?.[0]) noteError(failed[0]);
       } catch (err) {
         noteError(err);
       }
     },
     async close() {
+      settleInitial(false); // solta o timer da espera inicial
       try {
         await redis.quit();
       } catch {

@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import net from 'node:net';
+import { Redis } from 'ioredis';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type Cache, createCache } from '../src/cache.js';
 import { uniq } from './helpers.js';
 
@@ -124,5 +126,92 @@ describe('cache', () => {
     expect([a.status, b.status]).toEqual(['BYPASS', 'BYPASS']);
     expect(loader).toHaveBeenCalledTimes(2);
     await cache.bump(['g']);
+  });
+
+  it('grupos em outra ordem reaproveitam a entrada', async () => {
+    const cache = make();
+    const name = uniq('n');
+    const [g1, g2] = [uniq('g'), uniq('g')];
+    await cache.wrap(name, [g1, g2], null, 30, async () => 'v');
+    expect((await cache.wrap(name, [g2, g1], null, 30, async () => 'v')).status).toBe('HIT');
+  });
+
+  it('MISS devolve o mesmo formato do HIT (ida e volta por JSON)', async () => {
+    const cache = make();
+    const name = uniq('n');
+    const g = uniq('g');
+    const loader = async () => ({ d: new Date(0) });
+    const a = await cache.wrap(name, [g], null, 30, loader);
+    const b = await cache.wrap(name, [g], null, 30, loader);
+    expect([a.status, b.status]).toEqual(['MISS', 'HIT']);
+    expect(a.value).toEqual({ d: '1970-01-01T00:00:00.000Z' });
+    expect(b.value).toEqual({ d: '1970-01-01T00:00:00.000Z' });
+  });
+
+  it('valor não serializável devolve o valor cru com BYPASS e registra no log', async () => {
+    const log = vi.fn();
+    const cache = make(REDIS, { log });
+    const raw = { n: 1n };
+    const r = await cache.wrap(uniq('n'), [uniq('g')], null, 30, async () => raw);
+    expect(r.status).toBe('BYPASS');
+    expect(r.value).toBe(raw);
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+
+  it('falha no bump é registrada no log sem lançar', async () => {
+    const log = vi.fn();
+    const cache = make(REDIS, { log });
+    const g = uniq('g');
+    const raw = new Redis(REDIS);
+    await raw.set(`pepita:v1:grupo:${g}`, 'abc', 'EX', 30);
+    await raw.quit();
+    await expect(cache.bump([g])).resolves.toBeUndefined();
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+
+  describe('servidor que aceita a conexão e nunca responde', () => {
+    const sockets: net.Socket[] = [];
+    const server = net.createServer((s) => {
+      sockets.push(s);
+      s.on('error', () => {});
+    });
+    let url = '';
+    beforeAll(async () => {
+      await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+      url = `redis://127.0.0.1:${(server.address() as net.AddressInfo).port}`;
+    });
+    afterAll(async () => {
+      for (const s of sockets) s.destroy();
+      await new Promise((r) => server.close(r));
+    });
+
+    it('depois da primeira espera, as chamadas seguintes dão BYPASS na hora', async () => {
+      const cache = make(url, { log: () => {} });
+      await cache.wrap(uniq('n'), [uniq('g')], null, 30, async () => 0);
+      const t0 = Date.now();
+      for (let i = 0; i < 10; i++) {
+        const r = await cache.wrap(uniq('n'), [uniq('g')], null, 30, async () => i);
+        expect(r.status).toBe('BYPASS');
+      }
+      expect(Date.now() - t0).toBeLessThan(150);
+    });
+
+    it('rajada de chamadas simultâneas não gera MaxListenersExceededWarning', async () => {
+      const warnings: string[] = [];
+      const onWarning = (w: Error) => warnings.push(w.name);
+      process.on('warning', onWarning);
+      const cache = make(url, { log: () => {} });
+      await Promise.all(Array.from({ length: 30 }, () => cache.wrap(uniq('n'), [uniq('g')], null, 30, async () => 1)));
+      await new Promise((r) => setTimeout(r, 20));
+      process.off('warning', onWarning);
+      expect(warnings).not.toContain('MaxListenersExceededWarning');
+    });
+  });
+
+  it('porta recusada não espera o prazo inteiro na primeira chamada', async () => {
+    const cache = make('redis://127.0.0.1:1', { log: () => {} });
+    const t0 = Date.now();
+    await cache.wrap(uniq('n'), [uniq('g')], null, 30, async () => 1);
+    expect(Date.now() - t0).toBeLessThan(30);
   });
 });
