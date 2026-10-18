@@ -1,4 +1,4 @@
-import type { Cache } from './cache.js';
+import { type Cache, createCache } from './cache.js';
 
 /**
  * Invalida grupos do cache à mão (`pnpm cache:bump <grupo...>`). Serve para quando o banco muda por fora da API
@@ -19,4 +19,25 @@ export const GLOBAL_GROUPS = ['config', 'missoes', 'achados', 'lugares', 'rankin
  */
 export async function bumpOnStartup(cache: Cache): Promise<void> {
   await cache.bump(GLOBAL_GROUPS);
+}
+
+/**
+ * Versão da linha de comando: o cache é fail-open (erro do Redis só vai ao log), o que numa operação manual
+ * faria `pnpm cache:bump` dizer "invalidados" sem ter invalidado nada. Aqui qualquer erro registrado vira falha.
+ */
+export async function bumpViaUrl(
+  url: string,
+  groups: string[],
+  commandTimeoutMs = 2000,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const errors: string[] = [];
+  const cache = createCache(url, { commandTimeoutMs, log: (msg) => errors.push(msg) });
+  try {
+    await bumpGroups(cache, groups);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  } finally {
+    await cache.close();
+  }
+  return errors.length ? { ok: false, error: errors[0]! } : { ok: true };
 }
