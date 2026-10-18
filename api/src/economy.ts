@@ -184,16 +184,16 @@ export async function grantBadge(db: Sql | Tx, userId: string, slug: string): Pr
   return true;
 }
 
+// Criar um Intl.DateTimeFormat custa ~124 µs por chamada (toLocaleDateString faz isso por baixo) e o ranking
+// o chamava a cada requisição, mesmo com cache quente. Um formatador só, reaproveitado.
+const portoVelhoDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Porto_Velho' });
+
 /**
  * Semana ISO corrente no fuso de Porto Velho (ex.: '2026-W42'). Entra na chave do ranking semanal: na virada da
  * semana a chave muda sozinha, sem precisar de invalidação (o SQL do ranking usa o mesmo fuso).
  */
 export function rankingWeek(now = new Date()): string {
-  const [y, m, d] = now.toLocaleDateString('en-CA', { timeZone: 'America/Porto_Velho' }).split('-').map(Number) as [
-    number,
-    number,
-    number,
-  ];
+  const [y, m, d] = portoVelhoDate.format(now).split('-').map(Number) as [number, number, number];
   const date = new Date(Date.UTC(y, m - 1, d));
   // A semana ISO pertence ao ano da sua quinta-feira.
   date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
@@ -217,7 +217,7 @@ export async function touchStreak(
   >`select last_active_on::text as last_active_on from users where id = ${userId}::uuid`;
   const rows = await db<{ fnTouchStreak: number }[]>`select fn_touch_streak(${userId}::uuid)`;
   const streak = rows[0]!.fnTouchStreak;
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Porto_Velho' });
+  const today = portoVelhoDate.format(new Date());
   const awarded = before[0]?.lastActiveOn !== today && streak > 1;
   if (awarded) {
     const xp = Math.min(eco.xp.streak_maximo, eco.xp.streak_por_dia * (streak - 1));
