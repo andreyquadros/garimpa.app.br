@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { type AppEnv, collusionBetween, recordSignal, requireUser } from '../auth.js';
-import { findGroups, markDirty } from '../cache-http.js';
+import { cached, findGroups, markDirty } from '../cache-http.js';
 import type { Sql } from '../db.js';
 import { award, grantBadge, loadEconomy, takeCap, takeMintCap } from '../economy.js';
 import { pointSql } from '../geo.js';
@@ -87,9 +87,13 @@ questionRoutes.get('/search', async (c) => {
   const sql = c.get('sql');
   const cfg = c.get('config');
   const q = (c.req.query('q') ?? '').trim();
-  if (q.length < 2) return c.json({ q, similar: [], finds: [] });
-  const similar = await similarQuestions(sql, cfg.CITY_DEFAULT, q, 8);
-  const finds = await sql`
+  if (q.length < 2) {
+    c.header('X-Cache', 'BYPASS');
+    return c.json({ q, similar: [], finds: [] });
+  }
+  const body = await cached(c, 'search', ['missoes', 'achados'], { city: cfg.CITY_DEFAULT, q }, 600, async () => {
+    const similar = await similarQuestions(sql, cfg.CITY_DEFAULT, q, 8);
+    const finds = await sql`
     with p as (select norm_text(${q}) as n, websearch_to_tsquery('portuguese', f_unaccent(${q})) as tsq)
     select pl.id as place_id, pl.name, pl.kind, pl.lat, pl.lng, pl.address, pl.partner_tier,
            count(a.id)::int as finds, (array_agg(q.title order by a.created_at desc))[1:5] as titles,
@@ -98,7 +102,9 @@ questionRoutes.get('/search', async (c) => {
     where a.status in ('aceita','confirmada') and q.city_id = ${cfg.CITY_DEFAULT}
       and (q.title_norm % p.n or p.n <% q.title_norm or (p.tsq::text <> '' and q.tsv @@ p.tsq))
     group by pl.id order by finds desc limit 30`;
-  return c.json({ q, similar, finds });
+    return { q, similar, finds };
+  });
+  return c.json(body);
 });
 
 const listSchema = z.object({
@@ -117,7 +123,8 @@ questionRoutes.get('/questions', async (c) => {
   const me = c.get('user');
   const p = listSchema.parse(Object.fromEntries(new URL(c.req.url).searchParams));
   const hasPos = p.lat != null && p.lng != null;
-  const rows = await sql`
+  const load = async () => {
+    const rows = await sql`
     select qu.id, qu.title, qu.category, qu.status, qu.bounty, qu.answers_count, qu.followers_count, qu.created_at, qu.solved_at,
            qu.lat, qu.lng, qu.photo_path,
            u.id as author_id, u.name as author_name, u.avatar_url as author_avatar, u.xp as author_xp,
@@ -138,7 +145,23 @@ questionRoutes.get('/questions', async (c) => {
           : sql`qu.created_at desc`
     }
     limit 20 offset ${p.offset}`;
-  return c.json({ items: rows, nextOffset: rows.length === 20 ? p.offset + 20 : null });
+    return { items: rows, nextOffset: rows.length === 20 ? p.offset + 20 : null };
+  };
+  // "Minhas missões" é pessoal e "perto" muda com cada posição: ficam fora do cache.
+  if (p.mine || p.sort === 'perto') {
+    c.header('X-Cache', 'BYPASS');
+    return c.json(await load());
+  }
+  const params = {
+    city: cfg.CITY_DEFAULT,
+    status: p.status,
+    category: p.category ?? null,
+    sort: p.sort,
+    offset: p.offset,
+    // Com posição, a resposta traz a distância de cada missão até ela.
+    pos: hasPos ? [p.lat, p.lng] : null,
+  };
+  return c.json(await cached(c, 'questions', ['missoes', 'achados'], params, 600, load));
 });
 
 const createSchema = z.object({
@@ -221,14 +244,15 @@ questionRoutes.get('/questions/:id', async (c) => {
   const sql = c.get('sql');
   const me = c.get('user');
   const id = c.req.param('id');
-  const question = (
-    await sql`
-    select qu.*, u.name as author_name, u.avatar_url as author_avatar, u.xp as author_xp, u.handle as author_handle,
-           ${me ? sql`exists (select 1 from question_followers f where f.question_id = qu.id and f.user_id = ${me.id}::uuid)` : sql`false`} as i_follow
+  // Parte pública (igual para todos) no cache; "eu sigo", "meu voto" e "posso aceitar" vêm depois, de quem pede.
+  const pub = await cached(c, 'question', [`missao:${id}`], { id }, 600, async () => {
+    const question = (
+      await sql`
+    select qu.*, u.name as author_name, u.avatar_url as author_avatar, u.xp as author_xp, u.handle as author_handle
     from questions qu join users u on u.id = qu.author_id where qu.id = ${id}::uuid`
-  )[0];
-  if (!question) throw new HTTPException(404, { message: 'Pergunta não encontrada.' });
-  const answers = await sql`
+    )[0];
+    if (!question) return null;
+    const answers = await sql`
     select a.id, a.note, a.price_cents, to_char(a.seen_on, 'YYYY-MM-DD') as seen_on, a.status, a.evidence_score, a.is_first_for_place, a.confirms, a.denies, a.created_at,
            p.id as place_id, p.name as place_name, p.address as place_address, p.lat as place_lat, p.lng as place_lng, p.kind as place_kind, p.partner_tier,
            u.id as author_id, u.name as author_name, u.avatar_url as author_avatar, u.xp as author_xp,
@@ -238,16 +262,32 @@ questionRoutes.get('/questions/:id', async (c) => {
                'distanceExifM', e.distance_exif_m, 'distanceDeviceM', e.distance_device_m) order by e.created_at)
              from evidences e where e.answer_id = a.id), '[]'::json) as evidences,
            coalesce((select json_agg(json_build_object('id', t.id, 'amount', t.amount, 'from', fu.name) order by t.created_at)
-             from tips t join users fu on fu.id = t.from_user where t.answer_id = a.id), '[]'::json) as tips,
-           ${me ? sql`(select vote from confirmations where answer_id = a.id and user_id = ${me.id}::uuid)` : sql`null::smallint`} as my_vote
+             from tips t join users fu on fu.id = t.from_user where t.answer_id = a.id), '[]'::json) as tips
     from answers a join places p on p.id = a.place_id join users u on u.id = a.author_id
     where a.question_id = ${id}::uuid and a.status not in ('oculta','rejeitada')
     order by (a.status = 'aceita') desc, (a.status = 'confirmada') desc, a.evidence_score desc, a.created_at asc`;
-  const { tsv: _tsv, titleNorm: _tn, geog: _geog, ...pub } = question as Record<string, unknown>;
+    const { tsv: _tsv, titleNorm: _tn, geog: _geog, ...rest } = question as Record<string, unknown>;
+    return { question: rest, answers: [...answers] as Array<Record<string, unknown>> };
+  });
+  if (!pub) throw new HTTPException(404, { message: 'Pergunta não encontrada.' });
+  let iFollow = false;
+  const votes = new Map<string, number>();
+  if (me) {
+    const [follow, myVotes] = await Promise.all([
+      sql<{ iFollow: boolean }[]>`
+        select exists (select 1 from question_followers where question_id = ${id}::uuid and user_id = ${me.id}::uuid) as i_follow`,
+      sql<{ answerId: string; vote: number }[]>`
+        select c.answer_id, c.vote from confirmations c join answers a on a.id = c.answer_id
+        where a.question_id = ${id}::uuid and c.user_id = ${me.id}::uuid`,
+    ]);
+    iFollow = follow[0]?.iFollow ?? false;
+    for (const v of myVotes) votes.set(v.answerId, v.vote);
+  }
+  const q = pub.question as { authorId: string; status: string };
   return c.json({
-    question: pub,
-    answers,
-    canAccept: !!me && me.id === question.authorId && question.status !== 'resolvida' && question.status !== 'fechada',
+    question: { ...pub.question, iFollow },
+    answers: pub.answers.map((a) => ({ ...a, myVote: votes.get(a.id as string) ?? null })),
+    canAccept: !!me && me.id === q.authorId && q.status !== 'resolvida' && q.status !== 'fechada',
   });
 });
 

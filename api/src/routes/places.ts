@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { type AppEnv, recordSignal, requireUser } from '../auth.js';
-import { markDirty } from '../cache-http.js';
+import { cached, markDirty } from '../cache-http.js';
 import type { Sql, Tx } from '../db.js';
 import { award, type Economy, grantBadge, loadEconomy, takeCap } from '../economy.js';
 import { bboxSql, parseBbox, pointSql } from '../geo.js';
@@ -61,7 +61,9 @@ placeRoutes.get('/places', async (c) => {
   const lat = Number(c.req.query('lat'));
   const lng = Number(c.req.query('lng'));
   const hasPos = Number.isFinite(lat) && Number.isFinite(lng);
-  const rows = await sql`
+  const params = { city: cfg.CITY_DEFAULT, q, pos: hasPos ? [lat, lng] : null };
+  const items = await cached(c, 'places', ['lugares', 'achados'], params, 600, async () => {
+    return await sql`
     select p.id, p.name, p.address, p.lat, p.lng, p.kind, p.partner_tier,
            (select count(*)::int from answers a where a.place_id = p.id and a.status in ('aceita','confirmada')) as finds,
            ${hasPos ? sql`ST_Distance(p.geog, ${pointSql(sql, lat, lng)})::int` : sql`null::int`} as distance_m,
@@ -71,24 +73,29 @@ placeRoutes.get('/places', async (c) => {
       ${q ? sql`and (p.name_norm % norm_text(${q}) or norm_text(${q}) <% p.name_norm or p.name_norm like '%' || norm_text(${q}) || '%')` : sql``}
     order by ${q ? sql`sim desc,` : sql``} ${hasPos ? sql`distance_m asc,` : sql``} finds desc, p.name asc
     limit 20`;
-  return c.json({ items: rows });
+  });
+  return c.json({ items });
 });
 
 placeRoutes.get('/places/:id', async (c) => {
   const sql = c.get('sql');
   const id = c.req.param('id');
-  const place = (
-    await sql`select id, name, address, lat, lng, kind, whatsapp, partner_tier, created_at from places where id = ${id}::uuid`
-  )[0];
-  if (!place) throw new HTTPException(404, { message: 'Lugar não encontrado.' });
-  const finds = await sql`
+  const body = await cached(c, 'place', [`lugar:${id}`], { id }, 600, async () => {
+    const place = (
+      await sql`select id, name, address, lat, lng, kind, whatsapp, partner_tier, created_at from places where id = ${id}::uuid`
+    )[0];
+    if (!place) return null;
+    const finds = await sql`
     select a.id as answer_id, a.status, a.price_cents, a.created_at, a.confirms, q.id as question_id, q.title,
            u.name as author_name, u.avatar_url as author_avatar,
            (select '/u/' || e.file_path from evidences e where e.answer_id = a.id order by e.score desc limit 1) as photo
     from answers a join questions q on q.id = a.question_id join users u on u.id = a.author_id
     where a.place_id = ${id}::uuid and a.status in ('aceita','confirmada','pendente')
     order by (a.status = 'aceita') desc, (a.status = 'confirmada') desc, a.created_at desc limit 50`;
-  return c.json({ place, finds });
+    return { place, finds };
+  });
+  if (!body) throw new HTTPException(404, { message: 'Lugar não encontrado.' });
+  return c.json(body);
 });
 
 placeRoutes.post('/places', async (c) => {
@@ -112,8 +119,9 @@ placeRoutes.get('/map/finds', async (c) => {
   const cfg = c.get('config');
   const box = parseBbox(c.req.query('bbox'));
   const q = (c.req.query('q') ?? '').trim();
-  const rows = q
-    ? await sql`
+  const items = await cached(c, 'map-finds', ['achados'], { city: cfg.CITY_DEFAULT, box, q }, 600, async () =>
+    q
+      ? await sql`
         with p as (select norm_text(${q}) as n, websearch_to_tsquery('portuguese', f_unaccent(${q})) as tsq)
         select pl.id as place_id, pl.name, pl.kind, pl.lat, pl.lng, pl.address, pl.partner_tier,
                count(a.id)::int as finds, max(a.created_at) as last_find_at,
@@ -123,12 +131,13 @@ placeRoutes.get('/map/finds', async (c) => {
           ${bboxSql(sql, 'pl.geog', box)}
           and (q.title_norm % p.n or p.n <% q.title_norm or (p.tsq::text <> '' and q.tsv @@ p.tsq))
         group by pl.id order by finds desc limit 300`
-    : await sql`
+      : await sql`
         select place_id, city_id, name, kind, lat, lng, address, partner_tier, finds, last_find_at, titles
         from v_place_finds where city_id = ${cfg.CITY_DEFAULT}
           ${bboxSql(sql, 'geog', box)}
-        order by finds desc limit 300`;
-  return c.json({ items: rows });
+        order by finds desc limit 300`,
+  );
+  return c.json({ items });
 });
 
 /** Perguntas abertas com posição, para a camada "quem precisa de ajuda perto de você". */
@@ -136,10 +145,18 @@ placeRoutes.get('/map/open', async (c) => {
   const sql = c.get('sql');
   const cfg = c.get('config');
   const box = parseBbox(c.req.query('bbox'));
-  const rows = await sql`
+  const items = await cached(
+    c,
+    'map-open',
+    ['missoes'],
+    { city: cfg.CITY_DEFAULT, box },
+    600,
+    async () =>
+      await sql`
     select id, title, category, bounty, followers_count, lat, lng, created_at from questions
     where city_id = ${cfg.CITY_DEFAULT} and status in ('aberta','respondida') and lat is not null
       ${bboxSql(sql, 'geog', box)}
-    order by bounty desc, created_at desc limit 200`;
-  return c.json({ items: rows });
+    order by bounty desc, created_at desc limit 200`,
+  );
+  return c.json({ items });
 });
