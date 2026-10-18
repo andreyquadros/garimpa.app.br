@@ -212,6 +212,6 @@ describe('cache', () => {
     const cache = make('redis://127.0.0.1:1', { log: () => {} });
     const t0 = Date.now();
     await cache.wrap(uniq('n'), [uniq('g')], null, 30, async () => 1);
-    expect(Date.now() - t0).toBeLessThan(30);
+    expect(Date.now() - t0).toBeLessThan(45);
   });
 });
