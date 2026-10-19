@@ -57,9 +57,9 @@
 | `GET /api/map/finds` | `achados` | params: área visível, termo |
 | `GET /api/map/open` | `missoes` | params: área visível |
 | `GET /api/search` | `missoes`, `achados` | params: termo |
-| `GET /api/questions` | `missoes`, `achados` | fora do cache: `mine=1` e `sort=perto` |
+| `GET /api/questions` | `missoes`, `achados` | fora do cache: `mine=1` e qualquer pedido com posição (`lat`/`lng`, inclusive `sort=perto`) |
 | `GET /api/questions/:id` | `missao:<id>` | só a parte pública; `i_follow`, `my_vote` e `canAccept` vêm de consulta separada |
-| `GET /api/places` | `lugares`, `achados` | |
+| `GET /api/places` | `lugares`, `achados` | fora do cache quando traz `lat`/`lng` |
 | `GET /api/places/:id` | `lugar:<id>` | |
 | `GET /api/ranking` | `ranking` | params incluem período e semana corrente (ISO); `me` é calculado da lista |
 
