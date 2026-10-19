@@ -86,11 +86,16 @@ describe('leituras públicas no cache', () => {
     expect([a.xcache, b.xcache]).toEqual(['MISS', 'HIT']);
   });
 
-  it('posição que difere só a partir da 4ª casa decimal compartilha a entrada', async () => {
-    await cache.bump(['missoes', 'achados']);
-    const a = await get(`/api/questions?lat=${C.lat + 0.00011}&lng=${C.lng}`);
-    const b = await get(`/api/questions?lat=${C.lat + 0.00012}&lng=${C.lng + 0.00004}`);
-    expect([a.xcache, b.xcache]).toEqual(['MISS', 'HIT']);
+  it('/places e /questions com a posição do usuário não usam cache', async () => {
+    // A posição é quase única por pessoa: cachear daria pouco reaproveitamento e a distância precisa ser exata.
+    for (const url of [
+      `/api/places?lat=${C.lat}&lng=${C.lng}`,
+      `/api/questions?lat=${C.lat}&lng=${C.lng}`,
+      `/api/questions?lat=${C.lat + 0.00011}&lng=${C.lng}`,
+    ]) {
+      expect((await get(url)).xcache).toBe('BYPASS');
+      expect((await get(url)).xcache).toBe('BYPASS');
+    }
   });
 
   it('q com 500 caracteres usa a mesma entrada dos 80 primeiros', async () => {

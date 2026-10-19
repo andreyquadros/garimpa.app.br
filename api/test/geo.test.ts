@@ -75,11 +75,10 @@ describe('consultas geográficas', () => {
     const iL = items.findIndex((i) => i.id === leste.json.place.id);
     expect(iN).toBeGreaterThanOrEqual(0);
     expect(iL).toBeGreaterThanOrEqual(0);
-    // A posição de quem pede é arredondada a 3 casas (até ~78 m de erro, por causa da chave do cache): a margem cobre isso.
-    expect(items[iN]!.distanceM).toBeGreaterThanOrEqual(910);
-    expect(items[iN]!.distanceM).toBeLessThanOrEqual(1090);
-    expect(items[iL]!.distanceM).toBeGreaterThanOrEqual(1870);
-    expect(items[iL]!.distanceM).toBeLessThanOrEqual(2080);
+    expect(items[iN]!.distanceM).toBeGreaterThanOrEqual(990);
+    expect(items[iN]!.distanceM).toBeLessThanOrEqual(1010);
+    expect(items[iL]!.distanceM).toBeGreaterThanOrEqual(1950);
+    expect(items[iL]!.distanceM).toBeLessThanOrEqual(1995);
     expect(iN).toBeLessThan(iL);
   });
 

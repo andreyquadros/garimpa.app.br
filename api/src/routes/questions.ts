@@ -5,7 +5,7 @@ import { type AppEnv, collusionBetween, recordSignal, requireUser } from '../aut
 import { cached, findGroups, markDirty } from '../cache-http.js';
 import type { Sql } from '../db.js';
 import { award, grantBadge, loadEconomy, takeCap, takeMintCap } from '../economy.js';
-import { pointSql, roundCoord } from '../geo.js';
+import { pointSql } from '../geo.js';
 import { capQuery } from '../text.js';
 import { allEvidencesReused } from './answers.js';
 
@@ -140,9 +140,6 @@ questionRoutes.get('/questions', async (c) => {
   const me = c.get('user');
   const p = listSchema.parse(Object.fromEntries(new URL(c.req.url).searchParams));
   const hasPos = p.lat != null && p.lng != null;
-  // Posição arredondada (~110 m) na consulta e na chave: pontos próximos dividem a mesma entrada.
-  const lat = hasPos ? roundCoord(p.lat!) : 0;
-  const lng = hasPos ? roundCoord(p.lng!) : 0;
   const load = async () => {
     const rows = await sql`
     select qu.id, qu.title, qu.category, qu.status, qu.bounty, qu.answers_count, qu.followers_count, qu.created_at, qu.solved_at,
@@ -151,7 +148,7 @@ questionRoutes.get('/questions', async (c) => {
            (select p2.name from answers a join places p2 on p2.id = a.place_id
              where a.question_id = qu.id and a.status in ('aceita','confirmada')
              order by (a.status = 'aceita') desc, a.confirms desc limit 1) as top_place,
-           ${hasPos ? sql`case when qu.geog is null then null else ST_Distance(qu.geog, ${pointSql(sql, lat, lng)})::int end` : sql`null::int`} as distance_m
+           ${hasPos ? sql`case when qu.geog is null then null else ST_Distance(qu.geog, ${pointSql(sql, p.lat!, p.lng!)})::int end` : sql`null::int`} as distance_m
     from questions qu join users u on u.id = qu.author_id
     where qu.city_id = ${cfg.CITY_DEFAULT}
       ${p.status === 'todas' ? sql`and qu.status <> 'fechada'` : p.status === 'abertas' ? sql`and qu.status in ('aberta','respondida')` : sql`and qu.status = ${p.status}`}
@@ -161,14 +158,15 @@ questionRoutes.get('/questions', async (c) => {
       p.sort === 'populares'
         ? sql`qu.bounty desc, qu.followers_count desc, qu.created_at desc`
         : p.sort === 'perto' && hasPos
-          ? sql`qu.geog <-> ${pointSql(sql, lat, lng)} nulls last, qu.created_at desc`
+          ? sql`qu.geog <-> ${pointSql(sql, p.lat!, p.lng!)} nulls last, qu.created_at desc`
           : sql`qu.created_at desc`
     }
     limit 20 offset ${p.offset}`;
     return { items: rows, nextOffset: rows.length === 20 ? p.offset + 20 : null };
   };
-  // "Minhas missões" é pessoal e "perto" muda com cada posição: ficam fora do cache.
-  if (p.mine || p.sort === 'perto') {
+  // "Minhas missões" é pessoal; com posição (inclusive "perto") a chave seria quase única por pessoa e a distância
+  // precisa ser exata: ficam fora do cache.
+  if (p.mine || p.sort === 'perto' || hasPos) {
     c.header('X-Cache', 'BYPASS');
     return c.json(await load());
   }
@@ -183,8 +181,6 @@ questionRoutes.get('/questions', async (c) => {
     category: p.category ?? null,
     sort: p.sort,
     offset: p.offset,
-    // Com posição, a resposta traz a distância de cada missão até ela.
-    pos: hasPos ? [lat, lng] : null,
   };
   return c.json(await cached(c, 'questions', ['missoes', 'achados'], params, 600, load));
 });

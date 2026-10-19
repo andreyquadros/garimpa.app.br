@@ -5,7 +5,7 @@ import { type AppEnv, recordSignal, requireUser } from '../auth.js';
 import { cached, markDirty } from '../cache-http.js';
 import type { Sql, Tx } from '../db.js';
 import { award, type Economy, grantBadge, loadEconomy, takeCap } from '../economy.js';
-import { bboxSql, parseBbox, pointSql, roundCoord } from '../geo.js';
+import { bboxSql, parseBbox, pointSql } from '../geo.js';
 import { capQuery } from '../text.js';
 
 export const placeRoutes = new Hono<AppEnv>();
@@ -59,11 +59,10 @@ placeRoutes.get('/places', async (c) => {
   const sql = c.get('sql');
   const cfg = c.get('config');
   const q = capQuery(c.req.query('q'));
-  const lat = roundCoord(Number(c.req.query('lat')));
-  const lng = roundCoord(Number(c.req.query('lng')));
+  const lat = Number(c.req.query('lat'));
+  const lng = Number(c.req.query('lng'));
   const hasPos = Number.isFinite(lat) && Number.isFinite(lng);
-  const params = { city: cfg.CITY_DEFAULT, q, pos: hasPos ? [lat, lng] : null };
-  const items = await cached(c, 'places', ['lugares', 'achados'], params, 600, async () => {
+  const load = async () => {
     return await sql`
     select p.id, p.name, p.address, p.lat, p.lng, p.kind, p.partner_tier,
            (select count(*)::int from answers a where a.place_id = p.id and a.status in ('aceita','confirmada')) as finds,
@@ -74,7 +73,13 @@ placeRoutes.get('/places', async (c) => {
       ${q ? sql`and (p.name_norm % norm_text(${q}) or norm_text(${q}) <% p.name_norm or p.name_norm like '%' || norm_text(${q}) || '%')` : sql``}
     order by ${q ? sql`sim desc,` : sql``} ${hasPos ? sql`distance_m asc,` : sql``} finds desc, p.name asc
     limit 20`;
-  });
+  };
+  // A posição de quem pede é quase única e a distância precisa ser exata: com ela a lista não passa pelo cache.
+  if (hasPos) {
+    c.header('X-Cache', 'BYPASS');
+    return c.json({ items: await load() });
+  }
+  const items = await cached(c, 'places', ['lugares', 'achados'], { city: cfg.CITY_DEFAULT, q }, 600, load);
   return c.json({ items });
 });
 
