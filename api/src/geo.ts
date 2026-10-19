@@ -8,8 +8,9 @@ export function pointSql(db: Sql | Tx, lat: number, lng: number) {
 }
 
 /**
- * Arredonda a 3 casas (~110 m). Coordenadas vindas do cliente entram na chave do cache: sem isso cada pixel de
- * arrasto no mapa criaria uma entrada nova e qualquer pessoa poderia encher o Redis com chaves distintas.
+ * Arredonda a 3 casas (~110 m). Só a área do mapa (`bbox`) entra na chave do cache: sem isso cada pixel de arrasto
+ * criaria uma entrada nova e qualquer pessoa poderia encher o Redis. A posição do usuário nunca é arredondada
+ * (a distância precisa ser exata); as leituras com posição não passam pelo cache.
  */
 export const roundCoord = (v: number) => Math.round(v * 1000) / 1000;
 
