@@ -10,6 +10,26 @@ export function safeAppUrl(url: unknown): string {
   return FALLBACK_URL;
 }
 
+// Com userVisibleOnly todo push precisa mostrar um aviso; senão o Chrome exibe um aviso genérico e pode revogar a
+// permissão. Por isso o parse nunca falha: dado ausente ou malformado vira o aviso padrão.
+export function parsePushPayload(text: string | null | undefined): PushPayload {
+  let raw: unknown = null;
+  try {
+    raw = text ? JSON.parse(text) : null;
+  } catch {
+    raw = null;
+  }
+  const o = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const str = (v: unknown, def: string) => (typeof v === 'string' && v ? v : def);
+  return {
+    id: str(o.id, ''),
+    title: str(o.title, 'Pepita Social'),
+    body: str(o.body, 'Você tem um novo aviso'),
+    url: str(o.url, FALLBACK_URL),
+    topic: typeof o.topic === 'string' && o.topic ? o.topic : null,
+  };
+}
+
 export function toNotificationOptions(p: PushPayload): {
   title: string;
   options: NotificationOptions & { data: { url: string; id: string } };

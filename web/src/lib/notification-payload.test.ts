@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { safeAppUrl, toNotificationOptions } from './notification-payload';
+import { parsePushPayload, safeAppUrl, toNotificationOptions } from './notification-payload';
 
 describe('toNotificationOptions', () => {
   it('monta título, corpo, ícones, tag e dados de clique', () => {
@@ -36,4 +36,22 @@ describe('safeAppUrl', () => {
   it('rejeita URL absoluta', () => expect(safeAppUrl('https://evil')).toBe('/notificacoes'));
   it('rejeita URL sem protocolo', () => expect(safeAppUrl('//evil')).toBe('/notificacoes'));
   it('rejeita valores que não são texto', () => expect(safeAppUrl(undefined)).toBe('/notificacoes'));
+});
+
+describe('parsePushPayload', () => {
+  const fallback = {
+    id: '',
+    title: 'Pepita Social',
+    body: 'Você tem um novo aviso',
+    url: '/notificacoes',
+    topic: null,
+  };
+  it.each([[null], [undefined], [''], ['not json'], ['null'], ['{}'], ['{"title":5}'], ['[1]']])(
+    'usa o aviso padrão para %j',
+    (input) => expect(parsePushPayload(input)).toEqual(fallback),
+  );
+  it('preserva um payload válido', () => {
+    const p = { id: 'n1', title: 'T', body: 'B', url: '/m/1', topic: 'x' };
+    expect(parsePushPayload(JSON.stringify(p))).toEqual(p);
+  });
 });

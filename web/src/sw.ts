@@ -4,7 +4,7 @@ import { ExpirationPlugin } from 'workbox-expiration';
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkFirst } from 'workbox-strategies';
-import { type PushPayload, safeAppUrl, toNotificationOptions } from './lib/notification-payload';
+import { parsePushPayload, safeAppUrl, toNotificationOptions } from './lib/notification-payload';
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -38,14 +38,7 @@ registerRoute(
 );
 
 self.addEventListener('push', (event) => {
-  let payload: PushPayload;
-  try {
-    payload = event.data?.json() as PushPayload;
-  } catch {
-    return;
-  }
-  if (!payload) return;
-  const { title, options } = toNotificationOptions(payload);
+  const { title, options } = toNotificationOptions(parsePushPayload(event.data?.text()));
   // Todo push precisa mostrar um aviso (userVisibleOnly); as abas abertas só são avisadas para atualizar o sino.
   event.waitUntil(
     (async () => {
@@ -62,13 +55,15 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     (async () => {
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const existing = windows[0];
-      if (existing) {
-        await existing.focus();
-        await existing.navigate(url);
-      } else {
+      // Prefere a aba que a pessoa está vendo; navigate() pode ser recusado para aba não controlada.
+      const existing =
+        windows.find((w) => w.focused) ?? windows.find((w) => w.visibilityState === 'visible') ?? windows[0];
+      if (!existing) {
         await self.clients.openWindow(url);
+        return;
       }
+      await existing.focus();
+      await existing.navigate(url).catch(() => self.clients.openWindow(url));
     })(),
   );
 });
