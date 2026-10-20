@@ -55,6 +55,10 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD}@garimpa-cache:6379/0
       SESSION_SECRET: ${SESSION_SECRET:?defina SESSION_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      # Avisos no aparelho (ADR-0007): sem as três o push fica desligado e a lista dentro do app continua.
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       ALLOW_DEV_LOGIN: "false"
       PUBLIC_URL: ${PUBLIC_URL:-https://garimpa.incubadora.cloud}
       UPLOAD_DIR: /data/uploads
