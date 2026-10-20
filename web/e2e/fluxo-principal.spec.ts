@@ -36,6 +36,14 @@ test('missão vai de aberta a resolvida pelo navegador', async ({ browser }) => 
   expect(answerRes.status()).toBe(201);
   const { answerId } = (await answerRes.json()) as { answerId: string };
 
+  // 2b. A autora é avisada pelo sininho (o e2e roda sem chaves VAPID: sem push, mas a lista funciona) e o aviso a
+  // leva de volta à missão.
+  await autora.reload();
+  await autora.getByRole('link', { name: 'Notificações, 1 não lida' }).click();
+  await expect(autora).toHaveURL(/\/notificacoes$/);
+  await autora.getByRole('button', { name: new RegExp(`Nova pista para Garrafa térmica azul ${tag}`) }).click();
+  await expect(autora).toHaveURL(new RegExp(`/m/${id}$`));
+
   // 3. Duas pessoas confirmam no local: peso 1 cada, o mínimo para a descoberta ficar confirmada.
   for (const name of [`Conf1 ${tag}`, `Conf2 ${tag}`]) {
     const conf = await newPerson(browser, name);

@@ -3,6 +3,7 @@ import type {
   Find,
   LedgerItem,
   Me,
+  NotificationPage,
   OpenPin,
   PlaceLite,
   QuestionDetail,
@@ -177,4 +178,11 @@ export const api = {
   mapOpen: (bbox: string) => req<{ items: OpenPin[] }>('GET', `/api/map/open${q({ bbox })}`),
   ranking: (period: 'semana' | 'geral') =>
     req<{ period: string; items: RankRow[]; me: RankRow | null }>('GET', `/api/ranking${q({ period })}`),
+  notifications: (before?: string) => req<NotificationPage>('GET', `/api/notifications${q({ before })}`),
+  /** Sem `ids` marca todas como lidas. */
+  markRead: (ids?: string[]) => req<{ unread: number }>('POST', '/api/notifications/read', ids ? { ids } : {}),
+  pushKey: () => req<{ publicKey: string | null }>('GET', '/api/push/key'),
+  subscribePush: (sub: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+    req<{ ok: true }>('POST', '/api/push/subscriptions', sub),
+  unsubscribePush: (endpoint: string) => req<{ ok: true }>('DELETE', '/api/push/subscriptions', { endpoint }),
 };
