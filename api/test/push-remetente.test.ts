@@ -150,6 +150,52 @@ describe('remetente de push', () => {
     for (const id of ids) expect(calls.filter((c) => c.payload.id === id)).toHaveLength(1);
   });
 
+  it('um aparelho entrega e outro falha: enviado, sem nova tentativa', async () => {
+    const u = await newUser();
+    const ok = await addSub(u);
+    const ruim = await addSub(u);
+    const id = await addNotif(u);
+    await drain(fakeTransport({ [ruim]: 500 }).transport);
+    const s = await stateOf(id);
+    expect(s.pushState).toBe('enviado');
+    expect(s.pushAttempts).toBe(0);
+    const f = async (e: string) =>
+      (await sql<{ failures: number }[]>`select failures from push_subscriptions where endpoint = ${e}`)[0]!.failures;
+    expect(await f(ruim)).toBe(1);
+    expect(await f(ok)).toBe(0);
+  });
+
+  it('não segura bloqueio no banco enquanto envia', async () => {
+    const u = await newUser();
+    await addSub(u);
+    const id = await addNotif(u);
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    let entered!: () => void;
+    const inside = new Promise<void>((r) => {
+      entered = r;
+    });
+    const transport: PushTransport = {
+      async send(_s, payload) {
+        if (payload.id === id) {
+          entered();
+          await gate;
+        }
+        return { statusCode: 201 };
+      },
+    };
+    const run = drain(transport);
+    await inside;
+    const t0 = Date.now();
+    await sql`update notifications set read_at = now() where id = ${id}`;
+    expect(Date.now() - t0).toBeLessThan(500);
+    release();
+    await run;
+    expect((await stateOf(id)).pushState).toBe('enviado');
+  });
+
   it('sem VAPID as pendentes viram desativado', async () => {
     const u = await newUser();
     await addSub(u);
@@ -218,7 +264,8 @@ describe('remetente de push', () => {
       expect(seen).toHaveLength(1);
       const h = seen[0]!.headers;
       expect(h.ttl).toBe('86400');
-      expect(h.topic).toBe('m123e4567e89b12d3a456426614174000'.slice(0, 32));
+      expect(h.topic).toBe('123e4567e89b12d3a456426614174000');
+      expect(h.urgency).toBe('normal');
       expect(String(h.topic)).toMatch(/^[A-Za-z0-9_-]{1,32}$/);
       expect(h['content-encoding']).toBe('aes128gcm');
       expect(String(h.authorization).startsWith('vapid ')).toBe(true);
@@ -236,7 +283,11 @@ describe('remetente de push', () => {
       expect(net.statusCode).toBe(0);
     } finally {
       agentOpts.rejectUnauthorized = before;
-      server.close();
+      await new Promise<void>((r) => {
+        server.close(() => r());
+        server.closeAllConnections();
+      });
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 });
