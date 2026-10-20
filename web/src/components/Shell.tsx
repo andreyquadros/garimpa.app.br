@@ -7,6 +7,7 @@ import { badgeBySlug } from '@/lib/badges';
 import { useMe, useToast } from '@/lib/hooks';
 import { celebrate } from '@/lib/reward';
 import type { Badge } from '@/lib/types';
+import { useOfferPushFlag } from '@/lib/use-offer-push';
 import { Anim, Pepi, RankBadge, Wordmark } from './brand';
 import { NotificationBell } from './NotificationBell';
 import { OfferPush } from './PushPrompt';
@@ -20,9 +21,9 @@ const tabs = [
 ];
 
 export function Shell() {
-  const location = useLocation();
-  const { pathname } = location;
+  const { pathname } = useLocation();
   const { data: me } = useMe();
+  const offerPush = useOfferPushFlag();
   const bare = pathname === '/entrar';
   return (
     <div className="mx-auto max-w-lg min-h-dvh flex flex-col relative bg-bg">
@@ -42,7 +43,7 @@ export function Shell() {
           </div>
         </nav>
       )}
-      {me && (location.state as { offerPush?: boolean } | null)?.offerPush && (
+      {me && offerPush && (
         <div className="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-lg px-4">
           <OfferPush />
         </div>
