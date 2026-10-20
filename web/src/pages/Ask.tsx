@@ -84,7 +84,8 @@ export function Ask() {
       });
       invalidate(['questions', 'me', 'mapOpen']);
       toast.push({ text: 'Missão publicada. Avisamos quando encontrarem.', xp: cfg?.economy.xp.pergunta ?? 5 });
-      nav(`/m/${r.id}`, { replace: true });
+      // A missão recém-aberta é o melhor momento para oferecer os avisos (o Shell mostra o convite na página dela).
+      nav(`/m/${r.id}`, { replace: true, state: { offerPush: true } });
     } catch (e) {
       if (e instanceof ApiError && e.status === 409 && (e.data as { similar?: Similar[] })?.similar)
         setDupes((e.data as { similar: Similar[] }).similar);
