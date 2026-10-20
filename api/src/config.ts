@@ -25,6 +25,13 @@ const schema = z.object({
   TRUST_PROXY: bool,
   INTERNAL_TOKEN: z.string().optional(),
   MAX_UPLOAD_MB: z.coerce.number().default(8),
+  // Push (Web Push/VAPID): as três juntas ligam o envio; sem elas as notificações ficam só dentro do app.
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^(mailto:|https:)/.test(v), 'VAPID_SUBJECT deve começar com mailto: ou https:'),
 });
 
 export type Config = ReturnType<typeof loadConfig>;
@@ -41,6 +48,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     production,
     allowDevLogin: parsed.ALLOW_DEV_LOGIN ?? !production,
     trustProxy: parsed.TRUST_PROXY ?? production,
+    pushEnabled: Boolean(parsed.VAPID_PUBLIC_KEY && parsed.VAPID_PRIVATE_KEY && parsed.VAPID_SUBJECT),
     secure: production && parsed.PUBLIC_URL.startsWith('https://'),
   };
 }

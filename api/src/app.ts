@@ -11,6 +11,7 @@ import { authRoutes } from './routes/auth.js';
 import { miscRoutes } from './routes/misc.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { placeRoutes } from './routes/places.js';
+import { pushRoutes } from './routes/push.js';
 import { questionRoutes } from './routes/questions.js';
 import { serveUpload, serveWeb } from './static.js';
 
@@ -69,6 +70,7 @@ export function createApp(deps: { sql: Sql; config: Config; cache?: Cache }) {
   app.route('/api', answerRoutes);
   app.route('/api', placeRoutes);
   app.route('/api', notificationRoutes);
+  app.route('/api', pushRoutes);
 
   app.get('/u/*', (c) => serveUpload(c, deps.config.UPLOAD_DIR, c.req.path.slice(3)));
 
