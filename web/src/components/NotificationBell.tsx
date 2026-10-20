@@ -40,7 +40,7 @@ export function NotificationBell() {
     <Link
       to="/notificacoes"
       aria-label={bellLabel(unread)}
-      className="relative h-10 w-10 grid place-items-center rounded-full text-ink-2 hover:bg-surface-2"
+      className="relative h-10 w-10 shrink-0 grid place-items-center rounded-full text-ink-2 hover:bg-surface-2"
     >
       <Bell size={22} aria-hidden="true" />
       {unread > 0 && (

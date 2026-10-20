@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { newPerson, randomJpeg } from './support.ts';
+import { expectHeaderFitsPhone, newPerson, randomJpeg } from './support.ts';
 
 /** Espera a próxima resposta de `method path` (path exato, sem query). */
 function nextResponse(page: Page, method: string, path: string) {
@@ -12,6 +12,7 @@ test('missão vai de aberta a resolvida pelo navegador', async ({ browser }) => 
 
   // 1. A autora abre a missão.
   const autora = await newPerson(browser, `Autora ${tag}`);
+  await expectHeaderFitsPhone(autora);
   await autora.goto('/missoes/nova');
   await autora.getByLabel('O que você está procurando?').fill(`Garrafa térmica azul ${tag}`);
   await autora.getByRole('button', { name: 'Publicar missão' }).click();

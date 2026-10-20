@@ -69,19 +69,25 @@ function TopBar() {
   return (
     <header className="sticky top-0 z-30 bg-bg safe-top">
       <div className="h-14 px-4 flex items-center gap-2">
-        <Link to="/" aria-label="Pepita Social, início" className="mr-auto">
-          <Wordmark size={24} />
+        {/* Em celulares (abaixo de 480 px) o texto da marca sai e fica só o símbolo: sem isso sequência, XP,
+            sininho e avatar não cabem e o avatar (atalho da Carteira) vaza para fora da tela. */}
+        <Link to="/" aria-label="Pepita Social, início" className="mr-auto min-w-0">
+          <Wordmark size={24} textClassName={me ? 'max-[479px]:hidden' : ''} />
         </Link>
         {me ? (
           <>
-            <Link to="/jornada" aria-label="Sua sequência">
+            <Link to="/jornada" aria-label="Sua sequência" className="shrink-0">
               <StreakChip days={me.user.streakDays} size="sm" />
             </Link>
-            <Link to="/jornada" aria-label="Sua jornada">
+            <Link to="/jornada" aria-label="Sua jornada" className="shrink-0">
               <XpChip xp={me.user.xp} size="sm" />
             </Link>
             <NotificationBell />
-            <Link to="/carteira" aria-label="Sua carteira" className="relative">
+            <Link
+              to="/carteira"
+              aria-label="Sua carteira"
+              className="relative shrink-0 h-10 w-10 grid place-items-center"
+            >
               <Avatar name={me.user.name} url={me.user.avatarUrl} size={38} />
               <span
                 className="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full bg-lima-400 border-2 border-bg"
