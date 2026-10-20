@@ -44,11 +44,27 @@ export function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+const READY_TIMEOUT_MS = 5000;
+
+// Sem service worker registrado (ex.: `pnpm dev`), `serviceWorker.ready` nunca resolve e a tela ficaria presa.
+async function readyRegistration(): Promise<ServiceWorkerRegistration | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), READY_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([navigator.serviceWorker.ready, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function enablePush(api: PushApi, serverKey: string): Promise<PushStatus> {
   const permission = await Notification.requestPermission();
   if (permission === 'denied') return 'negado';
   if (permission !== 'granted') return 'inativo';
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await readyRegistration();
+  if (!registration) return 'indisponivel';
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(serverKey),
@@ -62,7 +78,8 @@ export async function enablePush(api: PushApi, serverKey: string): Promise<PushS
 }
 
 export async function disablePush(api: PushApi): Promise<void> {
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await readyRegistration();
+  if (!registration) return;
   const subscription = await registration.pushManager.getSubscription();
   if (!subscription) return;
   // Sem rede o aviso no servidor fica órfão (e expira no primeiro envio), mas o aparelho para de receber já.

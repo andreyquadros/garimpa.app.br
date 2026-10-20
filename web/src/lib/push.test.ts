@@ -96,6 +96,24 @@ describe('enablePush e disablePush', () => {
     expect(a.subscribePush).toHaveBeenCalledWith({ endpoint: 'https://push/1', keys: { p256dh: 'P', auth: 'A' } });
   });
 
+  it('sem service worker registrado não trava: enablePush devolve indisponivel e disablePush volta', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubGlobal('Notification', { requestPermission: vi.fn().mockResolvedValue('granted') });
+      // Sem registro (ex.: `pnpm dev`), `ready` nunca resolve.
+      vi.stubGlobal('navigator', { serviceWorker: { ready: new Promise(() => undefined) } });
+      const a = api();
+      const enabling = enablePush(a, 'AQID');
+      const disabling = disablePush(a);
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(await enabling).toBe('indisponivel');
+      await expect(disabling).resolves.toBeUndefined();
+      expect(a.subscribePush).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('cancela no navegador mesmo se o servidor falhar', async () => {
     const unsubscribe = vi.fn().mockResolvedValue(true);
     stub('granted', { endpoint: 'https://push/1', unsubscribe });
