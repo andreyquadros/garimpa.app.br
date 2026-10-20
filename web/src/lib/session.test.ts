@@ -44,4 +44,14 @@ describe('signOut', () => {
     expect(qc.getQueryData(['me'])).toBeNull();
     expect(qc.getQueryData(['notifications', 'unread'])).toBeUndefined();
   });
+
+  it('se esquecer o aparelho falhar, o cache é limpo mesmo assim', async () => {
+    const qc = client();
+    const logout = vi.fn().mockResolvedValue(undefined);
+    await expect(
+      signOut(qc, { forgetDevice: () => Promise.reject(new Error('push quebrou')), logout, pushApi }),
+    ).rejects.toThrow('push quebrou');
+    expect(qc.getQueryData(['me'])).toBeNull();
+    expect(qc.getQueryData(['notifications', 'unread'])).toBeUndefined();
+  });
 });

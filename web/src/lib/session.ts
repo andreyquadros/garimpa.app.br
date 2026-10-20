@@ -13,8 +13,8 @@ export type SignOutDeps = {
  * continuar na tela.
  */
 export async function signOut(qc: QueryClient, deps: SignOutDeps): Promise<void> {
-  await deps.forgetDevice(deps.pushApi);
   try {
+    await deps.forgetDevice(deps.pushApi);
     await deps.logout();
   } finally {
     qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'config' });
