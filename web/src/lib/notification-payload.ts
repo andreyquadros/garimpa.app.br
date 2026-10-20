@@ -32,7 +32,7 @@ export function parsePushPayload(text: string | null | undefined): PushPayload {
 
 export function toNotificationOptions(p: PushPayload): {
   title: string;
-  options: NotificationOptions & { data: { url: string; id: string } };
+  options: NotificationOptions & { renotify?: boolean; data: { url: string; id: string } };
 } {
   return {
     title: p.title,
@@ -42,6 +42,8 @@ export function toNotificationOptions(p: PushPayload): {
       badge: '/icons/icon-192.png',
       // Mesma tag substitui o aviso anterior do mesmo assunto em vez de empilhar.
       tag: p.topic ?? undefined,
+      // Sem isto a segunda pista da mesma missão trocaria o aviso em silêncio, sem som nem vibração.
+      renotify: p.topic ? true : undefined,
       data: { url: safeAppUrl(p.url), id: p.id },
     },
   };
