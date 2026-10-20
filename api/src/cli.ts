@@ -1,6 +1,7 @@
 import { bumpViaUrl } from './cache-bump.js';
 import { loadConfig } from './config.js';
 import { createDb, ensureCity, migrate } from './db.js';
+import { vapidKeyLines } from './push/keys.js';
 import { seedDemo } from './seed.js';
 
 const cmd = process.argv[2];
@@ -25,8 +26,10 @@ try {
       console.error(`Não foi possível invalidar o cache: ${r.error}`);
       process.exitCode = 1;
     }
+  } else if (cmd === 'push:keys') {
+    console.log(vapidKeyLines().join('\n'));
   } else {
-    console.log('uso: tsx src/cli.ts migrate | seed | cache:bump <grupo...>');
+    console.log('uso: tsx src/cli.ts migrate | seed | cache:bump <grupo...> | push:keys');
     process.exitCode = 2;
   }
 } finally {
