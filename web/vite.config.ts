@@ -39,28 +39,11 @@ export default defineConfig({
         ],
         share_target: undefined,
       },
-      workbox: {
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/u\//],
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /\/u\/.*\.jpg$/,
-            handler: 'CacheFirst',
-            options: { cacheName: 'provas', expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 } },
-          },
-          {
-            urlPattern: /\/tiles\/.*\.png$/,
-            handler: 'CacheFirst',
-            options: { cacheName: 'tiles', expiration: { maxEntries: 1500, maxAgeSeconds: 60 * 60 * 24 * 60 } },
-          },
-          {
-            urlPattern: /\/api\/(config|map\/finds|questions)(\?.*)?$/,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'api', networkTimeoutSeconds: 4 },
-          },
-        ],
-      },
+      // Service worker próprio (src/sw.ts): além do cache, recebe o Web Push.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
     }),
   ],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
