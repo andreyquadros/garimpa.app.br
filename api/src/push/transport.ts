@@ -11,12 +11,12 @@ export type PushTransport = {
 
 /**
  * O cabeçalho Topic do Web Push aceita só [A-Za-z0-9_-] e até 32 caracteres. `missao-<uuid>` não cabe,
- * então vira `m` + o uuid sem hífens cortado em 31: continua único por missão e substitui o aviso anterior.
+ * então vira os 32 hex do uuid (sem hífens): único por missão e substitui o aviso anterior.
  */
 export function normalizeTopic(topic: string | null): string | undefined {
   if (!topic) return undefined;
   const m = /^missao-([0-9a-f-]{36})$/i.exec(topic);
-  const out = m ? `m${m[1]!.replace(/-/g, '')}`.slice(0, 32) : topic.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32);
+  const out = m ? m[1]!.replace(/-/g, '') : topic.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32);
   return out || undefined;
 }
 
@@ -31,6 +31,7 @@ export function webPushTransport(vapid: { publicKey: string; privateKey: string;
             vapidDetails: { subject: vapid.subject, publicKey: vapid.publicKey, privateKey: vapid.privateKey },
             TTL: opts.ttl,
             topic: normalizeTopic(opts.topic),
+            urgency: 'normal',
             contentEncoding: 'aes128gcm',
             // Serviço de push lento não pode travar o lote (que segura linhas bloqueadas no banco).
             timeout: 10_000,

@@ -18,72 +18,92 @@ type Row = {
 };
 type Sub = { id: string; userId: string; endpoint: string; p256dh: string; auth: string };
 
+const PARALLEL = 5;
+
 /**
- * Envia UM lote de notificações pendentes. Tudo numa transação com `for update skip locked`: dois remetentes
- * (processos ou chamadas simultâneas) nunca pegam a mesma linha, e o estado só muda junto com o envio.
+ * Envia UM lote de notificações pendentes. Reivindica e envia em passos separados: a transação curta só trava
+ * as linhas e adia `push_next_at` (lease de 2 min), então dois remetentes nunca pegam a mesma linha e nenhum
+ * bloqueio fica aberto durante o HTTP (um serviço de push lento não pode travar leitura, logout ou exclusão de
+ * conta). Se o processo morrer no meio, o lease vence e a notificação volta para a fila.
  */
 export async function sendPendingPush(
   sql: Sql,
   transport: PushTransport,
   now: Date = new Date(),
 ): Promise<{ processed: number }> {
-  return sql.begin(async (tx) => {
-    const rows = await tx<Row[]>`
+  const rows = await sql.begin(async (tx) => {
+    const found = await tx<Row[]>`
       select n.id, n.user_id, n.title, n.body, n.url, n.topic, n.push_attempts, (u.banned_at is not null) as banned
       from notifications n join users u on u.id = n.user_id
       where n.push_state = 'pendente' and n.push_next_at <= ${now}
       order by n.push_next_at limit ${BATCH}
       for update of n skip locked`;
-    if (!rows.length) return { processed: 0 };
+    if (found.length)
+      await tx`update notifications set push_next_at = ${now}::timestamptz + interval '2 minutes'
+        where id = any(${found.map((r) => r.id)}::uuid[])`;
+    return found;
+  });
+  if (!rows.length) return { processed: 0 };
 
-    const userIds = [...new Set(rows.filter((r) => !r.banned).map((r) => r.userId))];
-    const subs = userIds.length
-      ? await tx<
-          Sub[]
-        >`select id, user_id, endpoint, p256dh, auth from push_subscriptions where user_id in ${tx(userIds)}`
-      : [];
-    const byUser = new Map<string, Sub[]>();
-    for (const s of subs) byUser.set(s.userId, [...(byUser.get(s.userId) ?? []), s]);
+  const userIds = [...new Set(rows.filter((r) => !r.banned).map((r) => r.userId))];
+  const subs = userIds.length
+    ? await sql<
+        Sub[]
+      >`select id, user_id, endpoint, p256dh, auth from push_subscriptions where user_id in ${sql(userIds)}`
+    : [];
+  const byUser = new Map<string, Sub[]>();
+  for (const s of subs) byUser.set(s.userId, [...(byUser.get(s.userId) ?? []), s]);
 
-    for (const n of rows) {
-      // Conta removida não recebe nada, nem que ainda tenha aparelho inscrito.
-      const mine = n.banned ? [] : (byUser.get(n.userId) ?? []);
-      if (!mine.length) {
-        await tx`update notifications set push_state = 'sem_assinatura' where id = ${n.id}`;
-        continue;
-      }
-      const payload = { id: n.id, title: n.title, body: n.body, url: n.url, topic: n.topic };
-      let delivered = false;
-      let failed = false;
-      let remaining = mine.length;
-      for (const s of mine) {
-        const { statusCode } = await transport.send(s, payload, { ttl: TTL_SECONDS, topic: n.topic });
-        if (statusCode >= 200 && statusCode < 300) {
-          delivered = true;
-          await tx`update push_subscriptions set last_success_at = now(), failures = 0 where id = ${s.id}`;
-        } else if (statusCode === 404 || statusCode === 410) {
-          // O serviço de push disse que a inscrição não existe mais: guardar só geraria novas falhas.
-          remaining--;
-          await tx`delete from push_subscriptions where id = ${s.id}`;
-        } else {
-          failed = true;
-          await tx`update push_subscriptions set failures = failures + 1 where id = ${s.id}`;
-        }
-      }
-      if (delivered) {
-        await tx`update notifications set push_state = 'enviado' where id = ${n.id}`;
-      } else if (failed) {
-        const attempts = n.pushAttempts + 1;
-        if (attempts > BACKOFF_MIN.length) {
-          await tx`update notifications set push_state = 'falhou', push_attempts = ${attempts} where id = ${n.id}`;
-        } else {
-          const next = new Date(now.getTime() + BACKOFF_MIN[attempts - 1]! * 60_000);
-          await tx`update notifications set push_attempts = ${attempts}, push_next_at = ${next} where id = ${n.id}`;
-        }
-      } else if (remaining === 0) {
-        await tx`update notifications set push_state = 'sem_assinatura' where id = ${n.id}`;
+  const one = async (n: Row) => {
+    // Conta removida não recebe nada, nem que ainda tenha aparelho inscrito.
+    const mine = n.banned ? [] : (byUser.get(n.userId) ?? []);
+    if (!mine.length) {
+      await sql`update notifications set push_state = 'sem_assinatura' where id = ${n.id} and push_state = 'pendente'`;
+      return;
+    }
+    const payload = { id: n.id, title: n.title, body: n.body, url: n.url, topic: n.topic };
+    const results = await Promise.all(
+      mine.map(async (s) => ({ s, ...(await transport.send(s, payload, { ttl: TTL_SECONDS, topic: n.topic })) })),
+    );
+    let delivered = false;
+    let failed = false;
+    let remaining = mine.length;
+    for (const { s, statusCode } of results) {
+      if (statusCode >= 200 && statusCode < 300) {
+        delivered = true;
+        await sql`update push_subscriptions set last_success_at = now(), failures = 0 where id = ${s.id}`;
+      } else if (statusCode === 404 || statusCode === 410) {
+        // O serviço de push disse que a inscrição não existe mais: guardar só geraria novas falhas.
+        remaining--;
+        await sql`delete from push_subscriptions where id = ${s.id}`;
+      } else {
+        failed = true;
+        await sql`update push_subscriptions set failures = failures + 1 where id = ${s.id}`;
       }
     }
-    return { processed: rows.length };
-  });
+    if (delivered) {
+      await sql`update notifications set push_state = 'enviado' where id = ${n.id} and push_state = 'pendente'`;
+    } else if (failed) {
+      const attempts = n.pushAttempts + 1;
+      if (attempts > BACKOFF_MIN.length) {
+        await sql`update notifications set push_state = 'falhou', push_attempts = ${attempts}
+          where id = ${n.id} and push_state = 'pendente'`;
+      } else {
+        const next = new Date(now.getTime() + BACKOFF_MIN[attempts - 1]! * 60_000);
+        await sql`update notifications set push_attempts = ${attempts}, push_next_at = ${next}
+          where id = ${n.id} and push_state = 'pendente'`;
+      }
+    } else if (remaining === 0) {
+      await sql`update notifications set push_state = 'sem_assinatura' where id = ${n.id} and push_state = 'pendente'`;
+    }
+  };
+
+  // Paralelismo limitado: poucos envios simultâneos para não saturar a rede nem o pool de conexões.
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(PARALLEL, rows.length) }, async () => {
+      while (next < rows.length) await one(rows[next++]!);
+    }),
+  );
+  return { processed: rows.length };
 }
