@@ -6,7 +6,7 @@ Preparação: gere as chaves com `pnpm push:keys`, coloque `VAPID_PUBLIC_KEY`, `
 
 ## Android (Chrome)
 
-- [ ] Com A, publique uma missão: aparece o cartão de avisos; toque em **Ativar** e aceite a permissão.
+- [ ] Com A, publique uma missão: aparece o cartão de avisos; toque em **Ativar avisos** e aceite a permissão.
 - [ ] Em Carteira, a chave **Avisos no celular** está ligada.
 - [ ] Com B, envie uma evidência: em até ~10 s chega o push no aparelho de A, com título e texto da evidência.
 - [ ] Tocar no aviso abre o app direto na missão.
