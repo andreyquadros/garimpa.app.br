@@ -2,10 +2,16 @@ import type { Sql } from './db.js';
 import { grantBadge } from './economy.js';
 
 /** Tarefas periódicas: libera carências e premia o garimpeiro da semana. Idempotente. */
-export async function runTick(sql: Sql): Promise<{ vested: number; weeklyBadge: string | null }> {
+export async function runTick(
+  sql: Sql,
+  opts: { pushEnabled?: boolean } = {},
+): Promise<{ vested: number; weeklyBadge: string | null }> {
   const vested = Number((await sql<{ fnVestDue: number }[]>`select fn_vest_due()`)[0]?.fnVestDue ?? 0);
   // Retenção: avisos com mais de 90 dias saem (a lista só mostra os recentes).
   await sql`delete from notifications where created_at < now() - interval '90 days'`;
+  // Sem VAPID ninguém vai enviar: as pendentes saem da fila (ficam só na lista dentro do app).
+  if (opts.pushEnabled === false)
+    await sql`update notifications set push_state = 'desativado' where push_state = 'pendente'`;
   const week = (
     await sql<
       { w: string }[]

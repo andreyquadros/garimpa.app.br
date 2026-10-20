@@ -5,6 +5,8 @@ import { bumpOnStartup } from './cache-bump.js';
 import { loadConfig } from './config.js';
 import { createDb, ensureCity, migrate } from './db.js';
 import { runTick } from './jobs.js';
+import { sendPendingPush } from './push/sender.js';
+import { webPushTransport } from './push/transport.js';
 
 const config = loadConfig();
 const sql = createDb(config.DATABASE_URL);
@@ -25,16 +27,40 @@ const app = createApp({ sql, config, cache });
 const server = serve({ fetch: app.fetch, port: config.PORT, hostname: '0.0.0.0' }, (info) => {
   console.log(`garimpa-api em http://localhost:${info.port} (${config.NODE_ENV})`);
 });
-const tick = () => runTick(sql).catch((e) => console.error('tick falhou', e));
+const tick = () => runTick(sql, { pushEnabled: config.pushEnabled }).catch((e) => console.error('tick falhou', e));
 setTimeout(tick, 5000);
 setInterval(tick, 10 * 60 * 1000);
+
+// Remetente de push: um lote a cada 5 s; `running` impede duas rodadas sobrepostas neste processo.
+let pushTimer: NodeJS.Timeout | undefined;
+let pushRun: Promise<unknown> = Promise.resolve();
+if (config.pushEnabled) {
+  const transport = webPushTransport({
+    publicKey: config.VAPID_PUBLIC_KEY!,
+    privateKey: config.VAPID_PRIVATE_KEY!,
+    subject: config.VAPID_SUBJECT!,
+  });
+  let running = false;
+  pushTimer = setInterval(() => {
+    if (running) return;
+    running = true;
+    pushRun = sendPendingPush(sql, transport)
+      .catch((e) => console.error('envio de push falhou', e))
+      .finally(() => {
+        running = false;
+      });
+  }, 5000);
+}
 
 // Encerramento limpo: para de aceitar conexões, depois fecha o Redis e o Postgres (o orquestrador manda SIGTERM).
 let stopping = false;
 const shutdown = () => {
   if (stopping) return;
   stopping = true;
+  // O remetente para antes do Postgres fechar; o lote em andamento termina.
+  clearInterval(pushTimer);
   server.close(async () => {
+    await pushRun;
     await cache.close().catch(() => {});
     await sql.end().catch(() => {});
     process.exit(0);
