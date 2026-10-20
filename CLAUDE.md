@@ -16,6 +16,7 @@ scripts/local-redis.sh start                          # Redis 8 local (Docker, :
 pnpm db:migrate && pnpm db:seed                       # esquema + dados de demonstração
 pnpm dev                                              # web em :5173, API em :8787 (login dev: "marina")
 pnpm cache:bump <grupo...>                            # invalida grupos do cache à mão (precisa de REDIS_URL)
+pnpm push:keys                                        # gera o par de chaves VAPID do push (cole no .env ou no Dokploy)
 pnpm check                                            # Biome: formata e corrige (use antes de commitar)
 pnpm lint                                             # Biome: só o lint
 pnpm typecheck                                        # tipos de api e web
@@ -39,6 +40,13 @@ roda sem cache (`pnpm dev` só usa se você exportar `REDIS_URL=redis://127.0.0.
 escrita nova chama `markDirty` com os grupos que afeta, e toda leitura pública nova usa `cached`. Inclua a escrita
 no teste `api/test/cache-invalidacao.test.ts`. A API invalida os grupos globais ao subir; dado alterado FORA da
 API (correção por SQL, banimento, seed num banco cuja API usa Redis) exige `pnpm cache:bump <grupos>`.
+
+## Notificações (ADR-0007)
+
+Regra: evento que avisa alguém grava a notificação com `notify` (`api/src/notifications/store.ts`) na mesma
+transação da escrita, com o texto em `api/src/notifications/texts.ts` (título até 80, corpo até 160 caracteres).
+O envio push é separado: um tick de 5 s lê a fila no Postgres e só roda com `VAPID_*` configuradas; sem elas a
+lista dentro do app continua funcionando. Quem foi banido nunca recebe aviso. Entrega "pelo menos uma vez".
 
 ## Git (ADR-0002)
 

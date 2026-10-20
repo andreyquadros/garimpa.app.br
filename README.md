@@ -54,6 +54,7 @@ Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (p
 | API | Node 22, Hono, Postgres.js, jose (Google ID token), sharp + exifr (provas), zod |
 | Banco | PostgreSQL 18 com PostGIS, `pg_trgm`, `unaccent`, `tsvector('portuguese')`; livro-razão em PL/pgSQL |
 | Cache | Redis 8 (leituras públicas, invalidação por versão de grupo; opcional via `REDIS_URL`), ver [ADR-0006](docs/adr/0006-cache-com-redis.md) |
+| Avisos | Notificações na lista do app (Postgres) e Web Push com VAPID (`web-push`, service worker próprio; opcional via `VAPID_*`), ver [ADR-0007](docs/adr/0007-notificacoes-web-push.md) |
 | Deploy | uma imagem Docker (API serve o PWA e as fotos) + Postgres + Redis + backup, via Dokploy no KVM 8 |
 
 ## Rodar
@@ -79,4 +80,4 @@ Sem `GOOGLE_CLIENT_ID` o app oferece login de desenvolvimento: entre como `marin
 
 ## Estado
 
-Piloto funcional, pronto para subir no KVM 8: mapa com busca e deduplicação, perguntar, responder com prova e checklist, confirmações ponderadas, aceite com gorjeta, ranking semanal e geral, perfil com níveis e conquistas, antiplágio (hash perceptual, EXIF, texto, conluio, denúncias) e livro-razão com carência e estorno. Fora do escopo desta entrega: notificações push, painel do lojista e resgate via Pix (fase 2).
+Piloto funcional, pronto para subir no KVM 8: mapa com busca e deduplicação, perguntar, responder com prova e checklist, confirmações ponderadas, aceite com gorjeta, ranking semanal e geral, perfil com níveis e conquistas, antiplágio (hash perceptual, EXIF, texto, conluio, denúncias) e livro-razão com carência e estorno. Avisos dentro do app e push no celular quando chega evidência, confirmação, aceite, gorjeta ou liberação de pepitas. Fora do escopo desta entrega: painel do lojista e resgate via Pix (fase 2).
