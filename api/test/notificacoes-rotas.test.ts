@@ -35,7 +35,7 @@ describe('rotas de notificações', () => {
     expect(Object.keys(p1.json.items[0]).sort()).toEqual(
       ['body', 'createdAt', 'id', 'kind', 'readAt', 'title', 'url'].sort(),
     );
-    expect(p1.json.nextBefore).toBe(p1.json.items[29].createdAt);
+    expect(typeof p1.json.nextBefore).toBe('string');
     const p2 = await api(app, 'GET', `/api/notifications?before=${encodeURIComponent(p1.json.nextBefore)}`, {
       session: a,
     });
@@ -59,6 +59,52 @@ describe('rotas de notificações', () => {
     expect(sem).toHaveLength(0);
     const ruim = await api(app, 'POST', '/api/notifications/read', { session: a, body: { ids: ['x'] } });
     expect(ruim.status).toBe(400);
+  });
+
+  it('recusa mais de 100 ids e cursor inválido', async () => {
+    const a = await login(app, uniq('Gabi'));
+    const ids = Array.from({ length: 101 }, () => crypto.randomUUID());
+    expect((await api(app, 'POST', '/api/notifications/read', { session: a, body: { ids } })).status).toBe(400);
+    expect((await api(app, 'GET', '/api/notifications?before=ontem', { session: a })).status).toBe(400);
+  });
+
+  async function paginar(a: Session): Promise<string[]> {
+    const vistos: string[] = [];
+    let cursor: string | null = null;
+    do {
+      const r: any = await api(
+        app,
+        'GET',
+        `/api/notifications${cursor ? `?before=${encodeURIComponent(cursor)}` : ''}`,
+        {
+          session: a,
+        },
+      );
+      expect(r.status).toBe(200);
+      vistos.push(...r.json.items.map((i: { id: string }) => i.id));
+      cursor = r.json.nextBefore;
+    } while (cursor);
+    return vistos;
+  }
+
+  it('pagina sem pular avisos com o mesmo created_at', async () => {
+    const a = await login(app, uniq('Hugo'));
+    const mesmo = new Date();
+    await sql`insert into notifications (user_id, kind, title, body, url, created_at)
+      select ${a.user.id}::uuid, 'gorjeta_recebida', 't' || g, 'c', '/', ${mesmo} from generate_series(1, 31) g`;
+    const vistos = await paginar(a);
+    expect(vistos).toHaveLength(31);
+    expect(new Set(vistos).size).toBe(31);
+  });
+
+  it('pagina sem pular avisos que diferem só em microssegundos', async () => {
+    const a = await login(app, uniq('Ivo'));
+    await sql`insert into notifications (user_id, kind, title, body, url, created_at)
+      select ${a.user.id}::uuid, 'gorjeta_recebida', 't' || g, 'c', '/',
+        timestamptz '2026-03-01 12:00:00+00' + g * interval '1 microsecond' from generate_series(1, 35) g`;
+    const vistos = await paginar(a);
+    expect(vistos).toHaveLength(35);
+    expect(new Set(vistos).size).toBe(35);
   });
 
   it('não marca nem lista notificações de outra pessoa', async () => {
