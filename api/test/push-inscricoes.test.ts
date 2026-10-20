@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import webpush from 'web-push';
 import type { App } from '../src/app.js';
+import { loadConfig } from '../src/config.js';
 import type { Sql } from '../src/db.js';
-import { isAllowedPushEndpoint } from '../src/push/endpoint.js';
+import { isAllowedPushEndpoint, normalizePushEndpoint } from '../src/push/endpoint.js';
 import { vapidKeyLines } from '../src/push/keys.js';
 import { api, login, makeApp, uniq } from './helpers.js';
 
@@ -34,6 +35,13 @@ describe('inscrições de push', () => {
       'https://evil.example/x',
       'https://fcm.googleapis.com.evil.example/x',
       'not a url',
+      'https://x.push.apple.com.evil.example/x',
+      'https://evilpush.apple.com/x',
+      'https://attackernotify.windows.com/x',
+      'https://fcm.googleapis.com@evil.example/x',
+      'https://push.apple.com/x',
+      'https://fcm.googleapis.com:8443/x',
+      'https://u:p@fcm.googleapis.com/x',
     ])
       expect(isAllowedPushEndpoint(ruim), ruim).toBe(false);
   });
@@ -105,6 +113,39 @@ describe('inscrições de push', () => {
     } finally {
       await com.close();
     }
+  });
+
+  it('guarda o endpoint normalizado e o DELETE aceita qualquer grafia', async () => {
+    const a = await login(app, uniq('Gil'));
+    const id = uniq('n');
+    const bruto = `HTTPS://FCM.googleapis.com/fcm/send/${id}`;
+    const canonico = `https://fcm.googleapis.com/fcm/send/${id}`;
+    expect(normalizePushEndpoint(bruto)).toBe(canonico);
+    expect(normalizePushEndpoint('https://evil.example/x')).toBeNull();
+    await api(app, 'POST', '/api/push/subscriptions', { session: a, body: { endpoint: bruto, keys } });
+    const rows = await sql`select endpoint from push_subscriptions where user_id = ${a.user.id}::uuid`;
+    expect(rows.map((r) => r.endpoint)).toEqual([canonico]);
+    await api(app, 'DELETE', '/api/push/subscriptions', { session: a, body: { endpoint: bruto } });
+    expect(await sql`select 1 from push_subscriptions where endpoint = ${canonico}`).toHaveLength(0);
+    await api(app, 'POST', '/api/push/subscriptions', { session: a, body: { endpoint: bruto, keys } });
+    await api(app, 'DELETE', '/api/push/subscriptions', { session: a, body: { endpoint: canonico } });
+    expect(await sql`select 1 from push_subscriptions where endpoint = ${canonico}`).toHaveLength(0);
+  });
+
+  it('com só duas das três variáveis VAPID o push fica desligado', async () => {
+    const { publicKey, privateKey } = webpush.generateVAPIDKeys();
+    const parcial = await makeApp({ env: { VAPID_PUBLIC_KEY: publicKey, VAPID_PRIVATE_KEY: privateKey } });
+    try {
+      const r = await api(parcial.app, 'GET', '/api/push/key');
+      expect(r.json).toEqual({ publicKey: null });
+    } finally {
+      await parcial.close();
+    }
+  });
+
+  it('VAPID_SUBJECT inválido derruba a configuração', () => {
+    expect(() => loadConfig({ VAPID_SUBJECT: 'foo' })).toThrow();
+    expect(() => loadConfig({ VAPID_SUBJECT: 'mailto:a@b.com' })).not.toThrow();
   });
 
   it('push:keys gera um par válido', () => {
