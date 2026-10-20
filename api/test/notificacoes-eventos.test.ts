@@ -127,7 +127,16 @@ describe('avisos nas escritas', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ url: `/m/${qid}`, topic: `missao-${qid}`, refType: 'resposta' });
     expect(acc.json.credits, JSON.stringify(acc.json)).toBeGreaterThan(0);
-    expect(rows[0]!.body).toContain(`(+${acc.json.credits} pepitas)`);
+    // O aviso soma o que o autor ganhou de verdade: aceite mais primeiro achado (dois lançamentos no livro-razão).
+    expect(acc.json.primeiroAchado, JSON.stringify(acc.json)).toBeGreaterThan(0);
+    const total = (
+      await sql<{ s: number }[]>`
+        select coalesce(sum(credits), 0)::int as s from ledger
+        where user_id = ${b.user.id}::uuid and ref_type = 'resposta' and ref_id = ${ans.json.answerId as string}::uuid
+          and kind in ('resposta_aceita', 'primeiro_achado')`
+    )[0]!.s;
+    expect(total).toBe(acc.json.credits + acc.json.primeiroAchado);
+    expect(rows[0]!.body).toContain(`(+${total} pepitas)`);
 
     // Sem pepitas (mesmo aparelho do autor da missão): o texto omite o parêntese.
     const device = uniq('cel');
