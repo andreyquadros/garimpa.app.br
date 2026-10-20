@@ -16,6 +16,7 @@ describe('toNotificationOptions', () => {
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       tag: 'missao-1',
+      renotify: true,
       data: { url: '/m/1', id: 'n1' },
     });
   });
@@ -23,6 +24,7 @@ describe('toNotificationOptions', () => {
   it('sem tópico não define tag', () => {
     const { options } = toNotificationOptions({ id: 'n2', title: 't', body: 'b', url: '/', topic: null });
     expect(options.tag).toBeUndefined();
+    expect(options.renotify).toBeUndefined();
   });
 
   it('troca url externa por /notificacoes nos dados', () => {
