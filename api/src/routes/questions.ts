@@ -6,6 +6,8 @@ import { cached, findGroups, markDirty } from '../cache-http.js';
 import type { Sql } from '../db.js';
 import { award, grantBadge, loadEconomy, takeCap, takeMintCap } from '../economy.js';
 import { pointSql } from '../geo.js';
+import { notify } from '../notifications/store.js';
+import { evidenciaAceita } from '../notifications/texts.js';
 import { capQuery } from '../text.js';
 import { allEvidencesReused } from './answers.js';
 
@@ -426,6 +428,18 @@ questionRoutes.post('/questions/:id/accept', async (c) => {
     }
     await tx`update questions set status = 'resolvida', accepted_answer_id = ${a.id}::uuid, solved_at = now() where id = ${id}::uuid`;
     await tx`update answers set status = 'aceita' where id = ${a.id}::uuid`;
+    const pl = (await tx<{ name: string }[]>`select name from places where id = ${a.placeId}::uuid`)[0]!;
+    await notify(tx, [
+      {
+        userId: a.authorId,
+        kind: 'evidencia_aceita',
+        ...evidenciaAceita(pl.name, credits),
+        url: `/m/${id}`,
+        topic: `missao-${id}`,
+        refType: 'resposta',
+        refId: a.id,
+      },
+    ]);
     markDirty(c, ...findGroups(id, a.placeId));
     await award(
       tx,

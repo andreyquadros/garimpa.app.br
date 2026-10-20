@@ -6,6 +6,8 @@ import { findGroups, markDirty } from '../cache-http.js';
 import type { Sql, Tx } from '../db.js';
 import { award, grantBadge, levelFor, loadEconomy, takeCap, takeMintCap } from '../economy.js';
 import { SIMILAR_HAMMING, scoreEvidence } from '../evidence.js';
+import { notify } from '../notifications/store.js';
+import { evidenciaConfirmada, gorjetaRecebida, novaEvidencia } from '../notifications/texts.js';
 import { getOrCreatePlace, newPlaceSchema } from './places.js';
 
 export const answerRoutes = new Hono<AppEnv>();
@@ -88,7 +90,9 @@ answerRoutes.post('/questions/:id/answers', async (c) => {
   const body = createSchema.parse(await c.req.json());
 
   const q = (
-    await sql<{ authorId: string; status: string }[]>`select author_id, status from questions where id = ${qid}::uuid`
+    await sql<
+      { authorId: string; status: string; title: string }[]
+    >`select author_id, status, title from questions where id = ${qid}::uuid`
   )[0];
   if (!q) throw new HTTPException(404, { message: 'Pergunta não encontrada.' });
   if (q.authorId === u.id)
@@ -112,7 +116,9 @@ answerRoutes.post('/questions/:id/answers', async (c) => {
       placeCreated = p.created;
     }
     const place = (
-      await tx<{ lat: number; lng: number }[]>`select lat, lng from places where id = ${placeId}::uuid`
+      await tx<
+        { lat: number; lng: number; name: string }[]
+      >`select lat, lng, name from places where id = ${placeId}::uuid`
     )[0];
     if (!place) throw new HTTPException(404, { message: 'Lugar não encontrado.' });
 
@@ -233,6 +239,26 @@ answerRoutes.post('/questions/:id/answers', async (c) => {
       >`select count(*)::int as n from evidences where uploader_id = ${u.id}::uuid and score >= ${eco.evidencia_forte} and answer_id is not null`
     )[0]!.n;
     if (strongCount >= 10) await grantBadge(tx, u.id, 'bom_de_prova');
+    // Quem abriu a missão e quem a segue (o autor também tem linha em question_followers) sabe da nova pista;
+    // quem respondeu não precisa ser avisado do que acabou de fazer.
+    const watchers = await tx<{ userId: string }[]>`
+      select ${q.authorId}::uuid as user_id
+      union select user_id from question_followers where question_id = ${qid}::uuid`;
+    const txt = novaEvidencia(q.title, place.name);
+    await notify(
+      tx,
+      watchers
+        .filter((w) => w.userId !== u.id)
+        .map((w) => ({
+          userId: w.userId,
+          kind: 'nova_evidencia' as const,
+          ...txt,
+          url: `/m/${qid}`,
+          topic: `missao-${qid}`,
+          refType: 'resposta',
+          refId: answerId,
+        })),
+    );
     // Lugar novo entra na lista de lugares; a resposta pendente já aparece na página do lugar.
     markDirty(c, 'missoes', `missao:${qid}`, `lugar:${placeId}`, 'ranking', ...(placeCreated ? ['lugares'] : []));
     return { answerId, placeId, isFirst, evidenceScore: best, strong, xp, checks };
@@ -291,6 +317,19 @@ answerRoutes.post('/answers/:id/confirm', async (c) => {
     if (a.status === 'pendente' && sums.confirms >= eco.confirmacoes_para_validar && sums.confirms > sums.denies) {
       newStatus = 'confirmada';
       await tx`update answers set status = 'confirmada' where id = ${id}::uuid`;
+      // Só a transição avisa: votos seguintes numa resposta já confirmada não repetem o aviso.
+      const pl = (await tx<{ name: string }[]>`select name from places where id = ${a.placeId}::uuid`)[0]!;
+      await notify(tx, [
+        {
+          userId: a.authorId,
+          kind: 'evidencia_confirmada',
+          ...evidenciaConfirmada(pl.name),
+          url: `/m/${a.questionId}`,
+          topic: `missao-${a.questionId}`,
+          refType: 'resposta',
+          refId: id,
+        },
+      ]);
       // Conluio votante↔autor decide as pepitas do autor (como no aceite): mesmo aparelho não cunha; mesma rede, carência longa.
       const voters = await tx<
         { userId: string }[]
@@ -444,6 +483,17 @@ answerRoutes.post('/answers/:id/tip', async (c) => {
       meta,
       vestDays,
     );
+    await notify(tx, [
+      {
+        userId: a.authorId,
+        kind: 'gorjeta_recebida',
+        ...gorjetaRecebida(u.name, body.amount),
+        url: `/m/${a.questionId}`,
+        topic: `missao-${a.questionId}`,
+        refType: 'gorjeta',
+        refId: tip.id,
+      },
+    ]);
     const given = (
       await tx<{ n: number }[]>`select count(*)::int as n from tips where from_user = ${u.id}::uuid and amount >= 5`
     )[0]!.n;
