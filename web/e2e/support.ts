@@ -40,3 +40,25 @@ export async function randomJpeg(page: Page): Promise<Buffer> {
   });
   return Buffer.from(dataUrl.slice(dataUrl.indexOf(',') + 1), 'base64');
 }
+
+/**
+ * Num celular de 360 px, com a pessoa logada, o cabeçalho (sequência, XP, sininho, avatar) cabe sem rolagem lateral
+ * e o avatar, atalho da Carteira, fica dentro da tela. Volta ao tamanho anterior no fim.
+ */
+export async function expectHeaderFitsPhone(page: Page): Promise<void> {
+  const before = page.viewportSize();
+  await page.setViewportSize({ width: 360, height: 740 });
+  const avatar = page.getByRole('link', { name: 'Sua carteira' });
+  await expect(avatar).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Notificações/ })).toBeVisible();
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }));
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth);
+  const box = await avatar.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(innerWidth);
+  if (before) await page.setViewportSize(before);
+}

@@ -42,10 +42,13 @@ export function Wordmark({
   size = 28,
   tone = 'ink',
   className = '',
+  textClassName = '',
 }: {
   size?: number;
   tone?: 'ink' | 'light';
   className?: string;
+  /** Classes do texto "pepitasocial" (ex.: escondê-lo em telas estreitas e ficar só o símbolo). */
+  textClassName?: string;
 }) {
   const color = tone === 'light' ? 'text-creme' : 'text-brand-ink';
   const soft = tone === 'light' ? 'text-lima-400' : 'text-accent';
@@ -53,7 +56,7 @@ export function Wordmark({
     <span className={`inline-flex items-center gap-2 ${className}`} role="img" aria-label="Pepita Social">
       <BrandSymbol size={size * 1.15} light={tone === 'light' ? true : undefined} />
       <span
-        className={`font-display font-extrabold leading-none ${color}`}
+        className={`font-display font-extrabold leading-none ${color} ${textClassName}`}
         style={{ fontSize: size, letterSpacing: '-0.03em' }}
       >
         pepita<span className={`font-semibold ${soft}`}>social</span>
