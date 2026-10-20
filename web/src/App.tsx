@@ -8,6 +8,7 @@ import { Feed } from './pages/Feed';
 import { Home } from './pages/Home';
 import { Jornada } from './pages/Jornada';
 import { Login } from './pages/Login';
+import { Notificacoes } from './pages/Notificacoes';
 import { PlacePage } from './pages/Place';
 import { QuestionPage } from './pages/Question';
 
@@ -30,6 +31,7 @@ export const router = (DEMO ? createHashRouter : createBrowserRouter)([
       { path: 'lugar/:id', element: <PlacePage /> },
       { path: 'jornada', element: <Jornada /> },
       { path: 'carteira', element: <Carteira /> },
+      { path: 'notificacoes', element: <Notificacoes /> },
       { path: 'entrar', element: <Login /> },
       // Endereços antigos continuam funcionando.
       { path: 'garimpos', element: <Navigate to="/missoes" replace /> },

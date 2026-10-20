@@ -198,3 +198,14 @@ export type UploadResult = {
   exif: { hasGps: boolean; takenAt: string | null };
   device: { hasLocation: boolean };
 };
+export type AppNotification = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  url: string;
+  createdAt: string;
+  readAt: string | null;
+};
+/** `nextBefore` é um cursor opaco da API: só é devolvido como `before`, nunca interpretado. */
+export type NotificationPage = { items: AppNotification[]; unread: number; nextBefore: string | null };

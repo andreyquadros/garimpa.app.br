@@ -8,6 +8,7 @@ import { useMe, useToast } from '@/lib/hooks';
 import { celebrate } from '@/lib/reward';
 import type { Badge } from '@/lib/types';
 import { Anim, Pepi, RankBadge, Wordmark } from './brand';
+import { NotificationBell } from './NotificationBell';
 import { Avatar, Button, Sheet, StreakChip, XpChip } from './ui';
 
 const tabs = [
@@ -72,6 +73,7 @@ function TopBar() {
             <Link to="/jornada" aria-label="Sua jornada">
               <XpChip xp={me.user.xp} size="sm" />
             </Link>
+            <NotificationBell />
             <Link to="/carteira" aria-label="Sua carteira" className="relative">
               <Avatar name={me.user.name} url={me.user.avatarUrl} size={38} />
               <span
