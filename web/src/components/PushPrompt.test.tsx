@@ -11,6 +11,7 @@ describe('PushPrompt', () => {
   it('inativo: oferece ativar os avisos', async () => {
     const onEnable = vi.fn();
     render(<PushPrompt status="inativo" onEnable={onEnable} />);
+    expect(screen.getByText('Quer ser avisado quando responderem?')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Ativar avisos' }));
     expect(onEnable).toHaveBeenCalledOnce();
   });

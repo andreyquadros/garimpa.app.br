@@ -73,7 +73,7 @@ export function PushPrompt({
           <BellRing size={20} aria-hidden="true" />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="font-display font-extrabold">Quer saber na hora quando tiver novidade?</p>
+          <p className="font-display font-extrabold">Quer ser avisado quando responderem?</p>
           {status === 'inativo' ? (
             <p className="text-sm text-ink-2 mt-0.5">
               Avisamos no celular quando chegar uma pista, quando confirmarem a sua ou quando pepitas forem liberadas.
