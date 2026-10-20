@@ -2,6 +2,16 @@ import type { Sql } from '../db.js';
 import type { PushTransport } from './transport.js';
 
 const BATCH = 50;
+const PARALLEL = 5;
+const SEND_TIMEOUT_S = 10;
+/**
+ * Reserva (lease) das linhas reivindicadas. Pior caso de um worker: BATCH/PARALLEL (10) envios em série, cada um
+ * até o timeout do transporte (10 s) = 100 s; o dobro de folga dá 200 s, arredondado para 5 minutos. Reserva curta
+ * demais deixaria outro remetente repetir um envio ainda em andamento.
+ */
+const LEASE_MINUTES = Math.ceil((2 * (BATCH / PARALLEL) * SEND_TIMEOUT_S) / 60 / 5) * 5;
+/** Depois de tantas falhas seguidas a inscrição é descartada: aparelho que nunca responde só gasta envios. */
+const MAX_SUB_FAILURES = 10;
 const TTL_SECONDS = 24 * 60 * 60;
 /** Espera (em minutos) antes da próxima tentativa, pelo número da falha; a 5ª falha desiste. */
 const BACKOFF_MIN = [1, 5, 30, 120];
@@ -18,11 +28,9 @@ type Row = {
 };
 type Sub = { id: string; userId: string; endpoint: string; p256dh: string; auth: string };
 
-const PARALLEL = 5;
-
 /**
  * Envia UM lote de notificações pendentes. Reivindica e envia em passos separados: a transação curta só trava
- * as linhas e adia `push_next_at` (lease de 2 min), então dois remetentes nunca pegam a mesma linha e nenhum
+ * as linhas e adia `push_next_at` (lease de 5 min), então dois remetentes nunca pegam a mesma linha e nenhum
  * bloqueio fica aberto durante o HTTP (um serviço de push lento não pode travar leitura, logout ou exclusão de
  * conta). Se o processo morrer no meio, o lease vence e a notificação volta para a fila.
  */
@@ -40,7 +48,7 @@ export async function sendPendingPush(sql: Sql, transport: PushTransport, now?: 
       order by n.push_next_at limit ${BATCH}
       for update of n skip locked`;
     if (found.length)
-      await tx`update notifications set push_next_at = ${dueNow} + interval '2 minutes'
+      await tx`update notifications set push_next_at = ${dueNow} + ${LEASE_MINUTES} * interval '1 minute'
         where id = any(${found.map((r) => r.id)}::uuid[])`;
     return found;
   });
@@ -55,7 +63,7 @@ export async function sendPendingPush(sql: Sql, transport: PushTransport, now?: 
   const byUser = new Map<string, Sub[]>();
   for (const s of subs) byUser.set(s.userId, [...(byUser.get(s.userId) ?? []), s]);
 
-  const one = async (n: Row) => {
+  const sendOne = async (n: Row) => {
     // Conta removida não recebe nada, nem que ainda tenha aparelho inscrito.
     const mine = n.banned ? [] : (byUser.get(n.userId) ?? []);
     if (!mine.length) {
@@ -79,7 +87,12 @@ export async function sendPendingPush(sql: Sql, transport: PushTransport, now?: 
         await sql`delete from push_subscriptions where id = ${s.id}`;
       } else {
         failed = true;
-        await sql`update push_subscriptions set failures = failures + 1 where id = ${s.id}`;
+        const upd = await sql<{ failures: number }[]>`
+          update push_subscriptions set failures = failures + 1 where id = ${s.id} returning failures`;
+        if ((upd[0]?.failures ?? 0) >= MAX_SUB_FAILURES) {
+          remaining--;
+          await sql`delete from push_subscriptions where id = ${s.id}`;
+        }
       }
     }
     if (delivered) {
@@ -99,6 +112,20 @@ export async function sendPendingPush(sql: Sql, transport: PushTransport, now?: 
       }
     } else if (remaining === 0) {
       await sql`update notifications set push_state = 'sem_assinatura' where id = ${n.id} and push_state = 'pendente'`;
+    }
+  };
+
+  // Erro inesperado numa notificação não pode derrubar o lote: o Promise.all devolveria o controle com outros envios
+  // ainda no ar (o laço do main.ts abriria outro lote e o desligamento fecharia o banco debaixo deles). A linha fica
+  // `pendente` e o vencimento da reserva a recoloca na fila.
+  const one = async (n: Row) => {
+    try {
+      await sendOne(n);
+    } catch (e) {
+      console.error(
+        `push: falha inesperada ao enviar a notificação ${n.id}; ela volta à fila quando a reserva vencer`,
+        e,
+      );
     }
   };
 

@@ -20,6 +20,8 @@ export function normalizeTopic(topic: string | null): string | undefined {
   return out || undefined;
 }
 
+const SEND_TIMEOUT_MS = 10_000;
+
 export function webPushTransport(vapid: { publicKey: string; privateKey: string; subject: string }): PushTransport {
   return {
     async send(sub, payload, opts) {
@@ -33,8 +35,8 @@ export function webPushTransport(vapid: { publicKey: string; privateKey: string;
             topic: normalizeTopic(opts.topic),
             urgency: 'normal',
             contentEncoding: 'aes128gcm',
-            // Serviço de push lento não pode travar o lote (que segura linhas bloqueadas no banco).
-            timeout: 10_000,
+            // Serviço de push lento não pode travar o lote: as linhas ficam reservadas (lease) durante o HTTP, não bloqueadas.
+            timeout: SEND_TIMEOUT_MS,
           },
         );
         return { statusCode: res.statusCode };

@@ -177,6 +177,48 @@ describe('remetente de push', () => {
     for (const id of ids) expect(calls.filter((c) => c.payload.id === id)).toHaveLength(1);
   });
 
+  it('erro inesperado em uma notificação não derruba as outras nem antecipa o retorno', async () => {
+    const u = await newUser();
+    await addSub(u);
+    await drain(fakeTransport().transport);
+    const ids: string[] = [];
+    for (let i = 0; i < 8; i++) ids.push(await addNotif(u));
+    const ruim = ids[2]!;
+    let inFlight = 0;
+    const transport: PushTransport = {
+      async send(_s, payload) {
+        inFlight++;
+        try {
+          if (payload.id === ruim) throw new Error('falha inesperada do transporte');
+          await new Promise((r) => setTimeout(r, 40));
+          return { statusCode: 201 };
+        } finally {
+          inFlight--;
+        }
+      },
+    };
+    const now = new Date();
+    const res = await sendPendingPush(sql, transport, now);
+    expect(res.processed).toBe(8);
+    expect(inFlight).toBe(0);
+    for (const id of ids.filter((i) => i !== ruim)) expect((await stateOf(id)).pushState).toBe('enviado');
+    const s = await stateOf(ruim);
+    expect(s.pushState).toBe('pendente');
+    // Fica reservada por 5 minutos: o vencimento da reserva é a nova tentativa.
+    expect(Math.abs(s.pushNextAt.getTime() - (now.getTime() + 5 * 60_000))).toBeLessThan(1000);
+  });
+
+  it('inscrição que chega à 10ª falha seguida é apagada', async () => {
+    const u = await newUser();
+    const ep = await addSub(u);
+    await sql`update push_subscriptions set failures = 9 where endpoint = ${ep}`;
+    const id = await addNotif(u);
+    await drain(fakeTransport({ [ep]: 500 }).transport);
+    expect((await stateOf(id)).pushState).toBe('pendente');
+    const left = await sql`select 1 from push_subscriptions where endpoint = ${ep}`;
+    expect(left).toHaveLength(0);
+  });
+
   it('um aparelho entrega e outro falha: enviado, sem nova tentativa', async () => {
     const u = await newUser();
     const ok = await addSub(u);
