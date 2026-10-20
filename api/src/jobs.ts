@@ -4,6 +4,8 @@ import { grantBadge } from './economy.js';
 /** Tarefas periódicas: libera carências e premia o garimpeiro da semana. Idempotente. */
 export async function runTick(sql: Sql): Promise<{ vested: number; weeklyBadge: string | null }> {
   const vested = Number((await sql<{ fnVestDue: number }[]>`select fn_vest_due()`)[0]?.fnVestDue ?? 0);
+  // Retenção: avisos com mais de 90 dias saem (a lista só mostra os recentes).
+  await sql`delete from notifications where created_at < now() - interval '90 days'`;
   const week = (
     await sql<
       { w: string }[]
