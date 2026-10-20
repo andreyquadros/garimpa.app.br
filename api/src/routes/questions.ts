@@ -433,7 +433,7 @@ questionRoutes.post('/questions/:id/accept', async (c) => {
       {
         userId: a.authorId,
         kind: 'evidencia_aceita',
-        ...evidenciaAceita(pl.name, credits),
+        ...evidenciaAceita(pl.name, credits + primeiro),
         url: `/m/${id}`,
         topic: `missao-${id}`,
         refType: 'resposta',
