@@ -6,7 +6,20 @@ export const notificationRoutes = new Hono<AppEnv>();
 
 const PAGE_SIZE = 30;
 
-const listQuery = z.object({ before: z.coerce.date().optional() });
+// Cursor opaco `<microssegundos desde a época>_<uuid>`: created_at do Postgres tem precisão de microssegundo, e o ISO do
+// JSON só de milissegundo, então o cursor carrega o valor exato mais o id para desempatar avisos do mesmo instante
+// (o now() é fixo dentro de uma transação, então empates exatos acontecem de verdade).
+const CURSOR = /^(\d{1,18})_([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+const listQuery = z.object({
+  before: z
+    .string()
+    .regex(CURSOR)
+    .transform((v) => {
+      const [, us, id] = CURSOR.exec(v)!;
+      return { us: us!, id: id! };
+    })
+    .optional(),
+});
 const readBody = z.object({ ids: z.array(z.string().uuid()).max(100).optional() });
 
 // Rotas pessoais: nunca passam por `cached` (ADR-0006), cada pessoa vê só as suas.
@@ -15,23 +28,33 @@ notificationRoutes.get('/notifications', async (c) => {
   const sql = c.get('sql');
   const { before } = listQuery.parse({ before: c.req.query('before') });
   const rows = await sql<
-    { id: string; kind: string; title: string; body: string; url: string; createdAt: Date; readAt: Date | null }[]
+    {
+      id: string;
+      kind: string;
+      title: string;
+      body: string;
+      url: string;
+      createdAt: Date;
+      readAt: Date | null;
+      cursorUs: string;
+    }[]
   >`
-    select id, kind, title, body, url, created_at, read_at from notifications
-    where user_id = ${u.id}::uuid and (${before ?? null}::timestamptz is null or created_at < ${before ?? null}::timestamptz)
+    select id, kind, title, body, url, created_at, read_at, (extract(epoch from created_at) * 1000000)::bigint::text as cursor_us
+    from notifications
+    where user_id = ${u.id}::uuid
+      and (${before?.us ?? null}::bigint is null
+        or (created_at, id) < ('epoch'::timestamptz + ${before?.us ?? null}::bigint * interval '1 microsecond', ${before?.id ?? null}::uuid))
     order by created_at desc, id desc limit ${PAGE_SIZE}`;
   const unread = (
     await sql<
       { n: number }[]
     >`select count(*)::int as n from notifications where user_id = ${u.id}::uuid and read_at is null`
   )[0]!.n;
-  // Cursor só por created_at (milissegundos no JSON): avisos com o mesmo instante na fronteira da página podem ser
-  // pulados. Aceito: cada aviso nasce numa transação própria e o empate exato é raro.
   const last = rows[PAGE_SIZE - 1];
   return c.json({
-    items: rows,
+    items: rows.map(({ cursorUs: _cursorUs, ...item }) => item),
     unread,
-    nextBefore: rows.length === PAGE_SIZE && last ? last.createdAt.toISOString() : null,
+    nextBefore: rows.length === PAGE_SIZE && last ? `${last.cursorUs}_${last.id}` : null,
   });
 });
 
