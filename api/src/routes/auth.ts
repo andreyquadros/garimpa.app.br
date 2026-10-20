@@ -86,7 +86,13 @@ authRoutes.post('/logout', async (c) => {
 authRoutes.delete('/account', async (c) => {
   const u = requireUser(c);
   const sql = c.get('sql');
-  await sql`update users set banned_at = now(), name = 'Conta removida', email = null, google_sub = null, avatar_url = null where id = ${u.id}::uuid`;
+  // LGPD: a remoção é lógica (o usuário fica para preservar o livro-razão), então o cascade não apaga os avisos e as
+  // inscrições de push; saem na mesma transação.
+  await sql.begin(async (tx) => {
+    await tx`update users set banned_at = now(), name = 'Conta removida', email = null, google_sub = null, avatar_url = null where id = ${u.id}::uuid`;
+    await tx`delete from notifications where user_id = ${u.id}::uuid`;
+    await tx`delete from push_subscriptions where user_id = ${u.id}::uuid`;
+  });
   // Privacidade: nome e foto de quem saiu não podem continuar no cache. Ranking, listas, busca e mapa mostram autores;
   // o detalhe das missões que a pessoa abriu, respondeu ou agradeceu e a página dos lugares onde respondeu também.
   const refs = await sql<{ group: string }[]>`
