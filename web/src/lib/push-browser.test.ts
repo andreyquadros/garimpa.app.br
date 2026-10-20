@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { forgetDevice } from './push-browser';
+import { forgetDevice, readPushStatus } from './push-browser';
 
 function stubBrowser(o: { registered: boolean; endpoint?: string }) {
   const unsubscribe = vi.fn().mockResolvedValue(true);
@@ -45,5 +45,16 @@ describe('forgetDevice (antes de sair da conta)', () => {
     const api = { subscribePush: vi.fn(), unsubscribePush: vi.fn().mockResolvedValue({}) };
     await expect(forgetDevice(api)).resolves.toBeUndefined();
     expect(cacheDelete).toHaveBeenCalledWith('api');
+  });
+});
+
+describe('readPushStatus', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('sem service worker registrado é indisponivel', async () => {
+    stubBrowser({ registered: false });
+    vi.stubGlobal('Notification', { permission: 'default' });
+    vi.stubGlobal('PushManager', class {});
+    expect(await readPushStatus('chave')).toBe('indisponivel');
   });
 });

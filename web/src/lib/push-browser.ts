@@ -26,12 +26,14 @@ export async function readPushStatus(serverKey: string | null): Promise<PushStat
   // No iPhone fora da tela inicial o navegador nem expõe o PushManager; sem esta checagem a pessoa veria
   // "indisponível" em vez de aprender a instalar o app.
   if (serverKey && isIosSafariNotInstalled(ua, standalone)) return 'instalar-no-iphone';
-  const hasServiceWorker = 'serviceWorker' in navigator;
+  let hasServiceWorker = 'serviceWorker' in navigator;
   const hasPushManager = typeof window !== 'undefined' && 'PushManager' in window;
   let subscribed = false;
   if (hasServiceWorker && hasPushManager && serverKey) {
     try {
       const registration = await navigator.serviceWorker.getRegistration();
+      // Sem registro (ex.: `pnpm dev`) não há como receber push, e `serviceWorker.ready` nunca resolveria.
+      if (!registration) hasServiceWorker = false;
       subscribed = !!(await registration?.pushManager.getSubscription());
     } catch {
       subscribed = false;
