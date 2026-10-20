@@ -4,10 +4,12 @@ import { motion } from 'motion/react';
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { asset, NuggetIcon, Pepi, XpStar } from '@/components/brand';
+import { PushSettingRow } from '@/components/PushSetting';
 import { Avatar, Button, Headline, Sheet, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { KIND_LABEL, timeAgo } from '@/lib/format';
 import { useConfig, useMe, useShare, useTheme, useToast } from '@/lib/hooks';
+import { forgetDevice } from '@/lib/push-browser';
 
 /** Carteira: pepitas de agradecimento, fundo de recompensas e histórico. */
 export function Carteira() {
@@ -63,6 +65,9 @@ export function Carteira() {
     : null;
 
   async function logout() {
+    // Antes de encerrar a sessão (a remoção da inscrição no servidor exige estar logado): o aparelho deixa de
+    // receber os avisos desta conta e perde o cache com as respostas pessoais da API.
+    await forgetDevice(api);
     await api.logout();
     qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'config' });
     qc.setQueryData(['me'], null);
@@ -254,6 +259,7 @@ export function Carteira() {
               </button>
             ))}
           </div>
+          <PushSettingRow />
           <button
             type="button"
             onClick={logout}

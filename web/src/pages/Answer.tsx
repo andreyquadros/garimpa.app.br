@@ -21,6 +21,7 @@ import { Anim, NuggetIcon, Pepi } from '@/components/brand';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { checksFromUpload, EvidenceChecklist } from '@/components/EvidenceChecklist';
 import { MapView } from '@/components/MapView';
+import { OfferPush } from '@/components/PushPrompt';
 import { Button, Chip, Field, Spinner, TextArea } from '@/components/ui';
 import { api } from '@/lib/api';
 import { dist, KINDS, parseBrlToCents } from '@/lib/format';
@@ -202,6 +203,7 @@ export function AnswerPage() {
             </motion.div>
           ))}
         </div>
+        <OfferPush className="mt-6" />
         <Link to={`/m/${id}`} className="block mt-6">
           <Button variant="primary" size="lg" className="w-full">
             <Sparkles size={18} />

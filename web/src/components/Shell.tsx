@@ -9,6 +9,7 @@ import { celebrate } from '@/lib/reward';
 import type { Badge } from '@/lib/types';
 import { Anim, Pepi, RankBadge, Wordmark } from './brand';
 import { NotificationBell } from './NotificationBell';
+import { OfferPush } from './PushPrompt';
 import { Avatar, Button, Sheet, StreakChip, XpChip } from './ui';
 
 const tabs = [
@@ -19,7 +20,8 @@ const tabs = [
 ];
 
 export function Shell() {
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const { data: me } = useMe();
   const bare = pathname === '/entrar';
   return (
@@ -39,6 +41,11 @@ export function Shell() {
             ))}
           </div>
         </nav>
+      )}
+      {me && (location.state as { offerPush?: boolean } | null)?.offerPush && (
+        <div className="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-lg px-4">
+          <OfferPush />
+        </div>
       )}
       <Toasts />
       {import.meta.env.VITE_DEMO === '1' && <DemoBadge />}
