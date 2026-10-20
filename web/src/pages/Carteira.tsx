@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { KIND_LABEL, timeAgo } from '@/lib/format';
 import { useConfig, useMe, useShare, useTheme, useToast } from '@/lib/hooks';
 import { forgetDevice } from '@/lib/push-browser';
+import { signOut } from '@/lib/session';
 
 /** Carteira: pepitas de agradecimento, fundo de recompensas e histórico. */
 export function Carteira() {
@@ -65,12 +66,11 @@ export function Carteira() {
     : null;
 
   async function logout() {
-    // Antes de encerrar a sessão (a remoção da inscrição no servidor exige estar logado): o aparelho deixa de
-    // receber os avisos desta conta e perde o cache com as respostas pessoais da API.
-    await forgetDevice(api);
-    await api.logout();
-    qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'config' });
-    qc.setQueryData(['me'], null);
+    try {
+      await signOut(qc, { forgetDevice, logout: api.logout, pushApi: api });
+    } catch (e) {
+      toast.push({ text: (e as Error).message, tone: 'erro' });
+    }
     nav('/');
   }
   async function invite() {
