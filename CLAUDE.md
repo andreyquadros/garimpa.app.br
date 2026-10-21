@@ -92,6 +92,7 @@ lista dentro do app continua funcionando. Quem foi banido nunca recebe aviso. En
   uma ADR em `docs/adr/NNNN-titulo.md`: status, decisão, contexto, opções comparadas, consequências.
   Mudança pequena numa decisão vira seção "Revisão N" na ADR; mudança grande, ADR nova que substitui a antiga.
 - Migrações já aplicadas não são editadas (só comentários); mudança de esquema é sempre uma migração nova.
+- Tabela nova com chave `uuid` usa `default uuidv7()`, nunca `gen_random_uuid()` (ADR-0008).
 
 ## Glossário
 

@@ -52,7 +52,7 @@ Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (p
 |---|---|
 | PWA | React 19, Vite 8, TypeScript, Tailwind 4, Motion, Leaflet (tiles próprios de Ariquemes), TanStack Query, vite-plugin-pwa |
 | API | Node 22, Hono, Postgres.js, jose (Google ID token), sharp + exifr (provas), zod |
-| Banco | PostgreSQL 18 com PostGIS, `pg_trgm`, `unaccent`, `tsvector('portuguese')`; livro-razão em PL/pgSQL |
+| Banco | PostgreSQL 18 com PostGIS, `pg_trgm`, `unaccent`, `tsvector('portuguese')`; livro-razão em PL/pgSQL; chaves em UUID v7, ver [ADR-0008](docs/adr/0008-chaves-uuidv7.md) |
 | Cache | Redis 8 (leituras públicas, invalidação por versão de grupo; opcional via `REDIS_URL`), ver [ADR-0006](docs/adr/0006-cache-com-redis.md) |
 | Avisos | Notificações na lista do app (Postgres) e Web Push com VAPID (`web-push`, service worker próprio; opcional via `VAPID_*`), ver [ADR-0007](docs/adr/0007-notificacoes-web-push.md) |
 | Deploy | uma imagem Docker (API serve o PWA e as fotos) + Postgres + Redis + backup, via Dokploy no KVM 8 |
