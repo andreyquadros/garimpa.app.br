@@ -22,9 +22,9 @@ Identidade visual, mascote **Pepi** e animações: [docs/design](docs/design) (p
 
 ## Testar agora
 
-- **Demonstração no celular, sem instalar nada**: <https://andreyquadros.github.io/garimpa.app.br/>. Roda inteira no navegador com uma API simulada e dados de exemplo; entre como `marina`, `joao`, `tais`, `lucas` ou `dona neide` (ou qualquer nome novo) e percorra o fluxo completo: explorar, abrir uma missão, enviar evidência com foto, confirmar, aceitar, agradecer com pepitas, jornada e carteira. O selo "Demonstração" tem "Simular 7 dias" (libera as pepitas em carência) e "Reiniciar". Os dados ficam só no seu aparelho.
+- **Demonstração sem banco nem servidor**: `pnpm --filter garimpa-web dev:demo`. Roda inteira no navegador com uma API simulada e dados de exemplo; entre como `marina`, `joao`, `tais`, `lucas` ou `dona neide` (ou qualquer nome novo) e percorra o fluxo completo: explorar, abrir uma missão, enviar evidência com foto, confirmar, aceitar, agradecer com pepitas, jornada e carteira. O selo "Demonstração" tem "Simular 7 dias" (libera as pepitas em carência) e "Reiniciar". Os dados ficam só no seu aparelho.
 - **Versão real, local**: seção "Rodar" abaixo (Postgres + API + PWA em dois comandos).
-- Para quem mantém o repositório: o link do demo é publicado pelo workflow "Demo no GitHub Pages" a cada push em `main`; na primeira vez é preciso ativar o Pages em Settings → Pages → Source: GitHub Actions.
+- Para publicar o demo: `pnpm --filter garimpa-web build:demo` gera arquivos estáticos em `web/dist-demo`, que qualquer hospedagem de arquivos serve.
 - **Versão real no KVM 8**: [docs/06-arquitetura-e-deploy.md](docs/06-arquitetura-e-deploy.md), seção Dokploy.
 
 ## Como funciona
