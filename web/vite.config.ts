@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { configDefaults, defineConfig } from 'vitest/config';
 
-// VITE_DEMO=1: build estático com a API falsa no navegador (GitHub Pages). VITE_BASE=./ deixa os caminhos relativos.
+// VITE_DEMO=1: build estático com a API falsa no navegador. VITE_BASE=./ deixa os caminhos relativos.
 const demo = process.env.VITE_DEMO === '1';
 
 // Os testes de ponta a ponta apontam o proxy para a API deles (porta 8788).
