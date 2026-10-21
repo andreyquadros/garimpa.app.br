@@ -197,15 +197,20 @@ describe('remetente de push', () => {
         }
       },
     };
-    const now = new Date();
-    const res = await sendPendingPush(sql, transport, now);
+    // Sem `now`: um `new Date()` do Node (milissegundos) no mesmo milissegundo da última gravação (microssegundos)
+    // deixaria essa notificação fora do lote. A reserva é conferida contra o relógio do banco, antes e depois.
+    const dbNow = async () => (await sql<{ t: Date }[]>`select clock_timestamp() as t`)[0]!.t.getTime();
+    const before = await dbNow();
+    const res = await sendPendingPush(sql, transport);
+    const after = await dbNow();
     expect(res.processed).toBe(8);
     expect(inFlight).toBe(0);
     for (const id of ids.filter((i) => i !== ruim)) expect((await stateOf(id)).pushState).toBe('enviado');
     const s = await stateOf(ruim);
     expect(s.pushState).toBe('pendente');
     // Fica reservada por 5 minutos: o vencimento da reserva é a nova tentativa.
-    expect(Math.abs(s.pushNextAt.getTime() - (now.getTime() + 5 * 60_000))).toBeLessThan(1000);
+    expect(s.pushNextAt.getTime()).toBeGreaterThanOrEqual(before + 5 * 60_000);
+    expect(s.pushNextAt.getTime()).toBeLessThanOrEqual(after + 5 * 60_000 + 1);
   });
 
   it('inscrição que chega à 10ª falha seguida é apagada', async () => {
