@@ -17,7 +17,7 @@ function LegacyMission({ sub = '' }: { sub?: string }) {
   return <Navigate to={`/m/${id}${sub}`} replace />;
 }
 
-// Na demonstração (hospedagem estática, GitHub Pages) as rotas vivem no hash: /#/missoes.
+// Na demonstração (hospedagem estática, sem servidor que reescreva rotas) as rotas vivem no hash: /#/missoes.
 export const router = (DEMO ? createHashRouter : createBrowserRouter)([
   {
     path: '/',
