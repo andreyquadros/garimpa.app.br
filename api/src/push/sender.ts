@@ -26,20 +26,21 @@ const PARALLEL = 5;
  * bloqueio fica aberto durante o HTTP (um serviço de push lento não pode travar leitura, logout ou exclusão de
  * conta). Se o processo morrer no meio, o lease vence e a notificação volta para a fila.
  */
-export async function sendPendingPush(
-  sql: Sql,
-  transport: PushTransport,
-  now: Date = new Date(),
-): Promise<{ processed: number }> {
+export async function sendPendingPush(sql: Sql, transport: PushTransport, now?: Date): Promise<{ processed: number }> {
+  // Sem `now`, vencimento, lease e backoff usam o relógio do banco. `push_next_at` nasce no Postgres com
+  // microssegundos; comparar com `new Date()` (só milissegundos) fazia o aviso recém-criado parecer futuro
+  // dentro do mesmo milissegundo e atrasava o envio um ciclo (e deixava os testes instáveis). O `now`
+  // explícito continua existindo para simular o futuro nos testes de backoff.
+  const dueNow = now ? sql`${now}::timestamptz` : sql`clock_timestamp()`;
   const rows = await sql.begin(async (tx) => {
     const found = await tx<Row[]>`
       select n.id, n.user_id, n.title, n.body, n.url, n.topic, n.push_attempts, (u.banned_at is not null) as banned
       from notifications n join users u on u.id = n.user_id
-      where n.push_state = 'pendente' and n.push_next_at <= ${now}
+      where n.push_state = 'pendente' and n.push_next_at <= ${dueNow}
       order by n.push_next_at limit ${BATCH}
       for update of n skip locked`;
     if (found.length)
-      await tx`update notifications set push_next_at = ${now}::timestamptz + interval '2 minutes'
+      await tx`update notifications set push_next_at = ${dueNow} + interval '2 minutes'
         where id = any(${found.map((r) => r.id)}::uuid[])`;
     return found;
   });
@@ -89,7 +90,10 @@ export async function sendPendingPush(
         await sql`update notifications set push_state = 'falhou', push_attempts = ${attempts}
           where id = ${n.id} and push_state = 'pendente'`;
       } else {
-        const next = new Date(now.getTime() + BACKOFF_MIN[attempts - 1]! * 60_000);
+        const minutes = BACKOFF_MIN[attempts - 1]!;
+        const next = now
+          ? sql`${new Date(now.getTime() + minutes * 60_000)}::timestamptz`
+          : sql`clock_timestamp() + ${minutes} * interval '1 minute'`;
         await sql`update notifications set push_attempts = ${attempts}, push_next_at = ${next}
           where id = ${n.id} and push_state = 'pendente'`;
       }

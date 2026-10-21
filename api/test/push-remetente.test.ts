@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import webpush from 'web-push';
 import type { Sql } from '../src/db.js';
 import { runTick } from '../src/jobs.js';
@@ -62,6 +62,33 @@ async function drain(transport: PushTransport, now?: Date) {
 }
 
 describe('remetente de push', () => {
+  it('sem `now` usa o relógio do banco: aviso com microssegundos já vence na primeira chamada', async () => {
+    // O banco grava `push_next_at` com microssegundos; o `new Date()` do Node tem só milissegundos e, no mesmo
+    // milissegundo, ficaria atrás do valor gravado e o aviso seria pulado. Congelamos o Date do Node no
+    // milissegundo T e gravamos T + 500 µs (já passado para o banco): só o relógio do banco enxerga como vencido.
+    const u = await newUser();
+    await addSub(u);
+    const { transport } = fakeTransport();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      for (let i = 0; i < 50; i++) {
+        const t = (
+          await sql<{ t: Date }[]>`select date_trunc('milliseconds', clock_timestamp() - interval '10 seconds') as t`
+        )[0]!.t;
+        vi.setSystemTime(t);
+        const r = await sql<{ id: string }[]>`
+          insert into notifications (user_id, kind, title, body, url, topic, push_next_at)
+          values (${u}, 'nova_evidencia', 'T', 'C', '/missao/1', null, ${t}::timestamptz + interval '500 microseconds')
+          returning id`;
+        const id = r[0]!.id;
+        expect((await sendPendingPush(sql, transport)).processed).toBeGreaterThanOrEqual(1);
+        expect((await stateOf(id)).pushState).toBe('enviado');
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('entrega em um aparelho marca enviado', async () => {
     const u = await newUser();
     const ep = await addSub(u);
